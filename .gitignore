@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+.pnpm-debug.log
+package-lock.json
+yarn.lock
+.pnp.*
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+.output/
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# Logs
+logs/
+*.log
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+.Spotlight-V100
+.Trashes
+
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+.vs/
+*.sublime-workspace
+*.sublime-project
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
