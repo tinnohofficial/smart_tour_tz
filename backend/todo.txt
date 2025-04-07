@@ -1,1 +1,2 @@
-our to do list
+1. Design all the api endpoints that the system will need.
+2. Add some kind of table migration logic to create the tables in the db.
