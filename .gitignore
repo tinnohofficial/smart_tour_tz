@@ -53,3 +53,8 @@ Thumbs.db
 
 # Optional REPL history
 .node_repl_history
+
+.vercel
+
+*.tsbuildinfo
+next-env.d.ts
