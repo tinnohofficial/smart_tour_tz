@@ -1,7 +1,6 @@
-// backend/routes/users.js
 const express = require("express");
 const router = express.Router();
-const userProfileController = require("../controllers/userProfileController");
+const userProfileController = require("./controller");
 // Import other user-related controllers
 const authenticateToken = require("../middleware/authenticateToken");
 const checkRole = require("../middleware/checkRole"); // Adjust if combined middleware

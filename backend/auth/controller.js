@@ -1,26 +1,17 @@
-// backend/controllers/authController.js
-const db = require("../db");
-const {
-  hashPassword,
-  comparePassword,
-  generateAccessToken,
-} = require("../utils/authUtils");
+const db = require("../config/db");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const { validationResult } = require("express-validator");
+
+const saltRounds = 10;
 
 exports.register = async (req, res) => {
   const { email, password, phone_number, role } = req.body;
-
+  console.log(email, password, phone_number, role);
   // Basic Validation
-  if (!email || !password || !role) {
-    return res
-      .status(400)
-      .json({ message: "Email, password, and role are required." });
-  }
-  if (
-    !["tourist", "tour_guide", "hotel_manager", "travel_agent"].includes(role)
-  ) {
-    return res
-      .status(400)
-      .json({ message: "Invalid role selected for registration." });
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({ errors: errors.array() });
   }
 
   try {
@@ -35,7 +26,7 @@ exports.register = async (req, res) => {
         .json({ message: "Email or phone number already registered." });
     }
 
-    const hashedPassword = await hashPassword(password);
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
     const initialStatus = role === "tourist" ? "active" : "pending_profile"; // Tourists are active immediately, others need profile/approval
 
     const [result] = await db.query(
@@ -85,7 +76,7 @@ exports.login = async (req, res) => {
 
     const user = users[0];
 
-    const isMatch = await comparePassword(password, user.password_hash);
+    const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid credentials." });
     }
@@ -97,7 +88,18 @@ exports.login = async (req, res) => {
       });
     }
 
-    const token = generateAccessToken(user);
+    const token = jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: process.env.JWT_EXPIRES_IN || "1h",
+      },
+    );
 
     // Send user info (excluding password) and token
     res.json({

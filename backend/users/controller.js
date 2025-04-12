@@ -1,5 +1,4 @@
-// backend/controllers/userProfileController.js (Example for Tour Guide)
-const db = require("../db");
+const db = require("../config/db");
 
 exports.completeTourGuideProfile = async (req, res) => {
   const userId = req.user.id; // From authenticateToken middleware

@@ -1,30 +1,27 @@
--- Users Table: Stores basic login info and role
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     phone_number VARCHAR(20) UNIQUE,
     role ENUM('tourist', 'tour_guide', 'hotel_manager', 'travel_agent', 'admin') NOT NULL,
-    status ENUM('pending_profile', 'pending_approval', 'active', 'rejected', 'inactive') NOT NULL DEFAULT 'pending_profile', -- Status workflow
+    status ENUM('pending_profile', 'pending_approval', 'active', 'rejected', 'inactive') NOT NULL DEFAULT 'pending_profile',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Tour Guides Profile Table
 CREATE TABLE tour_guides (
     user_id INT PRIMARY KEY,
     full_name VARCHAR(255) NOT NULL,
-    license_document_url VARCHAR(512), -- URL to stored document
+    license_document_url VARCHAR(512),
     location VARCHAR(255),
     expertise TEXT, -- Comma-separated or JSON array of skills/areas
     -- add other relevant fields like rating, availability etc.
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Hotels Table
 CREATE TABLE hotels (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    manager_user_id INT UNIQUE, -- A manager manages one hotel in this simple model
+    manager_user_id INT UNIQUE,
     name VARCHAR(255) NOT NULL,
     location VARCHAR(255) NOT NULL,
     description TEXT,

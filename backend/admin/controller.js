@@ -1,4 +1,4 @@
-const db = require("../db");
+const db = require("../config/db");
 
 exports.getPendingApplications = async (req, res) => {
   try {
@@ -28,11 +28,9 @@ exports.updateApplicationStatus = async (req, res) => {
   const { newStatus } = req.body; // Expecting 'active' or 'rejected'
 
   if (!["active", "rejected"].includes(newStatus)) {
-    return res
-      .status(400)
-      .json({
-        message: 'Invalid status provided. Must be "active" or "rejected".',
-      });
+    return res.status(400).json({
+      message: 'Invalid status provided. Must be "active" or "rejected".',
+    });
   }
 
   try {
