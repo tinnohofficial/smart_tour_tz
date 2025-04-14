@@ -6,6 +6,13 @@ const router = express.Router();
 const authRoutes = require("./auth/routes");
 const userRoutes = require("./users/routes");
 const adminRoutes = require("./admin/routes");
+const destinationRoutes = require("./destinations/routes");
+const hotelRoutes = require("./hotels/routes");
+const transportRoutes = require("./transport/routes");
+const bookingRoutes = require("./bookings/routes");
+const activityRoutes = require("./activities/routes");
+const paymentRoutes = require("./payments/routes");
+const savingsRoutes = require("./savings/routes");
 
 const PORT = process.env.PORT;
 
@@ -20,6 +27,13 @@ router.get("/", (req, res) => {
 router.use("/auth", authRoutes);
 router.use("/users", userRoutes);
 router.use("/admin", adminRoutes);
+router.use("/destinations", destinationRoutes);
+router.use("/hotels", hotelRoutes);
+router.use("/transport-routes", transportRoutes);
+router.use("/bookings", bookingRoutes);
+router.use("/activities", activityRoutes);
+router.use("/payments", paymentRoutes);
+router.use("/savings", savingsRoutes);
 
 app.use("/api", router);
 
