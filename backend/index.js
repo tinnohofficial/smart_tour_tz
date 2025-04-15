@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const app = express();
+const { runSchema } = require("./config/setupDb");
 const router = express.Router();
 const authRoutes = require("./auth/routes");
 const userRoutes = require("./users/routes");
@@ -37,7 +38,17 @@ router.use("/savings", savingsRoutes);
 
 app.use("/api", router);
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+async function startServer() {
+  try {
+    await runSchema();
+
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    process.exit(1);
+  }
+}
+
+startServer();

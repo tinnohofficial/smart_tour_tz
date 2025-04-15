@@ -1,0 +1,14 @@
+1. Set up the database (tables created only if they don't exist):
+   ```bash
+   node backend/config/setupDatabase.js
+   ```
+
+2. Delete all tables:
+   ```bash
+   node backend/config/teardownDatabase.js
+   ```
+
+3. Delete a specific table:
+   ```bash
+   node backend/config/teardownDatabase.js table_name
+   ```

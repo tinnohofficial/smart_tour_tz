@@ -5,12 +5,7 @@ const userProfileController = require("./controller");
 const authenticateToken = require("../middleware/authenticateToken");
 const checkRole = require("../middleware/checkRole"); // Adjust if combined middleware
 
-// Endpoint for currently logged-in user to get their profile
-router.get("/me", authenticateToken, (req, res) => {
-  // Fetch detailed profile based on req.user.role and req.user.id
-  // Example: if (req.user.role === 'tourist') { fetch tourist data } ...
-  res.json(req.user); // Send back basic info for now
-});
+router.get("/me", authenticateToken, userProfileController.getMyProfile);
 
 // F2.1 Profile Completion for Tour Guide (already implemented)
 router.post(
@@ -40,14 +35,14 @@ router.post(
 router.put(
   "/me/password",
   authenticateToken,
-  userProfileController.updatePassword
+  userProfileController.updatePassword,
 );
 
 // F4.2 Update profile details based on role
 router.put(
   "/me/profile/:role",
   authenticateToken,
-  userProfileController.updateProfileDetails
+  userProfileController.updateProfileDetails,
 );
 
 module.exports = router;

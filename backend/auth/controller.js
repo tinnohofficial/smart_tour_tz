@@ -7,7 +7,7 @@ const saltRounds = 10;
 
 exports.register = async (req, res) => {
   const { email, password, phone_number, role } = req.body;
-  console.log(email, password, phone_number, role);
+
   // Basic Validation
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -81,12 +81,11 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials." });
     }
 
-    if (user.status !== "active") {
-      // Handle different statuses appropriately (e.g., prompt profile completion, inform about pending approval)
-      return res.status(403).json({
-        message: `Account not active. Status: ${user.status}. Please complete profile or wait for approval.`,
-      });
-    }
+    // if (user.status !== "active") {
+    //   return res.status(403).json({
+    //     message: `Account not active. Status: ${user.status}. Please complete profile or wait for approval.`,
+    //   });
+    // }
 
     const token = jwt.sign(
       {

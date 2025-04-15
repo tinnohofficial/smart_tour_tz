@@ -7,6 +7,7 @@ yarn-error.log
 package-lock.json
 yarn.lock
 .pnp.*
+foundry_stable_win32_amd64/
 
 # Environment variables
 .env

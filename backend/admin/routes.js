@@ -14,4 +14,11 @@ router.patch(
   adminController.updateApplicationStatus,
 ); // PATCH or PUT for updates
 
+router.post("/destinations", adminController.createDestination);
+router.put("/destinations/:destinationId", adminController.updateDestination);
+router.delete(
+  "/destinations/:destinationId",
+  adminController.deleteDestination,
+);
+
 module.exports = router;
