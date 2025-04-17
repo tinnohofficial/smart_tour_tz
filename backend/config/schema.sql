@@ -77,9 +77,7 @@ CREATE TABLE activities (
     price DECIMAL(10, 2),
     duration_minutes INT,
     max_participants INT,
-    image_urls TEXT, -- JSON array
     start_time TIME,
-    end_time TIME,
     status ENUM ('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

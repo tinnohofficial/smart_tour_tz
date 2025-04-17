@@ -20,6 +20,14 @@ router.get(
   transportController.getAgencyDetails
 );
 
+// Travel Agent updates their profile (F4.2)
+router.put(
+  "/me",
+  authenticateToken,
+  checkRole("travel_agent"),
+  transportController.updateTravelAgentProfile
+);
+
 // Travel Agent adds a new transport route
 router.post(
   "/routes",

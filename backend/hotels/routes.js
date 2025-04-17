@@ -20,6 +20,14 @@ router.get(
   hotelController.getHotelDetails
 );
 
+// Hotel Manager updates their profile (F4.2)
+router.put(
+  "/me",
+  authenticateToken,
+  checkRole("hotel_manager"),
+  hotelController.updateHotelProfile
+);
+
 // API endpoints for hotels available to tourists (F6.5)
 router.get(
   "/",

@@ -5,11 +5,13 @@ const app = express();
 const { runSchema } = require("./config/setupDb");
 const router = express.Router();
 const authRoutes = require("./auth/routes");
-const userRoutes = require("./users/routes");
+// const userRoutes = require("./users/routes"); // Commented out users routes
 const adminRoutes = require("./admin/routes");
 const destinationRoutes = require("./destinations/routes");
 const hotelRoutes = require("./hotels/routes");
 const transportRoutes = require("./transport/routes");
+const tourGuideRoutes = require("./tour_guides/routes"); 
+const touristsRoutes = require("./tourists/routes"); // Added tourists routes
 const bookingRoutes = require("./bookings/routes");
 const activityRoutes = require("./activities/routes");
 const paymentRoutes = require("./payments/routes");
@@ -26,11 +28,13 @@ router.get("/", (req, res) => {
   res.send("Welcome to the Smart Tour backend!");
 });
 router.use("/auth", authRoutes);
-router.use("/users", userRoutes);
+// router.use("/users", userRoutes); // Commented out users route registration
 router.use("/admin", adminRoutes);
 router.use("/destinations", destinationRoutes);
 router.use("/hotels", hotelRoutes);
 router.use("/transport-routes", transportRoutes);
+router.use("/tour-guides", tourGuideRoutes);
+router.use("/tourists", touristsRoutes); // Added tourists route registration
 router.use("/bookings", bookingRoutes);
 router.use("/activities", activityRoutes);
 router.use("/payments", paymentRoutes);

@@ -46,7 +46,7 @@ exports.getDestinationById = async (req, res) => {
 
     // Get nearby hotels based on location
     const [hotelsRows] = await db.query(
-      `SELECT h.id, h.name, h.location, h.description, h.facilities_images_urls, h.base_price_per_night
+      `SELECT h.id, h.name, h.location, h.description, h.images, h.rate_per_night
        FROM hotels h
        JOIN users u ON h.manager_user_id = u.id
        WHERE u.status = 'active'
@@ -73,12 +73,10 @@ exports.getDestinationById = async (req, res) => {
     res.status(200).json(destination);
   } catch (error) {
     console.error("Error fetching destination details:", error);
-    res
-      .status(500)
-      .json({
-        message: "Failed to fetch destination details",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Failed to fetch destination details",
+      error: error.message,
+    });
   }
 };
 
@@ -90,7 +88,7 @@ exports.getHotels = async (req, res) => {
 
   try {
     let query = `
-      SELECT h.id, h.name, h.location, h.description, h.base_price_per_night, h.capacity
+      SELECT h.id, h.name, h.location, h.description, h.rate_per_night, h.capacity
       FROM hotels h
       JOIN users u ON h.manager_user_id = u.id
       WHERE u.status = 'active'
