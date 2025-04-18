@@ -36,12 +36,12 @@ export default function Login() {
     }
 
     try {
-      // Simulate API delay
+      // i will remove this once i finish my testing
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       toast.success("Welcome back to Smart Tour System.");
 
-      // Redirect to dashboard (currently home page)
+      
       router.push("/");
     } catch (error) {
       toast.error("Invalid email or password. Please try again.");
