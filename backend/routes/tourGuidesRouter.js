@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const tourGuideController = require("./controller");
+const tourGuideController = require("../controllers/tourGuidesController");
 const authenticateToken = require("../middleware/authenticateToken");
 const checkRole = require("../middleware/checkRole");
 
@@ -9,7 +9,7 @@ router.post(
   "/profile",
   authenticateToken,
   checkRole("tour_guide"),
-  tourGuideController.submitTourGuideProfile
+  tourGuideController.submitTourGuideProfile,
 );
 
 // Tour Guide views their profile details
@@ -17,7 +17,7 @@ router.get(
   "/me",
   authenticateToken,
   checkRole("tour_guide"),
-  tourGuideController.getGuideProfile
+  tourGuideController.getGuideProfile,
 );
 
 // Tour Guide updates profile
@@ -25,7 +25,7 @@ router.put(
   "/me",
   authenticateToken,
   checkRole("tour_guide"),
-  tourGuideController.updateGuideProfile
+  tourGuideController.updateGuideProfile,
 );
 
 // Tour Guide sees assigned bookings
@@ -33,7 +33,7 @@ router.get(
   "/bookings",
   authenticateToken,
   checkRole("tour_guide"),
-  tourGuideController.getAssignedBookings
+  tourGuideController.getAssignedBookings,
 );
 
 module.exports = router;

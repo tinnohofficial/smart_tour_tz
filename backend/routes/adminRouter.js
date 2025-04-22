@@ -1,7 +1,7 @@
 // backend/routes/admin.js
 const express = require("express");
 const router = express.Router();
-const adminController = require("./controller");
+const adminController = require("../controllers/adminController");
 const authenticateToken = require("../middleware/authenticateToken");
 const checkRole = require("../middleware/checkRole");
 
