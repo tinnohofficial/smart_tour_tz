@@ -1,8 +1,5 @@
 const db = require("../config/db");
 
-/**
- * Get list of tourist locations (F6.1)
- */
 exports.getDestinations = async (req, res) => {
   try {
     const [rows] = await db.query(
@@ -18,9 +15,6 @@ exports.getDestinations = async (req, res) => {
   }
 };
 
-/**
- * Get detailed info for a specific destination (F6.2)
- */
 exports.getDestinationById = async (req, res) => {
   const { destinationId } = req.params;
 
@@ -80,33 +74,164 @@ exports.getDestinationById = async (req, res) => {
   }
 };
 
-/**
- * Get hotels based on location (F6.5)
- */
-exports.getHotels = async (req, res) => {
-  const { location } = req.query;
-
+exports.createDestination = async (req, res) => {
   try {
-    let query = `
-      SELECT h.id, h.name, h.location, h.description, h.rate_per_night, h.capacity
-      FROM hotels h
-      JOIN users u ON h.manager_user_id = u.id
-      WHERE u.status = 'active'
-    `;
-    const params = [];
+    const { name, description, region, image_url } = req.body;
 
-    if (location) {
-      query += " AND h.location LIKE ?";
-      params.push(`%${location}%`);
+    // Validate required fields
+    if (!name || !region) {
+      return res
+        .status(400)
+        .json({ message: "Name and location details are required." });
     }
 
-    const [hotels] = await db.query(query, params);
+    // Check if destination with the same name already exists
+    const [existingDestinations] = await db.query(
+      "SELECT id FROM destinations WHERE name = ?",
+      [name],
+    );
 
-    res.status(200).json(hotels);
+    if (existingDestinations.length > 0) {
+      return res
+        .status(409)
+        .json({ message: "A destination with this name already exists." });
+    }
+
+    // Insert new destination
+    const [result] = await db.query(
+      `INSERT INTO destinations (name, description, region, image_url)
+       VALUES (?, ?, ?, ?)`,
+      [name, description || "", region, image_url || null],
+    );
+
+    res.status(201).json({
+      message: "Destination created successfully.",
+      destinationId: result.insertId,
+      name,
+    });
   } catch (error) {
-    console.error("Error fetching hotels:", error);
+    console.error("Error creating destination:", error);
     res
       .status(500)
-      .json({ message: "Failed to fetch hotels", error: error.message });
+      .json({ message: "Failed to create destination.", error: error.message });
+  }
+};
+
+exports.updateDestination = async (req, res) => {
+  try {
+    const { destinationId } = req.params;
+    const { name, description, region, image_url } = req.body;
+
+    // Validate at least one field to update
+    if (!name && !description && !region && !image_url) {
+      return res.status(400).json({ message: "No update data provided." });
+    }
+
+    // Check if destination exists
+    const [existingDestinations] = await db.query(
+      "SELECT id FROM destinations WHERE id = ?",
+      [destinationId],
+    );
+
+    if (existingDestinations.length === 0) {
+      return res.status(404).json({ message: "Destination not found." });
+    }
+
+    // If name is being updated, check for duplicates
+    if (name) {
+      const [nameCheck] = await db.query(
+        "SELECT id FROM destinations WHERE name = ? AND id != ?",
+        [name, destinationId],
+      );
+
+      if (nameCheck.length > 0) {
+        return res
+          .status(409)
+          .json({ message: "A destination with this name already exists." });
+      }
+    }
+
+    // Build dynamic update query
+    const updates = [];
+    const values = [];
+
+    if (name) {
+      updates.push("name = ?");
+      values.push(name);
+    }
+
+    if (description !== undefined) {
+      updates.push("description = ?");
+      values.push(description);
+    }
+
+    if (region) {
+      updates.push("region = ?");
+      values.push(region);
+    }
+
+    if (image_url !== undefined) {
+      updates.push("image_url = ?");
+      values.push(image_url);
+    }
+
+    updates.push("updated_at = CURRENT_TIMESTAMP");
+
+    // Add destination ID to values array
+    values.push(destinationId);
+
+    // Execute update query
+    const [result] = await db.query(
+      `UPDATE destinations SET ${updates.join(", ")} WHERE id = ?`,
+      values,
+    );
+
+    if (result.affectedRows === 0) {
+      return res
+        .status(404)
+        .json({ message: "Destination not found or no changes applied." });
+    }
+
+    res.json({ message: "Destination updated successfully." });
+  } catch (error) {
+    console.error("Error updating destination:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to update destination.", error: error.message });
+  }
+};
+
+exports.deleteDestination = async (req, res) => {
+  try {
+    const { destinationId } = req.params;
+
+    // Check if destination is associated with any activities
+    const [activities] = await db.query(
+      "SELECT COUNT(*) as count FROM activities WHERE destination_id = ?",
+      [destinationId],
+    );
+
+    if (activities[0].count > 0) {
+      return res.status(409).json({
+        message:
+          "Cannot delete destination with associated activities. Remove activities first or archive the destination instead.",
+      });
+    }
+
+    // Delete the destination
+    const [result] = await db.query("DELETE FROM destinations WHERE id = ?", [
+      destinationId,
+    ]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Destination not found." });
+    }
+
+    res.json({ message: "Destination deleted successfully." });
+  } catch (error) {
+    console.error("Error deleting destination:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to delete destination.", error: error.message });
   }
 };

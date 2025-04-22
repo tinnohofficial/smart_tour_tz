@@ -14,7 +14,7 @@ router.post(
 
 // Tour Guide views their profile details
 router.get(
-  "/me",
+  "/profile",
   authenticateToken,
   checkRole("tour_guide"),
   tourGuideController.getGuideProfile,
@@ -22,18 +22,10 @@ router.get(
 
 // Tour Guide updates profile
 router.put(
-  "/me",
+  "/profile",
   authenticateToken,
   checkRole("tour_guide"),
   tourGuideController.updateGuideProfile,
-);
-
-// Tour Guide sees assigned bookings
-router.get(
-  "/bookings",
-  authenticateToken,
-  checkRole("tour_guide"),
-  tourGuideController.getAssignedBookings,
 );
 
 module.exports = router;

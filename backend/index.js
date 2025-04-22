@@ -4,18 +4,17 @@ const cors = require("cors");
 const app = express();
 const { runSchema } = require("./config/setupDb");
 const router = express.Router();
-const authRoutes = require("./auth/routes");
-// const userRoutes = require("./users/routes"); // Commented out users routes
-const adminRoutes = require("./admin/routes");
-const destinationRoutes = require("./destinations/routes");
-const hotelRoutes = require("./hotels/routes");
-const transportRoutes = require("./transport/routes");
-const tourGuideRoutes = require("./tour_guides/routes"); 
-const touristsRoutes = require("./tourists/routes"); // Added tourists routes
-const bookingRoutes = require("./bookings/routes");
-const activityRoutes = require("./activities/routes");
-const paymentRoutes = require("./payments/routes");
-const savingsRoutes = require("./savings/routes");
+const authRouter = require("./routes/authRouter");
+const adminRouter = require("./routes/adminRouter");
+const destinationsRouter = require("./routes/destinationsRouter");
+const hotelManagersRouter = require("./routes/hotelManagersRouter");
+const travelAgentsRouter = require("./routes/travelAgentsRouter");
+const tourGuidesRouter = require("./routes/tourGuidesRouter");
+const touristsRouter = require("./routes/touristsRouter");
+const bookingsRouter = require("./routes/bookingsRouter");
+const activitiesRouter = require("./routes/activitiesRouter");
+const paymentsRouter = require("./routes/paymentsRouter");
+const savingsRouter = require("./routes/savingsRouter");
 
 const PORT = process.env.PORT;
 
@@ -27,18 +26,17 @@ app.use(express.urlencoded({ extended: true }));
 router.get("/", (req, res) => {
   res.send("Welcome to the Smart Tour backend!");
 });
-router.use("/auth", authRoutes);
-// router.use("/users", userRoutes); // Commented out users route registration
-router.use("/admin", adminRoutes);
-router.use("/destinations", destinationRoutes);
-router.use("/hotels", hotelRoutes);
-router.use("/transport-routes", transportRoutes);
-router.use("/tour-guides", tourGuideRoutes);
-router.use("/tourists", touristsRoutes); // Added tourists route registration
-router.use("/bookings", bookingRoutes);
-router.use("/activities", activityRoutes);
-router.use("/payments", paymentRoutes);
-router.use("/savings", savingsRoutes);
+router.use("/auth", authRouter);
+router.use("/admin", adminRouter);
+router.use("/destinations", destinationsRouter);
+router.use("/hotel-managers", hotelManagersRouter);
+router.use("/travel-agents", travelAgentsRouter);
+router.use("/tour-guides", tourGuidesRouter);
+router.use("/tourists", touristsRouter);
+router.use("/bookings", bookingsRouter);
+router.use("/activities", activitiesRouter);
+router.use("/payments", paymentsRouter);
+router.use("/savings", savingsRouter);
 
 app.use("/api", router);
 

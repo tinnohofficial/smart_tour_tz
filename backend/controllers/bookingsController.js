@@ -405,3 +405,220 @@ exports.getTourGuideBookings = async (req, res) => {
       .json({ message: "Failed to fetch bookings", error: error.message });
   }
 };
+
+/**
+ * Get bookings for tour guides to see assigned tours
+ */
+exports.getGuideAssignedBookings = async (req, res) => {
+  const userId = req.user.id;
+  
+  try {
+    const [rows] = await db.query(
+      `SELECT a.id, a.name, a.description, a.location, a.date,
+              a.group_size, a.status, a.price,
+              b.id as booking_id, b.created_at as booking_date,
+              u.email as tourist_email
+       FROM activities a
+       JOIN booking_items bi ON bi.item_id = a.id AND bi.item_type = 'activity'
+       JOIN bookings b ON bi.booking_id = b.id
+       JOIN users u ON b.tourist_user_id = u.id
+       WHERE a.guide_user_id = ?
+       ORDER BY a.date DESC`,
+      [userId]
+    );
+    
+    res.status(200).json(rows);
+  } catch (error) {
+    console.error("Error fetching assigned bookings:", error);
+    res.status(500).json({ message: "Failed to fetch bookings", error: error.message });
+  }
+};
+
+/**
+ * Get bookings for a specific hotel that need action
+ */
+exports.getHotelBookingsNeedingAction = async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    // First get the hotel ID for this manager
+    const [hotelRows] = await db.query(
+      "SELECT id FROM hotels WHERE manager_user_id = ?",
+      [userId]
+    );
+
+    if (hotelRows.length === 0) {
+      return res.status(404).json({ message: "Hotel not found for this manager" });
+    }
+
+    const hotelId = hotelRows[0].id;
+
+    // Get bookings that need action
+    const [bookingItems] = await db.query(
+      `SELECT bi.*, b.created_at, b.tourist_user_id, u.email as tourist_email
+       FROM booking_items bi
+       JOIN bookings b ON bi.booking_id = b.id
+       JOIN users u ON b.tourist_user_id = u.id
+       WHERE bi.item_type = 'hotel'
+       AND bi.item_id = ?
+       AND bi.provider_status = 'pending'
+       AND b.status = 'confirmed'
+       ORDER BY b.created_at DESC`,
+      [hotelId]
+    );
+
+    res.status(200).json(bookingItems);
+  } catch (error) {
+    console.error("Error fetching bookings needing action:", error);
+    res.status(500).json({ message: "Failed to fetch bookings", error: error.message });
+  }
+};
+
+/**
+ * Confirm room for a booking
+ */
+exports.confirmHotelRoom = async (req, res) => {
+  const { itemId } = req.params;
+  const { roomDetails } = req.body;
+  const userId = req.user.id;
+
+  try {
+    // Verify the booking item belongs to this hotel manager
+    const [hotelRows] = await db.query(
+      "SELECT id FROM hotels WHERE manager_user_id = ?",
+      [userId]
+    );
+
+    if (hotelRows.length === 0) {
+      return res.status(404).json({ message: "Hotel not found for this manager" });
+    }
+
+    const hotelId = hotelRows[0].id;
+
+    // Check if the booking item belongs to this hotel and is pending
+    const [bookingItemRows] = await db.query(
+      `SELECT * FROM booking_items 
+       WHERE id = ? 
+       AND item_type = 'hotel' 
+       AND item_id = ? 
+       AND provider_status = 'pending'`,
+      [itemId, hotelId]
+    );
+
+    if (bookingItemRows.length === 0) {
+      return res.status(404).json({ 
+        message: "Booking item not found or not associated with your hotel or already processed" 
+      });
+    }
+
+    // Update the booking item with room details
+    await db.query(
+      `UPDATE booking_items 
+       SET provider_status = 'confirmed', 
+       item_details = ? 
+       WHERE id = ?`,
+      [JSON.stringify(roomDetails), itemId]
+    );
+
+    res.status(200).json({ message: "Room confirmed successfully" });
+  } catch (error) {
+    console.error("Error confirming room:", error);
+    res.status(500).json({ message: "Failed to confirm room", error: error.message });
+  }
+};
+
+/**
+ * Get bookings for travel agent that need action
+ */
+exports.getTransportBookingsNeedingAction = async (req, res) => {
+  const userId = req.user.id;
+  
+  try {
+    // Get agency ID for this user
+    const [agencyRows] = await db.query(
+      "SELECT id FROM travel_agencies WHERE agent_user_id = ?",
+      [userId]
+    );
+    
+    if (agencyRows.length === 0) {
+      return res.status(404).json({ message: "Travel agency not found for this user" });
+    }
+    
+    const agencyId = agencyRows[0].id;
+    
+    // Get bookings that need action
+    const [bookingItems] = await db.query(
+      `SELECT bi.*, tr.origin, tr.destination, tr.transport_type, 
+              b.created_at, b.tourist_user_id, u.email as tourist_email
+       FROM booking_items bi
+       JOIN transport_routes tr ON bi.item_id = tr.id AND bi.item_type = 'transport'
+       JOIN bookings b ON bi.booking_id = b.id
+       JOIN users u ON b.tourist_user_id = u.id
+       WHERE tr.agency_id = ?
+       AND bi.provider_status = 'pending'
+       AND b.status = 'confirmed'
+       ORDER BY b.created_at DESC`,
+      [agencyId]
+    );
+    
+    res.status(200).json(bookingItems);
+  } catch (error) {
+    console.error("Error fetching bookings needing action:", error);
+    res.status(500).json({ message: "Failed to fetch bookings", error: error.message });
+  }
+};
+
+/**
+ * Assign ticket for a booking
+ */
+exports.assignTransportTicket = async (req, res) => {
+  const { itemId } = req.params;
+  const { ticketDetails } = req.body;
+  const userId = req.user.id;
+  
+  try {
+    // Get agency ID for this user
+    const [agencyRows] = await db.query(
+      "SELECT id FROM travel_agencies WHERE agent_user_id = ?",
+      [userId]
+    );
+    
+    if (agencyRows.length === 0) {
+      return res.status(404).json({ message: "Travel agency not found for this user" });
+    }
+    
+    const agencyId = agencyRows[0].id;
+    
+    // Check if the booking item belongs to a route owned by this agency
+    const [bookingItemRows] = await db.query(
+      `SELECT bi.* 
+       FROM booking_items bi
+       JOIN transport_routes tr ON bi.item_id = tr.id
+       WHERE bi.id = ?
+       AND bi.item_type = 'transport'
+       AND tr.agency_id = ?
+       AND bi.provider_status = 'pending'`,
+      [itemId, agencyId]
+    );
+    
+    if (bookingItemRows.length === 0) {
+      return res.status(404).json({ 
+        message: "Booking item not found or not associated with your agency or already processed" 
+      });
+    }
+    
+    // Update the booking item with ticket details
+    await db.query(
+      `UPDATE booking_items 
+       SET provider_status = 'confirmed', 
+           item_details = ? 
+       WHERE id = ?`,
+      [JSON.stringify(ticketDetails), itemId]
+    );
+    
+    res.status(200).json({ message: "Ticket assigned successfully" });
+  } catch (error) {
+    console.error("Error assigning ticket:", error);
+    res.status(500).json({ message: "Failed to assign ticket", error: error.message });
+  }
+};

@@ -36,4 +36,44 @@ router.get(
   bookingsController.getTourGuideBookings,
 );
 
+// Get Tour Guide's assigned activities
+router.get(
+  "/tour-guide-assigned",
+  authenticateToken,
+  checkRole("tour_guide"),
+  bookingsController.getGuideAssignedBookings,
+);
+
+// Get hotel bookings needing action
+router.get(
+  "/hotel-bookings-pending",
+  authenticateToken,
+  checkRole("hotel_manager"),
+  bookingsController.getHotelBookingsNeedingAction,
+);
+
+// Confirm room for booking
+router.patch(
+  "/items/:itemId/confirm-room",
+  authenticateToken,
+  checkRole("hotel_manager"),
+  bookingsController.confirmHotelRoom,
+);
+
+// Get transport bookings needing action
+router.get(
+  "/transport-bookings-pending",
+  authenticateToken,
+  checkRole("travel_agent"),
+  bookingsController.getTransportBookingsNeedingAction,
+);
+
+// Assign ticket for booking
+router.patch(
+  "/items/:itemId/assign-ticket",
+  authenticateToken,
+  checkRole("travel_agent"),
+  bookingsController.assignTransportTicket,
+);
+
 module.exports = router;

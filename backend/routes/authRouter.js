@@ -4,7 +4,7 @@ const authController = require("../controllers/authController");
 const authenticateToken = require("../middleware/authenticateToken");
 const { body } = require("express-validator");
 
-exports.validateRegistration = [
+validateRegistration = [
   body("email")
     .isEmail()
     .withMessage("Please provide a valid email address")

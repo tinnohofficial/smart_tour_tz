@@ -289,3 +289,148 @@ exports.getTourGuideActivities = async (req, res) => {
     });
   }
 };
+
+/**
+ * Add a new transport route
+ */
+exports.addTransportRoute = async (req, res) => {
+  const { origin, destination, transport_type, price, schedule_details } = req.body;
+  const userId = req.user.id;
+  
+  try {
+    // Get agency ID for this user
+    const [agencyRows] = await db.query(
+      "SELECT id FROM travel_agencies WHERE agent_user_id = ?",
+      [userId]
+    );
+    
+    if (agencyRows.length === 0) {
+      return res.status(404).json({ message: "Travel agency not found for this user" });
+    }
+    
+    const agencyId = agencyRows[0].id;
+    
+    // Create the new transport route
+    await db.query(
+      `INSERT INTO transport_routes 
+       (agency_id, origin, destination, transport_type, price, schedule_details)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        agencyId,
+        origin,
+        destination,
+        transport_type,
+        price,
+        JSON.stringify(schedule_details || {})
+      ]
+    );
+    
+    res.status(201).json({ message: "Transport route added successfully" });
+  } catch (error) {
+    console.error("Error adding transport route:", error);
+    res.status(500).json({ message: "Failed to add transport route", error: error.message });
+  }
+};
+
+/**
+ * Update an existing transport route
+ */
+exports.updateTransportRoute = async (req, res) => {
+  const { routeId } = req.params;
+  const { origin, destination, transport_type, price, schedule_details } = req.body;
+  const userId = req.user.id;
+  
+  try {
+    // Get agency ID for this user
+    const [agencyRows] = await db.query(
+      "SELECT id FROM travel_agencies WHERE agent_user_id = ?",
+      [userId]
+    );
+    
+    if (agencyRows.length === 0) {
+      return res.status(404).json({ message: "Travel agency not found for this user" });
+    }
+    
+    const agencyId = agencyRows[0].id;
+    
+    // Check if route exists and belongs to this agency
+    const [routeRows] = await db.query(
+      "SELECT id FROM transport_routes WHERE id = ? AND agency_id = ?",
+      [routeId, agencyId]
+    );
+    
+    if (routeRows.length === 0) {
+      return res.status(404).json({ message: "Route not found or not owned by your agency" });
+    }
+    
+    // Update the route
+    await db.query(
+      `UPDATE transport_routes 
+       SET origin = ?, 
+           destination = ?, 
+           transport_type = ?, 
+           price = ?, 
+           schedule_details = ? 
+       WHERE id = ?`,
+      [
+        origin,
+        destination,
+        transport_type,
+        price,
+        JSON.stringify(schedule_details || {}),
+        routeId
+      ]
+    );
+    
+    res.status(200).json({ message: "Transport route updated successfully" });
+  } catch (error) {
+    console.error("Error updating transport route:", error);
+    res.status(500).json({ message: "Failed to update transport route", error: error.message });
+  }
+};
+
+/**
+ * Get transport routes based on origin/destination (F6.3)
+ */
+exports.getTransportRoutes = async (req, res) => {
+  const { destination, origin } = req.query;
+  
+  try {
+    let query = `
+      SELECT tr.*, ta.name as agency_name 
+      FROM transport_routes tr
+      JOIN travel_agencies ta ON tr.agency_id = ta.id
+      JOIN users u ON ta.agent_user_id = u.id
+      WHERE u.status = 'active'
+    `;
+    const params = [];
+    
+    if (destination) {
+      query += " AND tr.destination LIKE ?";
+      params.push(`%${destination}%`);
+    }
+    
+    if (origin) {
+      query += " AND tr.origin LIKE ?";
+      params.push(`%${origin}%`);
+    }
+    
+    const [routes] = await db.query(query, params);
+    
+    // Parse schedule_details for each route
+    routes.forEach(route => {
+      if (route.schedule_details) {
+        try {
+          route.schedule_details = JSON.parse(route.schedule_details);
+        } catch (e) {
+          // Keep as is if parsing fails
+        }
+      }
+    });
+    
+    res.status(200).json(routes);
+  } catch (error) {
+    console.error("Error fetching transport routes:", error);
+    res.status(500).json({ message: "Failed to fetch transport routes", error: error.message });
+  }
+};

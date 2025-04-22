@@ -142,31 +142,3 @@ exports.updateGuideProfile = async (req, res) => {
     res.status(500).json({ message: "Failed to update profile", error: error.message });
   }
 };
-
-/**
- * Get bookings assigned to this tour guide
- */
-exports.getAssignedBookings = async (req, res) => {
-  const userId = req.user.id;
-  
-  try {
-    const [rows] = await db.query(
-      `SELECT a.id, a.name, a.description, a.location, a.date,
-              a.group_size, a.status, a.price,
-              b.id as booking_id, b.created_at as booking_date,
-              u.email as tourist_email
-       FROM activities a
-       JOIN booking_items bi ON bi.item_id = a.id AND bi.item_type = 'activity'
-       JOIN bookings b ON bi.booking_id = b.id
-       JOIN users u ON b.tourist_user_id = u.id
-       WHERE a.guide_user_id = ?
-       ORDER BY a.date DESC`,
-      [userId]
-    );
-    
-    res.status(200).json(rows);
-  } catch (error) {
-    console.error("Error fetching assigned bookings:", error);
-    res.status(500).json({ message: "Failed to fetch bookings", error: error.message });
-  }
-};

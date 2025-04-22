@@ -40,4 +40,26 @@ router.delete(
   activitiesController.deleteActivity,
 );
 
+// Get transport routes
+router.get(
+  "/transport/routes",
+  activitiesController.getTransportRoutes,
+);
+
+// Add a new transport route
+router.post(
+  "/transport/routes",
+  authenticateToken,
+  checkRole("travel_agent"),
+  activitiesController.addTransportRoute,
+);
+
+// Update an existing transport route
+router.put(
+  "/transport/routes/:routeId",
+  authenticateToken,
+  checkRole("travel_agent"),
+  activitiesController.updateTransportRoute,
+);
+
 module.exports = router;

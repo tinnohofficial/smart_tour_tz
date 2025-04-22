@@ -6,7 +6,7 @@ const checkRole = require("../middleware/checkRole");
 
 // Tourist views their profile
 router.get(
-  "/me",
+  "/profile",
   authenticateToken,
   checkRole("tourist"),
   touristController.getTouristProfile,
@@ -14,26 +14,10 @@ router.get(
 
 // Tourist updates their profile
 router.put(
-  "/me",
+  "/profile",
   authenticateToken,
   checkRole("tourist"),
   touristController.updateTouristProfile,
-);
-
-// Tourist views their bookings
-router.get(
-  "/bookings",
-  authenticateToken,
-  checkRole("tourist"),
-  touristController.getTouristBookings,
-);
-
-// Tourist views their savings account
-router.get(
-  "/savings",
-  authenticateToken,
-  checkRole("tourist"),
-  touristController.getSavingsAccount,
 );
 
 module.exports = router;
