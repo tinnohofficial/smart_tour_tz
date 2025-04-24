@@ -212,15 +212,15 @@ exports.createBooking = async (req, res) => {
         // For placeholder items, store the details
         if (item.type === 'placeholder' && item.details) {
           await connection.query(
-            `INSERT INTO booking_items (booking_id, item_type, item_id, cost, provider_status, item_details)
+            `INSERT INTO booking_items (id, booking_id, item_type, cost, provider_status, item_details)
              VALUES (?, ?, ?, ?, 'pending', ?)`,
-            [bookingId, item.type, item.id, item.cost, JSON.stringify(item.details)],
+            [item.id, bookingId, item.type, item.cost, JSON.stringify(item.details)],
           );
         } else {
           await connection.query(
-            `INSERT INTO booking_items (booking_id, item_type, item_id, cost, provider_status)
+            `INSERT INTO booking_items (id, booking_id, item_type, cost, provider_status)
              VALUES (?, ?, ?, ?, 'pending')`,
-            [bookingId, item.type, item.id, item.cost],
+            [item.id, bookingId, item.type, item.cost],
           );
         }
       }
@@ -288,10 +288,10 @@ exports.getUserBookings = async (req, res) => {
          WHEN bi.item_type = 'activity' THEN a.name
        END as item_name
        FROM booking_items bi
-       LEFT JOIN hotels h ON bi.item_type = 'hotel' AND bi.item_id = h.id
-       LEFT JOIN transports tr ON bi.item_type = 'transport' AND bi.item_id = tr.id
-       LEFT JOIN tour_guides tg ON bi.item_type = 'tour_guide' AND bi.item_id = tg.user_id
-       LEFT JOIN activities a ON bi.item_type = 'activity' AND bi.item_id = a.id
+       LEFT JOIN hotels h ON bi.item_type = 'hotel' AND bi.id = h.id
+       LEFT JOIN transports tr ON bi.item_type = 'transport' AND bi.id = tr.id
+       LEFT JOIN tour_guides tg ON bi.item_type = 'tour_guide' AND bi.id = tg.user_id
+       LEFT JOIN activities a ON bi.item_type = 'activity' AND bi.id = a.id
        WHERE bi.booking_id = ?`,
       [bookings[i].id],
     );
@@ -324,7 +324,7 @@ exports.getTourGuideBookings = async (req, res) => {
        JOIN bookings b ON bi.booking_id = b.id
        JOIN users u ON b.tourist_user_id = u.id
        WHERE bi.item_type = 'tour_guide'
-       AND bi.item_id = ?
+       AND bi.id = ?
        AND b.status = 'confirmed'
        ORDER BY b.created_at DESC`,
       [userId],
@@ -358,7 +358,7 @@ exports.getGuideAssignedBookings = async (req, res) => {
        JOIN bookings b ON bi.booking_id = b.id
        JOIN users u ON b.tourist_user_id = u.id
        WHERE bi.item_type = 'tour_guide'
-       AND bi.item_id = ?
+       AND bi.id = ?
        AND b.status = 'confirmed'
        ORDER BY b.created_at DESC`,
       [userId]
@@ -375,7 +375,7 @@ exports.getGuideAssignedBookings = async (req, res) => {
         `SELECT a.id, a.name, a.description, a.price, a.date, a.group_size, a.status,
                 d.name as destination_name, d.region as destination_region
          FROM booking_items bi
-         JOIN activities a ON bi.item_id = a.id
+         JOIN activities a ON bi.item_type = 'activity' AND bi.id = a.id
          JOIN destinations d ON a.destination_id = d.id
          WHERE bi.booking_id = ?
          AND bi.item_type = 'activity'`,
@@ -386,7 +386,7 @@ exports.getGuideAssignedBookings = async (req, res) => {
       const [hotelResults] = await db.query(
         `SELECT h.id, h.name, h.location, bi.item_details
          FROM booking_items bi
-         JOIN hotels h ON bi.item_id = h.id
+         JOIN hotels h ON bi.item_type = 'hotel' AND bi.id = h.id
          WHERE bi.booking_id = ?
          AND bi.item_type = 'hotel'`,
         [rows[i].booking_id]
@@ -414,17 +414,8 @@ exports.getHotelBookingsNeedingAction = async (req, res) => {
   const userId = req.user.id;
 
   try {
-    // First get the hotel ID for this manager
-    const [hotelRows] = await db.query(
-      "SELECT id FROM hotels WHERE manager_user_id = ?",
-      [userId]
-    );
-
-    if (hotelRows.length === 0) {
-      return res.status(404).json({ message: "Hotel not found for this manager" });
-    }
-
-    const hotelId = hotelRows[0].id;
+    // Hotel ID is now directly the user ID of the hotel manager
+    const hotelId = userId;
 
     // Get bookings that need action
     const [bookingItems] = await db.query(
@@ -433,7 +424,7 @@ exports.getHotelBookingsNeedingAction = async (req, res) => {
        JOIN bookings b ON bi.booking_id = b.id
        JOIN users u ON b.tourist_user_id = u.id
        WHERE bi.item_type = 'hotel'
-       AND bi.item_id = ?
+       AND bi.id = ?
        AND bi.provider_status = 'pending'
        AND b.status = 'confirmed'
        ORDER BY b.created_at DESC`,
@@ -456,26 +447,13 @@ exports.confirmHotelRoom = async (req, res) => {
   const userId = req.user.id;
 
   try {
-    // Verify the booking item belongs to this hotel manager
-    const [hotelRows] = await db.query(
-      "SELECT id FROM hotels WHERE manager_user_id = ?",
-      [userId]
-    );
-
-    if (hotelRows.length === 0) {
-      return res.status(404).json({ message: "Hotel not found for this manager" });
-    }
-
-    const hotelId = hotelRows[0].id;
-
     // Check if the booking item belongs to this hotel and is pending
     const [bookingItemRows] = await db.query(
       `SELECT * FROM booking_items 
        WHERE id = ? 
        AND item_type = 'hotel' 
-       AND item_id = ? 
        AND provider_status = 'pending'`,
-      [itemId, hotelId]
+      [itemId]
     );
 
     if (bookingItemRows.length === 0) {
@@ -515,7 +493,7 @@ exports.getTransportBookingsNeedingAction = async (req, res) => {
       `SELECT bi.*, tr.origin, tr.destination, tr.transportation_type, 
               b.created_at, b.tourist_user_id, u.email as tourist_email
        FROM booking_items bi
-       JOIN transports tr ON bi.item_id = tr.id
+       JOIN transports tr ON bi.item_type = 'transport' AND bi.id = tr.id
        JOIN bookings b ON bi.booking_id = b.id
        JOIN users u ON b.tourist_user_id = u.id
        WHERE tr.agency_id = ?
@@ -548,7 +526,7 @@ exports.assignTransportTicket = async (req, res) => {
     const [bookingItemRows] = await db.query(
       `SELECT bi.* 
        FROM booking_items bi
-       JOIN transports tr ON bi.item_id = tr.id
+       JOIN transports tr ON bi.item_type = 'transport' AND bi.id = tr.id
        WHERE bi.id = ?
        AND bi.item_type = 'transport'
        AND tr.agency_id = ?
@@ -620,7 +598,7 @@ exports.assignTourGuide = async (req, res) => {
       
       // Check if a tour guide placeholder exists or if a tour guide is already assigned
       const [existingGuideRows] = await connection.query(
-        `SELECT id, item_type, item_id, cost, item_details 
+        `SELECT id, item_type, cost, item_details 
          FROM booking_items 
          WHERE booking_id = ? AND (item_type = 'placeholder' OR item_type = 'tour_guide')`,
         [bookingId]
@@ -703,7 +681,7 @@ exports.assignTourGuide = async (req, res) => {
       await connection.query(
         `UPDATE booking_items 
          SET item_type = 'tour_guide', 
-             item_id = ?, 
+             id = ?, 
              provider_status = 'confirmed', 
              item_details = ? 
          WHERE id = ?`,
@@ -776,9 +754,9 @@ exports.getUnassignedBookings = async (req, res) => {
            ELSE NULL
          END as location
          FROM booking_items bi
-         LEFT JOIN hotels h ON bi.item_type = 'hotel' AND bi.item_id = h.id
-         LEFT JOIN transports tr ON bi.item_type = 'transport' AND bi.item_id = tr.id
-         LEFT JOIN activities a ON bi.item_type = 'activity' AND bi.item_id = a.id
+         LEFT JOIN hotels h ON bi.item_type = 'hotel' AND bi.id = h.id
+         LEFT JOIN transports tr ON bi.item_type = 'transport' AND bi.id = tr.id
+         LEFT JOIN activities a ON bi.item_type = 'activity' AND bi.id = a.id
          LEFT JOIN destinations d ON a.destination_id = d.id
          WHERE bi.booking_id = ?`,
         [rows[i].id]
@@ -806,8 +784,8 @@ exports.getEligibleGuidesForBooking = async (req, res) => {
     const [bookingItems] = await db.query(
       `SELECT bi.*, h.location as hotel_location, a.destination_id
        FROM booking_items bi
-       LEFT JOIN hotels h ON bi.item_type = 'hotel' AND bi.item_id = h.id
-       LEFT JOIN activities a ON bi.item_type = 'activity' AND bi.item_id = a.id
+       LEFT JOIN hotels h ON bi.item_type = 'hotel' AND bi.id = h.id
+       LEFT JOIN activities a ON bi.item_type = 'activity' AND bi.id = a.id
        WHERE bi.booking_id = ?`,
       [bookingId]
     );
@@ -848,7 +826,7 @@ exports.getEligibleGuidesForBooking = async (req, res) => {
     // Get activities for this booking
     const activityIds = bookingItems
       .filter(item => item.item_type === 'activity')
-      .map(item => item.item_id);
+      .map(item => item.id);
     
     // Find tour guides based on location and expertise
     const [guides] = await db.query(
@@ -955,7 +933,7 @@ exports.cancelBooking = async (req, res) => {
       for (const item of activityItems) {
         await connection.query(
           `UPDATE activities SET status = 'available' WHERE id = ? AND status = 'booked'`,
-          [item.item_id]
+          [item.id]
         );
       }
 
@@ -979,111 +957,47 @@ exports.cancelBooking = async (req, res) => {
           
           // Different refund logic based on original payment method
           switch (payment.payment_method) {
-            case 'card':
+            case 'external':
               // In a real system, you would process the refund through the payment gateway
               // Here we'll simply record the refund
               await connection.query(
                 `INSERT INTO payments (booking_id, user_id, amount, payment_method, 
-                  reference, status, transaction_id, description)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                  reference, status, description)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
                 [
                   bookingId,
                   userId,
                   refundAmount,
-                  'refund_to_card',
+                  'external',
                   `REFUND-${Date.now()}`,
                   'successful',
-                  null,
                   `Refund for canceled booking #${bookingId}`
                 ]
               );
               break;
               
-            case 'savings_fiat':
+            case 'savings':
               // Refund to savings account
               await connection.query(
-                `UPDATE savings_accounts SET balance_usd = balance_usd + ? WHERE user_id = ?`,
+                `UPDATE savings_accounts SET balance = balance + ? WHERE user_id = ?`,
                 [refundAmount, userId]
-              );
-              
-              // Record the transaction
-              const [transactionResult] = await connection.query(
-                `INSERT INTO savings_transactions 
-                 (user_id, type, amount_usd, description, is_crypto, token_type)
-                 VALUES (?, 'refund', ?, ?, FALSE, NULL)`,
-                [userId, refundAmount, `Refund for canceled booking #${bookingId}`]
               );
               
               // Record the payment refund
               await connection.query(
                 `INSERT INTO payments (booking_id, user_id, amount, payment_method, 
-                  reference, status, transaction_id, description)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                  reference, status, description)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
                 [
                   bookingId,
                   userId,
                   refundAmount,
-                  'refund_to_savings',
+                  'savings',
                   `REFUND-${Date.now()}`,
                   'successful',
-                  transactionResult.insertId,
                   `Refund for canceled booking #${bookingId}`
                 ]
               );
-              break;
-              
-            case 'savings_crypto':
-              // Refund to crypto balance - stored as USDT in the smart contract
-              await connection.query(
-                `UPDATE user_crypto_balances SET crypto_balance = crypto_balance + ? WHERE user_id = ?`,
-                [refundAmount, userId]
-              );
-              
-              // Get wallet address for contract interaction data
-              const [walletResult] = await connection.query(
-                "SELECT wallet_address FROM user_crypto_balances WHERE user_id = ?",
-                [userId]
-              );
-              
-              // In production: We would interact with the smart contract to refund
-              // by increasing the user's USDT balance
-              const contractData = walletResult.length > 0 ? {
-                contractAddress: "0xSmartTourContractAddress",
-                method: "refund",
-                params: {
-                  amount: refundAmount,
-                  token: "USDT",
-                  user: walletResult[0].wallet_address
-                }
-              } : null;
-              
-              // Record the transaction
-              const [cryptoTransactionResult] = await connection.query(
-                `INSERT INTO savings_transactions 
-                 (user_id, type, amount_usd, description, is_crypto, token_type)
-                 VALUES (?, 'refund', ?, ?, TRUE, 'USDT')`,
-                [userId, refundAmount, `USDT refund for canceled booking #${bookingId}`]
-              );
-              
-              // Record the payment refund
-              await connection.query(
-                `INSERT INTO payments (booking_id, user_id, amount, payment_method, 
-                  reference, status, transaction_id, description)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                [
-                  bookingId,
-                  userId,
-                  refundAmount,
-                  'refund_to_crypto',
-                  `REFUND-${Date.now()}`,
-                  'successful',
-                  cryptoTransactionResult.insertId,
-                  `USDT refund for canceled booking #${bookingId}`
-                ]
-              );
-              
-              // In production: This would be accompanied by an event or webhook
-              // to notify the user that they need to check their wallet for the refund
               break;
           }
         }
@@ -1107,5 +1021,221 @@ exports.cancelBooking = async (req, res) => {
     res
       .status(500)
       .json({ message: "Failed to cancel booking", error: error.message });
+  }
+};
+
+/**
+ * Process a payment for a booking
+ * Simple payment processing - either external (handled by Stripe in frontend)
+ * or from user's savings
+ */
+exports.processBookingPayment = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const { paymentMethod } = req.body;
+    const userId = req.user.id;
+
+    // Start a transaction to ensure database consistency
+    const connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    try {
+      // 1. Fetch booking details and verify it's pending payment
+      const bookingQuery = `
+        SELECT b.id, b.total_cost, b.status
+        FROM bookings b
+        WHERE b.id = ? AND b.tourist_user_id = ?
+      `;
+
+      const [bookingResult] = await connection.query(bookingQuery, [bookingId, userId]);
+
+      if (bookingResult.length === 0) {
+        await connection.rollback();
+        connection.release();
+        return res.status(404).json({ message: "Booking not found" });
+      }
+
+      const booking = bookingResult[0];
+
+      if (booking.status !== "pending_payment") {
+        await connection.rollback();
+        connection.release();
+        return res.status(400).json({
+          message: "Invalid booking status for payment processing",
+          status: booking.status,
+        });
+      }
+
+      // Payment processing logic based on payment method
+      let paymentSuccess = false;
+      let paymentReference = "";
+
+      switch (paymentMethod) {
+        case "external":
+          // For external payments (like Stripe), we just mark it as successful
+          // since the actual payment processing happens in the frontend
+          paymentSuccess = true;
+          paymentReference = `EXT-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+          break;
+
+        case "savings":
+          // Check user's savings balance
+          const balanceQuery = `
+            SELECT balance FROM savings_accounts
+            WHERE user_id = ?
+          `;
+          const [balanceResult] = await connection.query(balanceQuery, [userId]);
+
+          if (balanceResult.length === 0) {
+            await connection.rollback();
+            connection.release();
+            return res.status(404).json({ message: "Savings account not found" });
+          }
+
+          const balance = parseFloat(balanceResult[0].balance);
+
+          if (balance < booking.total_cost) {
+            await connection.rollback();
+            connection.release();
+            return res.status(400).json({
+              message: "Insufficient funds in savings account",
+              balance,
+              required: booking.total_cost,
+            });
+          }
+
+          // Update balance
+          await connection.query(
+            "UPDATE savings_accounts SET balance = balance - ? WHERE user_id = ?",
+            [booking.total_cost, userId],
+          );
+          
+          paymentSuccess = true;
+          paymentReference = `SAV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+          break;
+
+        default:
+          await connection.rollback();
+          connection.release();
+          return res.status(400).json({ message: "Invalid payment method" });
+      }
+
+      if (paymentSuccess) {
+        // Update booking status
+        await connection.query("UPDATE bookings SET status = ? WHERE id = ?", [
+          "confirmed",
+          bookingId,
+        ]);
+
+        // Create payment record
+        const paymentQuery = `
+          INSERT INTO payments
+          (booking_id, user_id, amount, payment_method, reference, status)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `;
+
+        const [paymentResult] = await connection.query(paymentQuery, [
+          bookingId,
+          userId,
+          booking.total_cost,
+          paymentMethod,
+          paymentReference,
+          "successful",
+        ]);
+        
+        // Update activity status for all activities in this booking to 'booked'
+        // This prevents overbooking of activities
+        const [activityItems] = await connection.query(
+          `SELECT id FROM booking_items 
+           WHERE booking_id = ? AND item_type = 'activity'`,
+          [bookingId]
+        );
+        
+        // If there are activities in the booking, update their status
+        if (activityItems && activityItems.length > 0) {
+          const activityIds = activityItems.map(item => item.id);
+          
+          // Update each activity status from 'pending' to 'booked' now that payment is confirmed
+          for (const activityId of activityIds) {
+            await connection.query(
+              `UPDATE activities 
+               SET status = 'booked' 
+               WHERE id = ? AND status = 'pending'`,
+              [activityId]
+            );
+          }
+        }
+
+        await connection.commit();
+        connection.release();
+
+        res.status(200).json({
+          message: "Payment successful",
+          bookingId,
+          paymentId: paymentResult.insertId,
+          status: "confirmed",
+          reference: paymentReference,
+        });
+      } else {
+        // Release any pending activities if payment fails
+        const [activityItems] = await connection.query(
+          `SELECT id FROM booking_items 
+           WHERE booking_id = ? AND item_type = 'activity'`,
+          [bookingId]
+        );
+        
+        // If there are activities in the booking, restore their status to available
+        if (activityItems && activityItems.length > 0) {
+          const activityIds = activityItems.map(item => item.id);
+          
+          // Restore each activity status from 'pending' to 'available'
+          for (const activityId of activityIds) {
+            await connection.query(
+              `UPDATE activities 
+               SET status = 'available' 
+               WHERE id = ? AND status = 'pending'`,
+              [activityId]
+            );
+          }
+        }
+        
+        await connection.rollback();
+        connection.release();
+        res.status(500).json({ message: "Payment processing failed" });
+      }
+    } catch (error) {
+      // Release any pending activities if an error occurs
+      try {
+        const [activityItems] = await connection.query(
+          `SELECT id FROM booking_items 
+           WHERE booking_id = ? AND item_type = 'activity'`,
+          [bookingId]
+        );
+        
+        if (activityItems && activityItems.length > 0) {
+          const activityIds = activityItems.map(item => item.id);
+          
+          for (const activityId of activityIds) {
+            await connection.query(
+              `UPDATE activities 
+               SET status = 'available' 
+               WHERE id = ? AND status = 'pending'`,
+              [activityId]
+            );
+          }
+        }
+      } catch (cleanupError) {
+        console.error("Error releasing activities:", cleanupError);
+      }
+      
+      await connection.rollback();
+      connection.release();
+      throw error;
+    }
+  } catch (error) {
+    console.error("Error processing payment:", error);
+    res
+      .status(500)
+      .json({ message: "Payment processing error", error: error.message });
   }
 };

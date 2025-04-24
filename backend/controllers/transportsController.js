@@ -2,7 +2,12 @@ const db = require("../config/db");
 
 exports.getTransports = async (req, res) => {
   try {
-    const [transports] = await db.query("SELECT * FROM transports");
+    const [transports] = await db.query(`
+      SELECT t.* 
+      FROM transports t
+      JOIN users u ON t.agency_id = u.id
+      WHERE u.status = 'active'
+    `);
     res.status(200).json(transports);
   } catch (error) {
     console.error("Error fetching transports:", error);
@@ -17,7 +22,10 @@ exports.getTransportById = async (req, res) => {
 
   try {
     const [transports] = await db.query(
-      "SELECT * FROM transports WHERE id = ?",
+      `SELECT t.* 
+       FROM transports t
+       JOIN users u ON t.agency_id = u.id
+       WHERE t.id = ? AND u.status = 'active'`,
       [transportId]
     );
 
@@ -220,7 +228,7 @@ exports.deleteTransport = async (req, res) => {
         `SELECT bi.id, b.status 
          FROM booking_items bi 
          JOIN bookings b ON bi.booking_id = b.id
-         WHERE bi.item_type = 'transport' AND bi.item_id = ?`,
+         WHERE bi.item_type = 'transport' AND bi.id = ?`,
         [transportId]
       );
 

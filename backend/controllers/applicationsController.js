@@ -40,7 +40,7 @@ exports.getPendingApplications = async (req, res) => {
             const [hotelDetails] = await db.query(
               `SELECT id, name, location, description, capacity, base_price_per_night, images
                FROM hotels
-               WHERE manager_user_id = ?`,
+               WHERE id = ?`,
               [user.id],
             );
 

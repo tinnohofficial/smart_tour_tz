@@ -30,24 +30,28 @@ async function createAdminUser(email, password, phoneNumber) {
   } catch (error) {
     console.error("Error creating admin user:", error);
     throw error;
-  } finally {
-    // Close the database connection
-    process.exit();
   }
+  // Removed process.exit() from finally block to make function reusable
 }
 
-// Get arguments from command line
-const args = process.argv.slice(2);
-const email = args[0] || "admin@smarttour.com";
-const password = args[1] || "admin123"; // You should use a stronger password in production
-const phoneNumber = args[2] || "+1234567890";
+// Only execute the standalone creation flow if this file is run directly
+if (require.main === module) {
+  // Get arguments from command line
+  const args = process.argv.slice(2);
+  const email = args[0] || "admin@example.com";
+  const password = args[1] || "password123"; // You should use a stronger password in production
+  const phoneNumber = args[2] || "+1234567890";
 
-// Run the function
-createAdminUser(email, password, phoneNumber)
-  .then(() => {
-    console.log("Admin creation process complete");
-  })
-  .catch((error) => {
-    console.error("Failed to create admin:", error);
-    process.exit(1);
-  });
+  // Run the function
+  createAdminUser(email, password, phoneNumber)
+    .then(() => {
+      console.log("Admin creation process complete");
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error("Failed to create admin:", error);
+      process.exit(1);
+    });
+}
+
+module.exports = { createAdminUser };

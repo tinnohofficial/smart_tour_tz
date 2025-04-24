@@ -97,22 +97,14 @@ exports.createActivity = async (req, res) => {
   }
 
   try {
-    // Verify the destination exists and is active
+    // Verify the destination exists
     const [destinationRows] = await db.query(
-      "SELECT id, status FROM destinations WHERE id = ?",
+      "SELECT id FROM destinations WHERE id = ?",
       [destination_id],
     );
 
     if (destinationRows.length === 0) {
       return res.status(404).json({ message: "Destination not found" });
-    }
-    
-    // Check if destination is active
-    if (destinationRows[0].status !== 'active') {
-      return res.status(400).json({ 
-        message: "Cannot create activities for inactive destinations",
-        destination_status: destinationRows[0].status
-      });
     }
 
     // Create the activity with additional fields
@@ -238,7 +230,7 @@ exports.deleteActivity = async (req, res) => {
         `SELECT bi.id, b.status 
          FROM booking_items bi 
          JOIN bookings b ON bi.booking_id = b.id
-         WHERE bi.item_type = 'activity' AND bi.item_id = ?`,
+         WHERE bi.item_type = 'activity' AND bi.id = ?`,
         [activityId]
       );
 

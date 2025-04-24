@@ -35,8 +35,7 @@ CREATE TABLE tour_guides (
 );
 
 CREATE TABLE hotels (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    manager_user_id INT UNIQUE,
+    id INT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     location VARCHAR(255) NOT NULL,
     description TEXT,
@@ -45,7 +44,7 @@ CREATE TABLE hotels (
     base_price_per_night DECIMAL(10, 2) CHECK (base_price_per_night > 0),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (manager_user_id) REFERENCES users (id) ON DELETE SET NULL,
+    FOREIGN KEY (id) REFERENCES users (id) ON DELETE CASCADE,
     INDEX idx_hotels_location (location),
     INDEX idx_hotels_name (name)
 );
@@ -118,77 +117,34 @@ CREATE TABLE bookings (
 );
 
 CREATE TABLE booking_items (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id INT NOT NULL,
     booking_id INT NOT NULL,
     item_type ENUM ('hotel', 'transport', 'tour_guide', 'activity', 'placeholder') NOT NULL,
-    item_id INT NOT NULL, -- Refers to hotel.id, transport_routes.id, users.id (for guide), activities.id
     item_details TEXT, -- JSON: e.g., { "check_in": "YYYY-MM-DD", "check_out": "YYYY-MM-DD", "room_type": "Standard" } or { "ticket_number": "XYZ", "seat": "12A"}
     cost DECIMAL(10, 2) NOT NULL,
     provider_status ENUM ('pending', 'confirmed', 'rejected') DEFAULT 'pending', -- Status set by hotel manager, travel agent etc.
     FOREIGN KEY (booking_id) REFERENCES bookings (id) ON DELETE CASCADE
 );
 
-CREATE TABLE user_payment_methods (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    payment_type VARCHAR(20) NOT NULL DEFAULT 'credit_card',
-    gateway_token VARCHAR(255),
-    last_four_digits VARCHAR(4),
-    brand VARCHAR(50),
-    expiry_month VARCHAR(2),
-    expiry_year VARCHAR(4),
-    is_default BOOLEAN DEFAULT false,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
-);
-
 CREATE TABLE savings_accounts (
     user_id INT PRIMARY KEY,
-    balance_usd DECIMAL(12, 2) DEFAULT 0.00, -- Example currency
+    balance DECIMAL(12, 2) DEFAULT 0.00,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
-CREATE TABLE user_crypto_balances (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT UNIQUE,
-    wallet_address VARCHAR(255),
-    crypto_balance DECIMAL(18, 8) DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
-);
-
--- Create savings_transactions before payments
-CREATE TABLE savings_transactions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    type ENUM ('deposit', 'withdrawal', 'payment') NOT NULL,
-    amount_usd DECIMAL(12, 2) NOT NULL,
-    payment_method_id INT,
-    description VARCHAR(255),
-    is_crypto BOOLEAN DEFAULT FALSE,
-    token_type VARCHAR(10),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
-    FOREIGN KEY (payment_method_id) REFERENCES user_payment_methods (id) ON DELETE SET NULL
-);
-
--- Now create payments table that references savings_transactions
 CREATE TABLE payments (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    booking_id INT, -- Can be NULL if it's a savings deposit
+    booking_id INT,
     user_id INT NOT NULL,
     amount DECIMAL(12, 2) NOT NULL,
-    payment_method ENUM ('card', 'savings_fiat', 'savings_crypto') NOT NULL,
+    payment_method ENUM ('external', 'savings') NOT NULL,
     reference VARCHAR(255), -- Reference from payment gateway or internal ref
     status ENUM ('successful', 'failed', 'pending') NOT NULL,
-    transaction_id INT, -- Reference to savings_transactions if applicable
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (booking_id) REFERENCES bookings (id) ON DELETE SET NULL,
-    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
-    FOREIGN KEY (transaction_id) REFERENCES savings_transactions (id) ON DELETE SET NULL
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
 -- Add necessary indexes
@@ -201,7 +157,7 @@ CREATE INDEX idx_bookings_status ON bookings (status);
 CREATE INDEX idx_bookings_created ON bookings (created_at DESC);
 
 CREATE INDEX idx_booking_items_booking_id ON booking_items (booking_id);
-CREATE INDEX idx_booking_items_item ON booking_items (item_type, item_id);
+CREATE INDEX idx_booking_items_item ON booking_items (item_type, id);
 CREATE INDEX idx_booking_items_provider_status ON booking_items (provider_status);
 
 CREATE INDEX idx_payments_user_id ON payments (user_id);
@@ -209,15 +165,7 @@ CREATE INDEX idx_payments_booking_id ON payments (booking_id);
 CREATE INDEX idx_payments_status ON payments (status);
 CREATE INDEX idx_payments_created ON payments (created_at DESC);
 
-CREATE INDEX idx_savings_transactions_user_id ON savings_transactions (user_id);
-CREATE INDEX idx_savings_transactions_type ON savings_transactions (type);
-CREATE INDEX idx_savings_transactions_created ON savings_transactions (created_at DESC);
-
-CREATE INDEX idx_user_payment_methods_user_id ON user_payment_methods (user_id);
-
 CREATE INDEX idx_activities_guide_id ON activities (guide_user_id);
 CREATE INDEX idx_activities_destination ON activities (destination_id);
 CREATE INDEX idx_activities_status ON activities (status);
 CREATE INDEX idx_activities_date ON activities (date);
-
-CREATE INDEX idx_hotels_manager ON hotels (manager_user_id);

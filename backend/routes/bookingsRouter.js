@@ -12,6 +12,14 @@ router.post(
   bookingsController.createBooking,
 );
 
+// Process payment for a booking
+router.post(
+  "/:bookingId/pay",
+  authenticateToken,
+  checkRole("tourist"),
+  bookingsController.processBookingPayment,
+);
+
 // Get user's bookings
 router.get(
   "/my-bookings",

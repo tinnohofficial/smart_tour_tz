@@ -7,7 +7,7 @@ exports.getAllHotels = async (req, res) => {
         let query = `
             SELECT h.* 
             FROM hotels h
-            JOIN users u ON h.manager_user_id = u.id
+            JOIN users u ON h.id = u.id
             WHERE u.status = 'active'
         `;
         
@@ -107,7 +107,7 @@ exports.createHotel = async (req, res) => {
   try {
     // Check if the hotel manager already has a hotel
     const [existingHotels] = await db.query(
-      "SELECT id FROM hotels WHERE manager_user_id = ?",
+      "SELECT id FROM hotels WHERE id = ?",
       [userId]
     );
 
@@ -122,10 +122,10 @@ exports.createHotel = async (req, res) => {
     await connection.beginTransaction();
 
     try {
-      // Insert new hotel
+      // Insert new hotel using the user's ID directly
       await connection.query(
         `INSERT INTO hotels (
-            manager_user_id,
+            id,
             name,
             location,
             description,
@@ -181,7 +181,7 @@ exports.getHotelByManagerId = async (req, res) => {
 
   try {
     const [rows] = await db.query(
-      "SELECT * FROM hotels WHERE manager_user_id = ?",
+      "SELECT * FROM hotels WHERE id = ?",
       [userId],
     );
 
@@ -236,7 +236,7 @@ exports.updateHotelByManagerId = async (req, res) => {
   try {
     // Check if hotel exists
     const [hotelRows] = await db.query(
-      "SELECT id FROM hotels WHERE manager_user_id = ?",
+      "SELECT id FROM hotels WHERE id = ?",
       [userId],
     );
 
@@ -286,7 +286,7 @@ exports.updateHotelByManagerId = async (req, res) => {
     params.push(userId);
 
     await db.query(
-      `UPDATE hotels SET ${updates.join(", ")} WHERE manager_user_id = ?`,
+      `UPDATE hotels SET ${updates.join(", ")} WHERE id = ?`,
       params,
     );
 
