@@ -1,15 +1,26 @@
 const mysql = require("mysql2/promise");
 require("dotenv").config();
 
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-});
+let pool;
+
+// Check if we're running on Heroku (with JAWSDB_URL)
+if (process.env.JAWSDB_URL) {
+  // Parse the JAWSDB_URL to get the connection details
+  pool = mysql.createPool(process.env.JAWSDB_URL);
+  console.log("Using JawsDB connection on Heroku");
+} else {
+  // Local development connection
+  pool = mysql.createPool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+  });
+  console.log("Using local database connection");
+}
 
 async function testConnection() {
   try {
