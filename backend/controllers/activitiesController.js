@@ -50,7 +50,6 @@ exports.createActivity = async (req, res) => {
     description,
     destination_id,
     price,
-    date,
     group_size,
     status = 'available'
   } = req.body;
@@ -77,25 +76,6 @@ exports.createActivity = async (req, res) => {
     });
   }
 
-  // Validate activity date if provided
-  let activityDate = null;
-  if (date) {
-    activityDate = new Date(date);
-    if (isNaN(activityDate.getTime())) {
-      return res.status(400).json({
-        message: "Invalid date format"
-      });
-    }
-    
-    // Ensure date is in the future
-    const today = new Date();
-    if (activityDate < today) {
-      return res.status(400).json({
-        message: "Activity date must be in the future"
-      });
-    }
-  }
-
   try {
     // Verify the destination exists
     const [destinationRows] = await db.query(
@@ -114,16 +94,14 @@ exports.createActivity = async (req, res) => {
         description,
         destination_id,
         price,
-        date,
         group_size,
         status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?)`,
       [
         name,
         description,
         destination_id,
         price,
-        date ? activityDate : null,
         group_size || null,
         status
       ],

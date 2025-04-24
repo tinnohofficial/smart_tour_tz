@@ -1,0 +1,1336 @@
+{
+  "info": {
+    "_postman_id": "89ea2632-d8c1-4d12-a8d1-3d9c3985948f",
+    "name": "Smart Tour API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "10125881"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"tourist@example.com\",\n    \"password\": \"password123\",\n    \"phone_number\": \"+1234567890\",\n    \"role\": \"tourist\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Create a new user account (tourist, tour_guide, hotel_manager, travel_agent)"
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Parse the response body",
+                  "try {",
+                  "    const responseJson = pm.response.json();",
+                  "    console.log(\"Response JSON:\", responseJson);",
+                  "    ",
+                  "    // Check if login was successful",
+                  "    if (pm.response.code === 200 && responseJson.token) {",
+                  "        // Get the token",
+                  "        const token = responseJson.token;",
+                  "        console.log(\"Token found:\", token);",
+                  "        ",
+                  "        // Get user info and role",
+                  "        if (responseJson.user && responseJson.user.role) {",
+                  "            const role = responseJson.user.role;",
+                  "            console.log(\"User role:\", role);",
+                  "            ",
+                  "            // Update the general token variable at COLLECTION level",
+                  "            pm.collectionVariables.set(\"token\", token);",
+                  "            ",
+                  "            // Update role-specific token based on the user role",
+                  "            switch (role) {",
+                  "                case \"hotel_manager\":",
+                  "                    pm.collectionVariables.set(\"hotelManagerToken\", token);",
+                  "                    console.log(\"Updated hotelManagerToken\");",
+                  "                    break;",
+                  "                case \"admin\":",
+                  "                    pm.collectionVariables.set(\"adminToken\", token);",
+                  "                    console.log(\"Updated adminToken\");",
+                  "                    break;",
+                  "                case \"tourist\":",
+                  "                    pm.collectionVariables.set(\"touristToken\", token);",
+                  "                    console.log(\"Updated touristToken\");",
+                  "                    break;",
+                  "                case \"tour_guide\":",
+                  "                    pm.collectionVariables.set(\"tourGuideToken\", token);",
+                  "                    console.log(\"Updated tourGuideToken\");",
+                  "                    break;",
+                  "                case \"travel_agent\":",
+                  "                    pm.collectionVariables.set(\"travelAgentToken\", token);",
+                  "                    console.log(\"Updated travelAgentToken\");",
+                  "                    break;",
+                  "                default:",
+                  "                    console.log(\"Unknown role:\", role);",
+                  "            }",
+                  "        } else {",
+                  "            console.log(\"User object or role not found in response\");",
+                  "        }",
+                  "    } else {",
+                  "        console.log(\"Token not found in response\");",
+                  "    }",
+                  "} catch (e) {",
+                  "    console.error(\"Error parsing response:\", e);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"admin@example.com\",\n    \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Login and get JWT token"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"currentPassword\": \"password123\",\n    \"newPassword\": \"newPassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "password"]
+            },
+            "description": "Update user password"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Email",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"newemail@example.com\",\n    \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/email",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "email"]
+            },
+            "description": "Update user email (requires password verification)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Phone Number",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"phone_number\": \"+9876543210\",\n    \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/phone",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "phone"]
+            },
+            "description": "Update user phone number (requires password verification)"
+          },
+          "response": []
+        }
+      ],
+      "description": "Authentication endpoints for user registration, login, and profile updates"
+    },
+    {
+      "name": "Destinations",
+      "item": [
+        {
+          "name": "Get All Destinations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/destinations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "destinations"]
+            },
+            "description": "Get all tourist destinations"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Destination by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/destinations/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "destinations", "1"]
+            },
+            "description": "Get a specific destination by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Destination (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Zanzibar Beach\",\n    \"description\": \"Beautiful beaches with clear blue water\",\n    \"region\": \"Zanzibar, Tanzania\",\n    \"image_url\": \"https://example.com/zanzibar.jpg\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/destinations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "destinations"]
+            },
+            "description": "Create a new destination (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Destination (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Updated Destination Name\",\n    \"description\": \"Updated description\",\n    \"region\": \"Updated region\",\n    \"image_url\": \"https://example.com/updated.jpg\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/destinations/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "destinations", "1"]
+            },
+            "description": "Update an existing destination (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Destination (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/destinations/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "destinations", "1"]
+            },
+            "description": "Delete a destination (Admin only). Cannot delete destinations with associated activities."
+          },
+          "response": []
+        }
+      ],
+      "description": "Manage tourist destinations"
+    },
+    {
+      "name": "Activities",
+      "item": [
+        {
+          "name": "Get All Activities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/activities",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "activities"]
+            },
+            "description": "Get all activities"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Activities by Destination",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/activities?destinationId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "activities"],
+              "query": [
+                {
+                  "key": "destinationId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Get activities for a specific destination"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Activity by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/activities/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "activities", "1"]
+            },
+            "description": "Get a specific activity by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Activity (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Beach Swimming\",\n    \"description\": \"Enjoy swimming in clear waters\",\n    \"destination_id\": 1,\n    \"price\": 30,\n    \"group_size\": 10\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/activities",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "activities"]
+            },
+            "description": "Create a new activity (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Activity (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Updated Activity Name\",\n    \"description\": \"Updated activity description\",\n    \"price\": 35\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/activities/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "activities", "1"]
+            },
+            "description": "Update an existing activity (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Activity (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/activities/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "activities", "1"]
+            },
+            "description": "Delete an activity (Admin only). Cannot delete activities that are part of active bookings."
+          },
+          "response": []
+        }
+      ],
+      "description": "Manage tourist activities that can be booked"
+    },
+    {
+      "name": "Hotels",
+      "item": [
+        {
+          "name": "Get All Hotels",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/hotels",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "hotels"]
+            },
+            "description": "Get all active hotels"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Hotels by Location",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/hotels?location=Zanzibar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "hotels"],
+              "query": [
+                {
+                  "key": "location",
+                  "value": "Zanzibar"
+                }
+              ]
+            },
+            "description": "Get hotels filtered by location"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Hotel by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/hotels/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "hotels", "1"]
+            },
+            "description": "Get a specific hotel by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Manager Create Hotel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hotelManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Serena Beach Resort\",\n    \"location\": \"Zanzibar, Tanzania\",\n    \"description\": \"Luxury beach resort with stunning views\",\n    \"images\": [\"https://example.com/hotel1.jpg\", \"https://example.com/hotel2.jpg\"],\n    \"capacity\": 100,\n    \"base_price_per_night\": 200\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/hotels",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "hotels"]
+            },
+            "description": "Create a new hotel (Hotel Manager only). This also updates the user's status to pending_approval if this is their initial submission."
+          },
+          "response": []
+        },
+        {
+          "name": "Manager View Hotel Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hotelManagerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/hotels/manager/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "hotels", "manager", "profile"]
+            },
+            "description": "Get the hotel manager's hotel profile details including approval status"
+          },
+          "response": []
+        },
+        {
+          "name": "Manager Update Hotel Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hotelManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Updated Hotel Name\",\n    \"description\": \"Updated hotel description\",\n    \"base_price_per_night\": 220,\n    \"images\": [\"https://example.com/hotel1-updated.jpg\", \"https://example.com/hotel2-updated.jpg\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/hotels/manager/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "hotels", "manager", "profile"]
+            },
+            "description": "Update the hotel manager's hotel profile"
+          },
+          "response": []
+        }
+      ],
+      "description": "Manage hotels and their details"
+    },
+    {
+      "name": "Transports",
+      "item": [
+        {
+          "name": "Get All Transports",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/transports",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transports"]
+            },
+            "description": "Get all active transport options"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Transport by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/transports/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transports", "1"]
+            },
+            "description": "Get a specific transport option by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Transport (Travel Agent)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{travelAgentToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"agency_id\": 3,\n    \"origin\": \"Nairobi\",\n    \"destination\": \"Dar es Salaam\",\n    \"transportation_type\": \"bus\",\n    \"cost\": 100,\n    \"description\": \"High-speed bus from Nairobi to Dar\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/transports",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transports"]
+            },
+            "description": "Create a new transport option (Travel Agent only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Transport (Travel Agent)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{travelAgentToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"cost\": 110,\n    \"description\": \"Updated transport description\",\n    \"transportation_type\": \"luxury bus\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/transports/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transports", "1"]
+            },
+            "description": "Update an existing transport option (Travel Agent only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Transport (Travel Agent)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{travelAgentToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/transports/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "transports", "1"]
+            },
+            "description": "Delete a transport option (Travel Agent only). Cannot delete transports that are part of active bookings."
+          },
+          "response": []
+        }
+      ],
+      "description": "Manage transport options between locations"
+    },
+    {
+      "name": "Tour Guides",
+      "item": [
+        {
+          "name": "Submit Tour Guide Profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tourGuideToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"full_name\": \"John Smith\",\n    \"license_document_url\": \"https://example.com/license.pdf\",\n    \"location\": \"Zanzibar, Tanzania\",\n    \"expertise\": \"Historical tours, Local culture\",\n    \"activity_expertise\": [1, 2]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tour-guides/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tour-guides", "profile"]
+            },
+            "description": "Submit or update tour guide profile. This also updates the user's status to pending_approval if this is their initial submission."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Tour Guide Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tourGuideToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tour-guides/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tour-guides", "profile"]
+            },
+            "description": "Get tour guide's profile details including approval status"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Tour Guide Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tourGuideToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"full_name\": \"John D. Smith\",\n    \"location\": \"Zanzibar, Tanzania\",\n    \"expertise\": \"Historical tours, Local culture, Wildlife safaris\",\n    \"activity_expertise\": [1, 2, 3]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tour-guides/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tour-guides", "profile"]
+            },
+            "description": "Update tour guide's profile details"
+          },
+          "response": []
+        }
+      ],
+      "description": "Manage tour guide profiles and expertise"
+    },
+    {
+      "name": "Travel Agents",
+      "item": [
+        {
+          "name": "Submit Travel Agent Profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{travelAgentToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"FastTravel Agency\",\n    \"document_url\": \"https://example.com/license.pdf\",\n    \"routes\": [\n        {\n            \"origin\": \"Nairobi\",\n            \"destination\": \"Zanzibar\",\n            \"transport_type\": \"air\",\n            \"price\": 250,\n            \"schedule_details\": {\"frequency\": \"daily\", \"departure_time\": \"09:00\"}\n        },\n        {\n            \"origin\": \"Dar es Salaam\",\n            \"destination\": \"Zanzibar\",\n            \"transport_type\": \"ferry\",\n            \"price\": 50,\n            \"schedule_details\": {\"frequency\": \"daily\", \"departure_time\": \"08:00\"}\n        }\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/travel-agents/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "travel-agents", "profile"]
+            },
+            "description": "Submit or update travel agent profile and routes. This also updates the user's status to pending_approval if this is their initial submission."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Travel Agent Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{travelAgentToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/travel-agents/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "travel-agents", "profile"]
+            },
+            "description": "Get travel agent's profile details including routes and approval status"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Travel Agent Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{travelAgentToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"FastTravel Agency - Updated\",\n    \"contact_email\": \"contact@fasttravel.com\",\n    \"contact_phone\": \"+1234567890\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/travel-agents/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "travel-agents", "profile"]
+            },
+            "description": "Update travel agent's profile details"
+          },
+          "response": []
+        }
+      ],
+      "description": "Manage travel agent profiles and transport routes"
+    },
+    {
+      "name": "Bookings",
+      "item": [
+        {
+          "name": "Create Booking (Tourist)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{touristToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"transportId\": 1,\n    \"hotelId\": 1,\n    \"activityIds\": [1, 2],\n    \"startDate\": \"2023-12-01\",\n    \"endDate\": \"2023-12-05\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings"]
+            },
+            "description": "Create a new booking (Tourist only). This creates a booking in pending_payment status."
+          },
+          "response": []
+        },
+        {
+          "name": "Process Booking Payment (Tourist)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{touristToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"paymentMethod\": \"external\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/1/pay",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "1", "pay"]
+            },
+            "description": "Process payment for a booking (Tourist only). Changes booking status to confirmed."
+          },
+          "response": []
+        },
+        {
+          "name": "Process Booking Payment with Savings (Tourist)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{touristToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"paymentMethod\": \"savings\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/1/pay",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "1", "pay"]
+            },
+            "description": "Process payment for a booking using savings balance (Tourist only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Booking (Tourist)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{touristToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/1/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "1", "cancel"]
+            },
+            "description": "Cancel a booking (Tourist only). Processes refunds if already paid."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Bookings (Tourist)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{touristToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/my-bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "my-bookings"]
+            },
+            "description": "Get user's bookings (Tourist only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Tour Guide Bookings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tourGuideToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/tour-guide-bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "tour-guide-bookings"]
+            },
+            "description": "Get tour guide's bookings (Tour Guide only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Tour Guide Assigned Activities",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tourGuideToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/tour-guide-assigned",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "tour-guide-assigned"]
+            },
+            "description": "Get tour guide's assigned activities with more details (Tour Guide only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Hotel Bookings Needing Action",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hotelManagerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/hotel-bookings-pending",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "hotel-bookings-pending"]
+            },
+            "description": "Get hotel bookings needing action (Hotel Manager only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Confirm Hotel Room",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hotelManagerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"roomDetails\": {\n        \"roomNumber\": \"301\",\n        \"roomType\": \"Deluxe\",\n        \"check_in\": \"2023-12-01\",\n        \"check_out\": \"2023-12-05\",\n        \"specialRequests\": \"High floor\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/items/1/confirm-room",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "items", "1", "confirm-room"]
+            },
+            "description": "Confirm room for booking (Hotel Manager only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Transport Bookings Needing Action",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{travelAgentToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/transport-bookings-pending",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "transport-bookings-pending"]
+            },
+            "description": "Get transport bookings needing action (Travel Agent only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Assign Transport Ticket",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{travelAgentToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"ticketDetails\": {\n        \"ticketNumber\": \"TKT123456\",\n        \"seat\": \"12A\",\n        \"departureTime\": \"09:00\",\n        \"departureDate\": \"2023-12-01\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/items/2/assign-ticket",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "items", "2", "assign-ticket"]
+            },
+            "description": "Assign ticket for booking (Travel Agent only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Unassigned Bookings (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/unassigned-bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "unassigned-bookings"]
+            },
+            "description": "Get bookings without assigned tour guides (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Eligible Guides for Booking (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/1/eligible-guides",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "1", "eligible-guides"]
+            },
+            "description": "Get eligible tour guides for a specific booking based on location and expertise (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Assign Tour Guide to Booking (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"guideId\": 5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/1/assign-guide",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "1", "assign-guide"]
+            },
+            "description": "Assign a tour guide to a booking (Admin only)"
+          },
+          "response": []
+        }
+      ],
+      "description": "Manage bookings, payments, and service assignments"
+    },
+    {
+      "name": "Savings",
+      "item": [
+        {
+          "name": "Deposit Funds (Tourist)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{touristToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"amount\": 500\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/savings/deposit",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "savings", "deposit"]
+            },
+            "description": "Deposit funds to savings account (Tourist only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Savings Balance (Tourist)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{touristToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/savings/balance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "savings", "balance"]
+            },
+            "description": "Get savings account balance (Tourist only)"
+          },
+          "response": []
+        }
+      ],
+      "description": "Manage tourist savings accounts for booking payments"
+    },
+    {
+      "name": "Applications",
+      "item": [
+        {
+          "name": "Get Pending Applications (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/applications/pending",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "applications", "pending"]
+            },
+            "description": "Get pending approval applications (Admin only). Returns detailed info for tour guides, hotel managers, and travel agents."
+          },
+          "response": []
+        },
+        {
+          "name": "Approve Application (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"newStatus\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/applications/3/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "applications", "3", "status"]
+            },
+            "description": "Approve a user application (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Reject Application (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"newStatus\": \"rejected\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/applications/3/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "applications", "3", "status"]
+            },
+            "description": "Reject a user application (Admin only)"
+          },
+          "response": []
+        }
+      ],
+      "description": "Admin functionality to manage user applications"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "YOUR_JWT_TOKEN",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "ADMIN_JWT_TOKEN",
+      "type": "string"
+    },
+    {
+      "key": "touristToken",
+      "value": "TOURIST_JWT_TOKEN",
+      "type": "string"
+    },
+    {
+      "key": "tourGuideToken",
+      "value": "TOUR_GUIDE_JWT_TOKEN",
+      "type": "string"
+    },
+    {
+      "key": "hotelManagerToken",
+      "value": "HOTEL_MANAGER_JWT_TOKEN",
+      "type": "string"
+    },
+    {
+      "key": "travelAgentToken",
+      "value": "TRAVEL_AGENT_JWT_TOKEN",
+      "type": "string"
+    }
+  ]
+}

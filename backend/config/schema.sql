@@ -77,7 +77,6 @@ CREATE TABLE activities (
     description TEXT,
     price DECIMAL(10, 2) CHECK (price > 0),
     guide_user_id INT,
-    date DATE,
     group_size INT,
     status ENUM('available', 'booked', 'completed', 'cancelled') DEFAULT 'available',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -168,4 +167,3 @@ CREATE INDEX idx_payments_created ON payments (created_at DESC);
 CREATE INDEX idx_activities_guide_id ON activities (guide_user_id);
 CREATE INDEX idx_activities_destination ON activities (destination_id);
 CREATE INDEX idx_activities_status ON activities (status);
-CREATE INDEX idx_activities_date ON activities (date);

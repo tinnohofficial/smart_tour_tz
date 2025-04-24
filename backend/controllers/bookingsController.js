@@ -372,7 +372,7 @@ exports.getGuideAssignedBookings = async (req, res) => {
       
       // Get activities for this booking
       const [activities] = await db.query(
-        `SELECT a.id, a.name, a.description, a.price, a.date, a.group_size, a.status,
+        `SELECT a.id, a.name, a.description, a.price, a.group_size, a.status,
                 d.name as destination_name, d.region as destination_region
          FROM booking_items bi
          JOIN activities a ON bi.item_type = 'activity' AND bi.id = a.id
