@@ -376,7 +376,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"name\": \"Beach Swimming\",\n    \"description\": \"Enjoy swimming in clear waters\",\n    \"destination_id\": 1,\n    \"price\": 30,\n    \"group_size\": 10\n}"
+              "raw": "{\n    \"name\": \"Beach Swimming\",\n    \"description\": \"Enjoy swimming in clear waters\",\n    \"destination_id\": 1,\n    \"price\": 30,\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/activities",
@@ -909,25 +909,6 @@
               "path": ["api", "bookings", "1", "pay"]
             },
             "description": "Process payment for a booking using savings balance (Tourist only)"
-          },
-          "response": []
-        },
-        {
-          "name": "Cancel Booking (Tourist)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{touristToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/bookings/1/cancel",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "bookings", "1", "cancel"]
-            },
-            "description": "Cancel a booking (Tourist only). Processes refunds if already paid."
           },
           "response": []
         },

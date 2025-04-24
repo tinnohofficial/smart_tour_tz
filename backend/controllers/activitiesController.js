@@ -49,8 +49,7 @@ exports.createActivity = async (req, res) => {
     name,
     description,
     destination_id,
-    price,
-    group_size
+    price
   } = req.body;
 
   // Validate required fields
@@ -65,13 +64,6 @@ exports.createActivity = async (req, res) => {
   if (price <= 0) {
     return res.status(400).json({
       message: "Price must be greater than zero"
-    });
-  }
-
-  // Validate group size if provided
-  if (group_size !== undefined && (isNaN(group_size) || group_size <= 0)) {
-    return res.status(400).json({
-      message: "Group size must be a positive number"
     });
   }
 
@@ -92,15 +84,13 @@ exports.createActivity = async (req, res) => {
         name,
         description,
         destination_id,
-        price,
-        group_size
-      ) VALUES (?, ?, ?, ?, ?)`,
+        price
+      ) VALUES (?, ?, ?, ?)`,
       [
         name,
         description,
         destination_id,
-        price,
-        group_size || null
+        price
       ],
     );
 

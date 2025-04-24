@@ -101,12 +101,4 @@ router.post(
   bookingsController.assignTourGuide,
 );
 
-// Cancel a booking
-router.post(
-  "/:bookingId/cancel",
-  authenticateToken,
-  checkRole("tourist"),
-  bookingsController.cancelBooking,
-);
-
 module.exports = router;

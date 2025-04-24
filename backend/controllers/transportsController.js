@@ -234,7 +234,7 @@ exports.deleteTransport = async (req, res) => {
 
       // If transport is in active bookings, don't allow deletion
       const activeBookings = bookingItems.filter(
-        item => item.status !== 'canceled' && item.status !== 'completed'
+        item => item.status !== 'cancelled' && item.status !== 'completed'
       );
 
       if (activeBookings.length > 0) {
@@ -246,17 +246,17 @@ exports.deleteTransport = async (req, res) => {
         });
       }
 
-      // If there are any bookings at all, mark as inactive instead of deleting
+      // If there are any bookings at all, add a description note instead of deleting
       if (bookingItems.length > 0) {
         await connection.query(
-          "UPDATE transports SET status = 'inactive' WHERE id = ?", 
+          "UPDATE transports SET description = CONCAT(description, ' [INACTIVE]') WHERE id = ?", 
           [transportId]
         );
         
         await connection.commit();
         connection.release();
         return res.status(200).json({ 
-          message: "Transport marked as inactive due to existing booking records" 
+          message: "Transport marked as inactive in description due to existing booking records" 
         });
       }
 

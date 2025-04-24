@@ -78,7 +78,6 @@ CREATE TABLE activities (
     description TEXT,
     price DECIMAL(10, 2) CHECK (price > 0),
     guide_user_id INT,
-    group_size INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (destination_id) REFERENCES destinations (id) ON DELETE SET NULL,

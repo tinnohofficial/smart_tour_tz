@@ -325,7 +325,7 @@ exports.getGuideAssignedBookings = async (req, res) => {
       
       // Get activities for this booking
       const [activities] = await db.query(
-        `SELECT a.id, a.name, a.description, a.price, a.group_size,
+        `SELECT a.id, a.name, a.description, a.price,
                 d.name as destination_name, d.region as destination_region
          FROM booking_items bi
          JOIN activities a ON bi.item_type = 'activity' AND bi.id = a.id
@@ -397,7 +397,6 @@ exports.getHotelBookingsNeedingAction = async (req, res) => {
 exports.confirmHotelRoom = async (req, res) => {
   const { itemId } = req.params;
   const { roomDetails } = req.body;
-  const userId = req.user.id;
 
   try {
     // Check if the booking item belongs to this hotel and is pending
@@ -845,132 +844,6 @@ exports.getEligibleGuidesForBooking = async (req, res) => {
   } catch (error) {
     console.error("Error finding eligible guides:", error);
     res.status(500).json({ message: "Failed to find eligible guides", error: error.message });
-  }
-};
-
-/**
- * Cancel a booking
- */
-exports.cancelBooking = async (req, res) => {
-  const { bookingId } = req.params;
-  const userId = req.user.id;
-
-  try {
-    const connection = await db.getConnection();
-    await connection.beginTransaction();
-
-    try {
-      // First, verify the booking exists and belongs to this user
-      const [bookingRows] = await connection.query(
-        `SELECT * FROM bookings WHERE id = ? AND tourist_user_id = ?`,
-        [bookingId, userId]
-      );
-
-      if (bookingRows.length === 0) {
-        await connection.rollback();
-        connection.release();
-        return res.status(404).json({ message: "Booking not found" });
-      }
-
-      const booking = bookingRows[0];
-
-      // Check if the booking is in a cancelable state (not already canceled, etc.)
-      if (booking.status === 'cancelled') {
-        await connection.rollback();
-        connection.release();
-        return res.status(400).json({ message: "Booking is already cancelled" });
-      }
-
-      // Get booking items to handle refunds and releasing resources
-      const [itemsRows] = await connection.query(
-        `SELECT * FROM booking_items WHERE booking_id = ?`,
-        [bookingId]
-      );
-
-      // Update booking status to cancelled
-      await connection.query(
-        `UPDATE bookings SET status = 'cancelled' WHERE id = ?`,
-        [bookingId]
-      );
-
-      // If the booking was already paid for, process a refund
-      if (booking.status === 'confirmed') {
-        // Get payment information
-        const [paymentRows] = await connection.query(
-          `SELECT * FROM payments WHERE booking_id = ? AND status = 'successful'`,
-          [bookingId]
-        );
-
-        if (paymentRows.length > 0) {
-          const payment = paymentRows[0];
-          const refundAmount = payment.amount;
-          
-          // Different refund logic based on original payment method
-          switch (payment.payment_method) {
-            case 'external':
-              // In a real system, you would process the refund through the payment gateway
-              // Here we'll simply record the refund
-              await connection.query(
-                `INSERT INTO payments (booking_id, user_id, amount, payment_method, 
-                  reference, status, description)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [
-                  bookingId,
-                  userId,
-                  refundAmount,
-                  'external',
-                  `REFUND-${Date.now()}`,
-                  'successful',
-                  `Refund for canceled booking #${bookingId}`
-                ]
-              );
-              break;
-              
-            case 'savings':
-              // Refund to savings account
-              await connection.query(
-                `UPDATE savings_accounts SET balance = balance + ? WHERE user_id = ?`,
-                [refundAmount, userId]
-              );
-              
-              // Record the payment refund
-              await connection.query(
-                `INSERT INTO payments (booking_id, user_id, amount, payment_method, 
-                  reference, status, description)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [
-                  bookingId,
-                  userId,
-                  refundAmount,
-                  'savings',
-                  `REFUND-${Date.now()}`,
-                  'successful',
-                  `Refund for canceled booking #${bookingId}`
-                ]
-              );
-              break;
-          }
-        }
-      }
-
-      await connection.commit();
-      connection.release();
-
-      res.status(200).json({ 
-        message: "Booking canceled successfully",
-        bookingId,
-        refundProcessed: booking.status === 'confirmed'
-      });
-    } catch (error) {
-      await connection.rollback();
-      connection.release();
-      throw error;
-    }
-  } catch (error) {
-    console.error("Error canceling booking:", error);
-    res
-      .status(500)
-      .json({ message: "Failed to cancel booking", error: error.message });
   }
 };
 
