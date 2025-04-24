@@ -9,21 +9,21 @@ router.get("/", destinationsController.getDestinations);
 router.get("/:destinationId", destinationsController.getDestinationById);
 
 router.post(
-  "/destinations",
+  "/",
   authenticateToken,
   checkRole("admin"),
   destinationsController.createDestination,
 );
 
 router.put(
-  "/destinations/:destinationId",
+  "/:destinationId",
   authenticateToken,
   checkRole("admin"),
   destinationsController.updateDestination,
 );
 
 router.delete(
-  "/destinations/:destinationId",
+  "/:destinationId",
   authenticateToken,
   checkRole("admin"),
   destinationsController.deleteDestination,

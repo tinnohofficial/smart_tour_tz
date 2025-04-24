@@ -1,21 +1,18 @@
 const db = require("../config/db");
 
-/**
- * Get activities for a destination (F6.6)
- */
 exports.getActivities = async (req, res) => {
   const { destinationId } = req.query;
 
   try {
-    if (!destinationId) {
-      return res.status(400).json({ message: "Destination ID is required" });
+    let query = "SELECT * FROM activities";
+    let params = [];
+
+    if (destinationId) {
+      query += " WHERE destination_id = ?";
+      params.push(destinationId);
     }
 
-    const [activities] = await db.query(
-      "SELECT * FROM activities WHERE destination_id = ?",
-      [destinationId],
-    );
-
+    const [activities] = await db.query(query, params);
     res.status(200).json(activities);
   } catch (error) {
     console.error("Error fetching activities:", error);
@@ -25,54 +22,78 @@ exports.getActivities = async (req, res) => {
   }
 };
 
-/**
- * Get detailed info for a specific activity
- */
 exports.getActivityById = async (req, res) => {
   const { activityId } = req.params;
 
   try {
-    const [activityRows] = await db.query(
+    const [activities] = await db.query(
       "SELECT * FROM activities WHERE id = ?",
-      [activityId],
+      [activityId]
     );
 
-    if (activityRows.length === 0) {
+    if (activities.length === 0) {
       return res.status(404).json({ message: "Activity not found" });
     }
 
-    res.status(200).json(activityRows[0]);
+    res.status(200).json(activities[0]);
   } catch (error) {
-    console.error("Error fetching activity details:", error);
-    res.status(500).json({
-      message: "Failed to fetch activity details",
-      error: error.message,
-    });
+    console.error("Error fetching activity:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to fetch activity", error: error.message });
   }
 };
 
-/**
- * Create a new activity (F6.9)
- * Tour guides can create activities for destinations
- */
 exports.createActivity = async (req, res) => {
-  const tourGuideId = req.user.id;
   const {
     name,
     description,
     destination_id,
     price,
-    duration_minutes,
-    max_participants,
-    start_time,
+    date,
+    group_size,
+    status = 'available'
   } = req.body;
 
   // Validate required fields
-  if (!name || !description || !destination_id || !price || !duration_minutes) {
+  if (!name || !description || !destination_id || !price) {
     return res.status(400).json({
       message:
-        "Required fields missing: name, description, destination_id, price, and duration_minutes are required",
+        "Required fields missing: name, description, destination_id, price are required",
     });
+  }
+
+  // Validate price is positive
+  if (price <= 0) {
+    return res.status(400).json({
+      message: "Price must be greater than zero"
+    });
+  }
+
+  // Validate group size if provided
+  if (group_size !== undefined && (isNaN(group_size) || group_size <= 0)) {
+    return res.status(400).json({
+      message: "Group size must be a positive number"
+    });
+  }
+
+  // Validate activity date if provided
+  let activityDate = null;
+  if (date) {
+    activityDate = new Date(date);
+    if (isNaN(activityDate.getTime())) {
+      return res.status(400).json({
+        message: "Invalid date format"
+      });
+    }
+    
+    // Ensure date is in the future
+    const today = new Date();
+    if (activityDate < today) {
+      return res.status(400).json({
+        message: "Activity date must be in the future"
+      });
+    }
   }
 
   try {
@@ -86,44 +107,25 @@ exports.createActivity = async (req, res) => {
       return res.status(404).json({ message: "Destination not found" });
     }
 
-    // Check if the user is a tour guide with active status
-    const [guideRows] = await db.query(
-      `SELECT user_id FROM tour_guides
-       JOIN users ON tour_guides.user_id = users.id
-       WHERE user_id = ? AND users.role = 'tour_guide' AND users.status = 'active'`,
-      [tourGuideId],
-    );
-
-    if (guideRows.length === 0) {
-      return res.status(403).json({
-        message: "Only active tour guides can create activities",
-      });
-    }
-
-    // Create the activity
+    // Create the activity with additional fields
     const [result] = await db.query(
       `INSERT INTO activities (
         name,
         description,
         destination_id,
-        tour_guide_id,
         price,
-        duration_minutes,
-        max_participants,
-        start_time,
-        status,
-        created_at,
-        updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW(), NOW())`,
+        date,
+        group_size,
+        status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         name,
         description,
         destination_id,
-        tourGuideId,
         price,
-        duration_minutes,
-        max_participants || null,
-        start_time || null,
+        date ? activityDate : null,
+        group_size || null,
+        status
       ],
     );
 
@@ -132,6 +134,7 @@ exports.createActivity = async (req, res) => {
       id: result.insertId,
       name,
       destination_id,
+      status
     });
   } catch (error) {
     console.error("Error creating activity:", error);
@@ -142,25 +145,20 @@ exports.createActivity = async (req, res) => {
   }
 };
 
-/**
- * Update an existing activity (F6.9)
- * Tour guides can update activities they created
- */
 exports.updateActivity = async (req, res) => {
-  const tourGuideId = req.user.id;
   const { activityId } = req.params;
   const updateData = req.body;
 
   try {
-    // First check if the activity exists and belongs to this tour guide
+    // First check if the activity exists
     const [activityRows] = await db.query(
-      "SELECT * FROM activities WHERE id = ? AND tour_guide_id = ?",
-      [activityId, tourGuideId],
+      "SELECT * FROM activities WHERE id = ?",
+      [activityId]
     );
 
     if (activityRows.length === 0) {
       return res.status(404).json({
-        message: "Activity not found or you don't have permission to edit it",
+        message: "Activity not found",
       });
     }
 
@@ -168,11 +166,8 @@ exports.updateActivity = async (req, res) => {
     const allowedFields = [
       "name",
       "description",
+      "destination_id",
       "price",
-      "duration_minutes",
-      "max_participants",
-      "start_time",
-      "status",
     ];
 
     const updates = [];
@@ -188,9 +183,6 @@ exports.updateActivity = async (req, res) => {
     if (updates.length === 0) {
       return res.status(400).json({ message: "No valid fields to update" });
     }
-
-    // Add updated_at timestamp
-    updates.push("updated_at = NOW()");
 
     // Add activityId as the last value
     values.push(activityId);
@@ -211,49 +203,78 @@ exports.updateActivity = async (req, res) => {
   }
 };
 
-/**
- * Delete an activity (F6.9)
- * Tour guides can delete activities they created
- */
 exports.deleteActivity = async (req, res) => {
-  const tourGuideId = req.user.id;
   const { activityId } = req.params;
 
   try {
-    // First check if the activity exists and belongs to this tour guide
-    const [activityRows] = await db.query(
-      "SELECT * FROM activities WHERE id = ? AND tour_guide_id = ?",
-      [activityId, tourGuideId],
-    );
+    const connection = await db.getConnection();
+    await connection.beginTransaction();
 
-    if (activityRows.length === 0) {
-      return res.status(404).json({
-        message: "Activity not found or you don't have permission to delete it",
-      });
-    }
-
-    // Check if the activity is used in any bookings
-    const [bookingsRows] = await db.query(
-      `SELECT id FROM booking_items
-       WHERE item_type = 'activity' AND item_id = ?`,
-      [activityId],
-    );
-
-    if (bookingsRows.length > 0) {
-      // Don't physically delete, just mark as inactive
-      await db.query(
-        "UPDATE activities SET status = 'inactive', updated_at = NOW() WHERE id = ?",
+    try {
+      // First check if the activity exists
+      const [activityRows] = await connection.query(
+        "SELECT * FROM activities WHERE id = ?",
         [activityId],
       );
 
-      res.status(200).json({
-        message: "Activity marked as inactive because it has bookings",
-      });
-    } else {
-      // No bookings, safe to delete
-      await db.query("DELETE FROM activities WHERE id = ?", [activityId]);
+      if (activityRows.length === 0) {
+        await connection.rollback();
+        connection.release();
+        return res.status(404).json({
+          message: "Activity not found"
+        });
+      }
 
-      res.status(200).json({ message: "Activity deleted successfully" });
+      // Check if this activity is part of any bookings
+      const [bookingItems] = await connection.query(
+        `SELECT bi.id, b.status 
+         FROM booking_items bi 
+         JOIN bookings b ON bi.booking_id = b.id
+         WHERE bi.item_type = 'activity' AND bi.id = ?`,
+        [activityId]
+      );
+
+      // If activity is in active bookings, don't allow deletion
+      const activeBookings = bookingItems.filter(
+        item => item.status !== 'canceled' && item.status !== 'completed'
+      );
+
+      if (activeBookings.length > 0) {
+        await connection.rollback();
+        connection.release();
+        return res.status(400).json({
+          message: "Cannot delete activity that is part of active bookings",
+          activeBookingsCount: activeBookings.length
+        });
+      }
+
+      // If activity is only in canceled/completed bookings, allow deletion
+      // For future record-keeping, we could mark as inactive instead of deleting
+      if (bookingItems.length > 0) {
+        // Instead of deleting, mark as inactive
+        await connection.query(
+          "UPDATE activities SET status = 'inactive' WHERE id = ?", 
+          [activityId]
+        );
+      } else {
+        // If not part of any bookings, we can safely delete
+        await connection.query(
+          "DELETE FROM activities WHERE id = ?", 
+          [activityId]
+        );
+      }
+
+      await connection.commit();
+      connection.release();
+      res.status(200).json({ 
+        message: bookingItems.length > 0 
+          ? "Activity marked as inactive" 
+          : "Activity deleted successfully" 
+      });
+    } catch (error) {
+      await connection.rollback();
+      connection.release();
+      throw error;
     }
   } catch (error) {
     console.error("Error deleting activity:", error);
@@ -261,176 +282,5 @@ exports.deleteActivity = async (req, res) => {
       message: "Failed to delete activity",
       error: error.message,
     });
-  }
-};
-
-/**
- * Get activities created by the authenticated tour guide (F6.9)
- */
-exports.getTourGuideActivities = async (req, res) => {
-  const tourGuideId = req.user.id;
-
-  try {
-    const [activities] = await db.query(
-      `SELECT a.*, d.name AS destination_name
-       FROM activities a
-       JOIN destinations d ON a.destination_id = d.id
-       WHERE a.tour_guide_id = ?
-       ORDER BY a.created_at DESC`,
-      [tourGuideId],
-    );
-
-    res.status(200).json(activities);
-  } catch (error) {
-    console.error("Error fetching tour guide activities:", error);
-    res.status(500).json({
-      message: "Failed to fetch activities",
-      error: error.message,
-    });
-  }
-};
-
-/**
- * Add a new transport route
- */
-exports.addTransportRoute = async (req, res) => {
-  const { origin, destination, transport_type, price, schedule_details } = req.body;
-  const userId = req.user.id;
-  
-  try {
-    // Get agency ID for this user
-    const [agencyRows] = await db.query(
-      "SELECT id FROM travel_agencies WHERE agent_user_id = ?",
-      [userId]
-    );
-    
-    if (agencyRows.length === 0) {
-      return res.status(404).json({ message: "Travel agency not found for this user" });
-    }
-    
-    const agencyId = agencyRows[0].id;
-    
-    // Create the new transport route
-    await db.query(
-      `INSERT INTO transport_routes 
-       (agency_id, origin, destination, transport_type, price, schedule_details)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [
-        agencyId,
-        origin,
-        destination,
-        transport_type,
-        price,
-        JSON.stringify(schedule_details || {})
-      ]
-    );
-    
-    res.status(201).json({ message: "Transport route added successfully" });
-  } catch (error) {
-    console.error("Error adding transport route:", error);
-    res.status(500).json({ message: "Failed to add transport route", error: error.message });
-  }
-};
-
-/**
- * Update an existing transport route
- */
-exports.updateTransportRoute = async (req, res) => {
-  const { routeId } = req.params;
-  const { origin, destination, transport_type, price, schedule_details } = req.body;
-  const userId = req.user.id;
-  
-  try {
-    // Get agency ID for this user
-    const [agencyRows] = await db.query(
-      "SELECT id FROM travel_agencies WHERE agent_user_id = ?",
-      [userId]
-    );
-    
-    if (agencyRows.length === 0) {
-      return res.status(404).json({ message: "Travel agency not found for this user" });
-    }
-    
-    const agencyId = agencyRows[0].id;
-    
-    // Check if route exists and belongs to this agency
-    const [routeRows] = await db.query(
-      "SELECT id FROM transport_routes WHERE id = ? AND agency_id = ?",
-      [routeId, agencyId]
-    );
-    
-    if (routeRows.length === 0) {
-      return res.status(404).json({ message: "Route not found or not owned by your agency" });
-    }
-    
-    // Update the route
-    await db.query(
-      `UPDATE transport_routes 
-       SET origin = ?, 
-           destination = ?, 
-           transport_type = ?, 
-           price = ?, 
-           schedule_details = ? 
-       WHERE id = ?`,
-      [
-        origin,
-        destination,
-        transport_type,
-        price,
-        JSON.stringify(schedule_details || {}),
-        routeId
-      ]
-    );
-    
-    res.status(200).json({ message: "Transport route updated successfully" });
-  } catch (error) {
-    console.error("Error updating transport route:", error);
-    res.status(500).json({ message: "Failed to update transport route", error: error.message });
-  }
-};
-
-/**
- * Get transport routes based on origin/destination (F6.3)
- */
-exports.getTransportRoutes = async (req, res) => {
-  const { destination, origin } = req.query;
-  
-  try {
-    let query = `
-      SELECT tr.*, ta.name as agency_name 
-      FROM transport_routes tr
-      JOIN travel_agencies ta ON tr.agency_id = ta.id
-      JOIN users u ON ta.agent_user_id = u.id
-      WHERE u.status = 'active'
-    `;
-    const params = [];
-    
-    if (destination) {
-      query += " AND tr.destination LIKE ?";
-      params.push(`%${destination}%`);
-    }
-    
-    if (origin) {
-      query += " AND tr.origin LIKE ?";
-      params.push(`%${origin}%`);
-    }
-    
-    const [routes] = await db.query(query, params);
-    
-    // Parse schedule_details for each route
-    routes.forEach(route => {
-      if (route.schedule_details) {
-        try {
-          route.schedule_details = JSON.parse(route.schedule_details);
-        } catch (e) {
-          // Keep as is if parsing fails
-        }
-      }
-    });
-    
-    res.status(200).json(routes);
-  } catch (error) {
-    console.error("Error fetching transport routes:", error);
-    res.status(500).json({ message: "Failed to fetch transport routes", error: error.message });
   }
 };

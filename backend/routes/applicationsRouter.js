@@ -7,11 +7,11 @@ const checkRole = require("../middleware/checkRole");
 router.use(authenticateToken, checkRole("admin"));
 
 router.get(
-  "/applications/pending",
+  "/pending",
   applicationsController.getPendingApplications,
 );
 router.patch(
-  "/applications/:userId/status",
+  "/:userId/status",
   applicationsController.updateApplicationStatus,
 );
 

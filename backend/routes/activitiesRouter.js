@@ -4,62 +4,34 @@ const activitiesController = require("../controllers/activitiesController");
 const authenticateToken = require("../middleware/authenticateToken");
 const checkRole = require("../middleware/checkRole");
 
+// Get all activities (optional filter by destination_id)
 router.get("/", activitiesController.getActivities);
 
+// Get activity by ID
 router.get("/:activityId", activitiesController.getActivityById);
 
-// Get activities created by the authenticated tour guide
-router.get(
-  "/tour-guide/my-activities",
-  authenticateToken,
-  checkRole("tour_guide"),
-  activitiesController.getTourGuideActivities,
-);
-
-// Create a new activity
+// Create a new activity - only admin can create
 router.post(
   "/",
   authenticateToken,
-  checkRole("tour_guide"),
+  checkRole("admin"),
   activitiesController.createActivity,
 );
 
-// Update an activity
+// Update an activity - only admin can update
 router.put(
   "/:activityId",
   authenticateToken,
-  checkRole("tour_guide"),
+  checkRole("admin"),
   activitiesController.updateActivity,
 );
 
-// Delete an activity
+// Delete an activity - only admin can delete
 router.delete(
   "/:activityId",
   authenticateToken,
-  checkRole("tour_guide"),
+  checkRole("admin"),
   activitiesController.deleteActivity,
-);
-
-// Get transport routes
-router.get(
-  "/transport/routes",
-  activitiesController.getTransportRoutes,
-);
-
-// Add a new transport route
-router.post(
-  "/transport/routes",
-  authenticateToken,
-  checkRole("travel_agent"),
-  activitiesController.addTransportRoute,
-);
-
-// Update an existing transport route
-router.put(
-  "/transport/routes/:routeId",
-  authenticateToken,
-  checkRole("travel_agent"),
-  activitiesController.updateTransportRoute,
 );
 
 module.exports = router;

@@ -38,9 +38,9 @@ exports.getPendingApplications = async (req, res) => {
           case "hotel_manager": {
             // Get hotel manager specific details
             const [hotelDetails] = await db.query(
-              `SELECT id, name, location, description, capacity, rate_per_night, images
+              `SELECT id, name, location, description, capacity, base_price_per_night, images
                FROM hotels
-               WHERE manager_user_id = ?`,
+               WHERE id = ?`,
               [user.id],
             );
 
@@ -59,11 +59,11 @@ exports.getPendingApplications = async (req, res) => {
           }
 
           case "travel_agent": {
-            // Get travel agent specific details
+            // Get travel agent specific details - agency ID is the same as user ID
             const [agencyDetails] = await db.query(
               `SELECT id, name, document_url, contact_email, contact_phone
                FROM travel_agencies
-               WHERE agent_user_id = ?`,
+               WHERE id = ?`,
               [user.id],
             );
 
@@ -73,12 +73,21 @@ exports.getPendingApplications = async (req, res) => {
               // Get related transport routes for this agency
               const [routesDetails] = await db.query(
                 `SELECT id, origin, destination, transportation_type, cost, description
-                 FROM transport_routes
+                 FROM transports
                  WHERE agency_id = ?`,
-                [agencyDetails[0].id],
+                [agencyDetails[0].id], // Use the agency ID from agencyDetails
               );
 
               profileDetails.routes = routesDetails;
+              
+              // Try to parse document_url as JSON if it's stored that way
+              if (profileDetails.document_url && profileDetails.document_url.startsWith('[')) {
+                try {
+                  profileDetails.document_url = JSON.parse(profileDetails.document_url);
+                } catch (e) {
+                  // Keep as is if parsing fails
+                }
+              }
             }
             break;
           }

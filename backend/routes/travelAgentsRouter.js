@@ -8,7 +8,7 @@ const checkRole = require("../middleware/checkRole");
 router.post(
   "/profile",
   authenticateToken,
-  checkRole("travel_agent"),
+  checkRole("travel_agent", false),
   travelAgentsController.submitTravelAgentProfile,
 );
 
@@ -16,7 +16,7 @@ router.post(
 router.get(
   "/profile",
   authenticateToken,
-  checkRole("travel_agent"),
+  checkRole("travel_agent", false),
   travelAgentsController.getAgencyDetails,
 );
 

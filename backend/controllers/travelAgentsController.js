@@ -1,7 +1,7 @@
 const db = require("../config/db");
 
 exports.submitTravelAgentProfile = async (req, res) => {
-  const { name, legal_document_urls, routes } = req.body;
+  const { name, document_url, routes } = req.body;
   const userId = req.user.id;
 
   try {
@@ -10,29 +10,28 @@ exports.submitTravelAgentProfile = async (req, res) => {
     await connection.beginTransaction();
 
     try {
-      // Insert new agency
-      const [result] = await connection.query(
-        `INSERT INTO travel_agencies (agent_user_id, name, legal_document_urls)
+      // Insert new agency using user's ID as the agency ID
+      await connection.query(
+        `INSERT INTO travel_agencies (id, name, document_url)
            VALUES (?, ?, ?)`,
-        [userId, name, JSON.stringify(legal_document_urls)],
+        [userId, name, document_url],
       );
-      let agencyId = result.insertId;
-
+      
       // If routes are provided, process them
       if (routes && Array.isArray(routes) && routes.length > 0) {
         // Insert new routes
         for (const route of routes) {
           await connection.query(
-            `INSERT INTO transport_routes
-             (agency_id, origin, destination, transport_type, price, schedule_details)
+            `INSERT INTO transports
+             (agency_id, origin, destination, transportation_type, cost, description)
              VALUES (?, ?, ?, ?, ?, ?)`,
             [
-              agencyId,
+              userId, // Now using the user's ID directly as agency_id
               route.origin,
               route.destination,
-              route.transport_type,
-              route.price,
-              JSON.stringify(route.schedule_details || {}),
+              route.transport_type, // Client sends transport_type
+              route.price, // Client sends price
+              route.description || JSON.stringify(route.schedule_details || {}),
             ],
           );
         }
@@ -78,7 +77,7 @@ exports.getAgencyDetails = async (req, res) => {
 
   try {
     const [rows] = await db.query(
-      "SELECT * FROM travel_agencies WHERE agent_user_id = ?",
+      "SELECT * FROM travel_agencies WHERE id = ?",
       [userId],
     );
 
@@ -88,28 +87,20 @@ exports.getAgencyDetails = async (req, res) => {
 
     const agency = rows[0];
 
-    // Parse JSON fields
-    if (agency.legal_document_urls) {
-      try {
-        agency.legal_document_urls = JSON.parse(agency.legal_document_urls);
-      } catch (e) {
-        // Keep as is if parsing fails
-      }
-    }
-
     // Get routes for this agency
     const [routes] = await db.query(
-      "SELECT * FROM transport_routes WHERE agency_id = ?",
-      [agency.id],
+      "SELECT * FROM transports WHERE agency_id = ?",
+      [userId],
     );
 
     // Parse schedule_details for each route
     routes.forEach((route) => {
-      if (route.schedule_details) {
+      if (route.description) {
         try {
-          route.schedule_details = JSON.parse(route.schedule_details);
+          // Try to parse if it's stored as JSON
+          route.description = JSON.parse(route.description);
         } catch (e) {
-          // Keep as is if parsing fails
+          // Keep as is if parsing fails - it's likely plain text
         }
       }
     });
@@ -144,12 +135,12 @@ exports.getAgencyDetails = async (req, res) => {
  */
 exports.updateTravelAgentProfile = async (req, res) => {
   const userId = req.user.id;
-  const { name, legal_document_urls, contact_email, contact_phone } = req.body;
+  const { name, document_url, contact_email, contact_phone } = req.body;
 
   try {
     // Check if agency exists
     const [agencyRows] = await db.query(
-      "SELECT id FROM travel_agencies WHERE agent_user_id = ?",
+      "SELECT id FROM travel_agencies WHERE id = ?",
       [userId],
     );
 
@@ -166,9 +157,9 @@ exports.updateTravelAgentProfile = async (req, res) => {
       params.push(name);
     }
 
-    if (legal_document_urls !== undefined) {
-      updates.push("legal_document_urls = ?");
-      params.push(JSON.stringify(legal_document_urls));
+    if (document_url !== undefined) {
+      updates.push("document_url = ?");
+      params.push(document_url);
     }
 
     if (contact_email !== undefined) {
@@ -189,7 +180,7 @@ exports.updateTravelAgentProfile = async (req, res) => {
     params.push(userId);
 
     await db.query(
-      `UPDATE travel_agencies SET ${updates.join(", ")} WHERE agent_user_id = ?`,
+      `UPDATE travel_agencies SET ${updates.join(", ")} WHERE id = ?`,
       params,
     );
 

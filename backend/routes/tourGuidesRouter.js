@@ -8,7 +8,7 @@ const checkRole = require("../middleware/checkRole");
 router.post(
   "/profile",
   authenticateToken,
-  checkRole("tour_guide"),
+  checkRole("tour_guide", false),
   tourGuideController.submitTourGuideProfile,
 );
 
@@ -16,7 +16,7 @@ router.post(
 router.get(
   "/profile",
   authenticateToken,
-  checkRole("tour_guide"),
+  checkRole("tour_guide", false),
   tourGuideController.getGuideProfile,
 );
 
