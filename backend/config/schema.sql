@@ -27,6 +27,7 @@ CREATE TABLE tour_guides (
     license_document_url VARCHAR(512),
     location VARCHAR(255),
     expertise TEXT, -- JSON object with expertise details
+    available BOOLEAN DEFAULT TRUE, -- Whether the tour guide is available for new assignments
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
@@ -78,7 +79,6 @@ CREATE TABLE activities (
     price DECIMAL(10, 2) CHECK (price > 0),
     guide_user_id INT,
     group_size INT,
-    status ENUM('available', 'booked', 'completed', 'cancelled') DEFAULT 'available',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (destination_id) REFERENCES destinations (id) ON DELETE SET NULL,
@@ -166,4 +166,3 @@ CREATE INDEX idx_payments_created ON payments (created_at DESC);
 
 CREATE INDEX idx_activities_guide_id ON activities (guide_user_id);
 CREATE INDEX idx_activities_destination ON activities (destination_id);
-CREATE INDEX idx_activities_status ON activities (status);

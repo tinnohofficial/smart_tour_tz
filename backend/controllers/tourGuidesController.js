@@ -237,3 +237,40 @@ exports.updateGuideProfile = async (req, res) => {
       .json({ message: "Failed to update profile", error: error.message });
   }
 };
+
+/**
+ * Update tour guide availability status
+ */
+exports.updateAvailability = async (req, res) => {
+  const userId = req.user.id;
+  const { available } = req.body;
+  
+  if (available === undefined) {
+    return res.status(400).json({ message: "Availability status is required" });
+  }
+  
+  try {
+    // Check if profile exists
+    const [guideRows] = await db.query(
+      "SELECT user_id FROM tour_guides WHERE user_id = ?",
+      [userId],
+    );
+
+    if (guideRows.length === 0) {
+      return res.status(404).json({ message: "Tour guide profile not found" });
+    }
+    
+    // Update availability status
+    await db.query(
+      "UPDATE tour_guides SET available = ? WHERE user_id = ?",
+      [available, userId],
+    );
+    
+    res.status(200).json({ 
+      message: `Successfully updated availability status to ${available ? 'available' : 'unavailable'}` 
+    });
+  } catch (error) {
+    console.error("Error updating availability status:", error);
+    res.status(500).json({ message: "Failed to update availability status", error: error.message });
+  }
+};

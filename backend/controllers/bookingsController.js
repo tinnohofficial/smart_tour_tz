@@ -42,9 +42,18 @@ exports.createBooking = async (req, res) => {
 
   const start = new Date(startDate);
   const end = new Date(endDate);
+  const currentDate = new Date();
+  
+  // Remove time component from current date for fair comparison
+  currentDate.setHours(0, 0, 0, 0);
 
   if (isNaN(start.getTime()) || isNaN(end.getTime())) {
     return res.status(400).json({ message: "Invalid date format" });
+  }
+
+  // Check if start date is in the past
+  if (start < currentDate) {
+    return res.status(400).json({ message: "Start date cannot be in the past" });
   }
 
   if (end <= start) {
@@ -117,28 +126,14 @@ exports.createBooking = async (req, res) => {
         });
       }
 
-      // Add a default tour guide overhead cost for now
-      // This will be adjusted when admin assigns a tour guide
-      const guideCostPerDay = 50; // Default guide cost per day
-      const guideStart = new Date(startDate);
-      const guideEnd = new Date(endDate);
-      const days = Math.ceil((guideEnd - guideStart) / (1000 * 60 * 60 * 24));
-      const guideCost = guideCostPerDay * Math.max(1, days);
-      
-      // Add an overhead for tour guide that will be assigned later by admin
-      totalCost += guideCost;
-      
-      // Add a placeholder item for the tour guide
+      // Add a placeholder item for the tour guide (without cost calculation)
       selectedItems.push({
         type: "placeholder",
         id: 0, // This will be replaced when admin assigns a real guide
-        cost: guideCost,
-        days: days,
+        cost: 0, // No cost associated with tour guide now
         details: {
           type: "tour_guide_placeholder",
-          message: "Tour guide will be assigned by admin",
-          days: days,
-          cost_per_day: guideCostPerDay
+          message: "Tour guide will be assigned by admin"
         }
       });
       
@@ -146,46 +141,18 @@ exports.createBooking = async (req, res) => {
       if (activityIds && Array.isArray(activityIds) && activityIds.length > 0) {
         const placeholders = activityIds.map(() => "?").join(",");
         
-        // Verify that all activities are available
-        const [activityStatusRows] = await connection.query(
-          `SELECT id, status FROM activities WHERE id IN (${placeholders})`,
-          activityIds
-        );
-
-        if (activityStatusRows.length !== activityIds.length) {
-          await connection.rollback();
-          connection.release();
-          return res
-            .status(404)
-            .json({ message: "One or more activities not found" });
-        }
-        
-        // Check if any activities are already booked or not available
-        const unavailableActivities = activityStatusRows.filter(
-          activity => activity.status !== 'available'
-        );
-        
-        if (unavailableActivities.length > 0) {
-          await connection.rollback();
-          connection.release();
-          return res.status(400).json({
-            message: "Some selected activities are not available for booking",
-            unavailableActivities: unavailableActivities.map(a => a.id)
-          });
-        }
-        
-        // Get activity prices
+        // Just verify activities exist
         const [activityRows] = await connection.query(
           `SELECT id, price FROM activities WHERE id IN (${placeholders})`,
           activityIds,
         );
 
-        // Temporarily mark activities as 'pending' to prevent race conditions
-        for (const activityId of activityIds) {
-          await connection.query(
-            `UPDATE activities SET status = 'pending' WHERE id = ?`,
-            [activityId]
-          );
+        if (activityRows.length !== activityIds.length) {
+          await connection.rollback();
+          connection.release();
+          return res
+            .status(404)
+            .json({ message: "One or more activities not found" });
         }
 
         for (const activity of activityRows) {
@@ -234,20 +201,6 @@ exports.createBooking = async (req, res) => {
         totalCost,
       });
     } catch (error) {
-      // If we have activities, restore their status to 'available'
-      if (activityIds && Array.isArray(activityIds) && activityIds.length > 0) {
-        for (const activityId of activityIds) {
-          try {
-            await connection.query(
-              `UPDATE activities SET status = 'available' WHERE id = ? AND status = 'pending'`,
-              [activityId]
-            );
-          } catch (cleanupError) {
-            console.error("Error restoring activity status:", cleanupError);
-          }
-        }
-      }
-      
       await connection.rollback();
       connection.release();
       throw error;
@@ -372,7 +325,7 @@ exports.getGuideAssignedBookings = async (req, res) => {
       
       // Get activities for this booking
       const [activities] = await db.query(
-        `SELECT a.id, a.name, a.description, a.price, a.group_size, a.status,
+        `SELECT a.id, a.name, a.description, a.price, a.group_size,
                 d.name as destination_name, d.region as destination_region
          FROM booking_items bi
          JOIN activities a ON bi.item_type = 'activity' AND bi.id = a.id
@@ -462,6 +415,31 @@ exports.confirmHotelRoom = async (req, res) => {
       });
     }
 
+    // Validate dates if provided in roomDetails
+    if (roomDetails.check_in && roomDetails.check_out) {
+      const checkIn = new Date(roomDetails.check_in);
+      const checkOut = new Date(roomDetails.check_out);
+      const currentDate = new Date();
+      
+      // Remove time component from current date for fair comparison
+      currentDate.setHours(0, 0, 0, 0);
+
+      // Validate date formats
+      if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) {
+        return res.status(400).json({ message: "Invalid date format for check-in or check-out" });
+      }
+
+      // Check if check-in date is in the past
+      if (checkIn < currentDate) {
+        return res.status(400).json({ message: "Check-in date cannot be in the past" });
+      }
+
+      // Check if check-out is before check-in
+      if (checkOut <= checkIn) {
+        return res.status(400).json({ message: "Check-out date must be after check-in date" });
+      }
+    }
+
     // Update the booking item with room details
     await db.query(
       `UPDATE booking_items 
@@ -540,6 +518,38 @@ exports.assignTransportTicket = async (req, res) => {
       });
     }
     
+    // Validate departure and arrival dates if provided in ticketDetails
+    if (ticketDetails.departure_date) {
+      const departureDate = new Date(ticketDetails.departure_date);
+      const currentDate = new Date();
+      
+      // Remove time component from current date for fair comparison
+      currentDate.setHours(0, 0, 0, 0);
+
+      // Validate date format
+      if (isNaN(departureDate.getTime())) {
+        return res.status(400).json({ message: "Invalid date format for departure date" });
+      }
+
+      // Check if departure date is in the past
+      if (departureDate < currentDate) {
+        return res.status(400).json({ message: "Departure date cannot be in the past" });
+      }
+      
+      // If both departure and arrival dates are provided, validate their sequence
+      if (ticketDetails.arrival_date) {
+        const arrivalDate = new Date(ticketDetails.arrival_date);
+        
+        if (isNaN(arrivalDate.getTime())) {
+          return res.status(400).json({ message: "Invalid date format for arrival date" });
+        }
+        
+        if (arrivalDate <= departureDate) {
+          return res.status(400).json({ message: "Arrival date must be after departure date" });
+        }
+      }
+    }
+    
     // Update the booking item with ticket details
     await db.query(
       `UPDATE booking_items 
@@ -583,9 +593,9 @@ exports.assignTourGuide = async (req, res) => {
         return res.status(404).json({ message: "Booking not found or not in confirmed status" });
       }
       
-      // Verify the guide exists and is active
+      // Verify the guide exists, is active, and is available
       const [guideRows] = await connection.query(
-        `SELECT u.id, tg.expertise, tg.location, tg.full_name
+        `SELECT u.id, tg.expertise, tg.location, tg.full_name, tg.available
          FROM users u
          JOIN tour_guides tg ON u.id = tg.user_id
          WHERE u.id = ? AND u.role = 'tour_guide' AND u.status = 'active'`,
@@ -596,9 +606,14 @@ exports.assignTourGuide = async (req, res) => {
         return res.status(404).json({ message: "Tour guide not found or not active" });
       }
       
+      // Check if the tour guide is available
+      if (!guideRows[0].available) {
+        return res.status(400).json({ message: "Tour guide is not available for new assignments" });
+      }
+      
       // Check if a tour guide placeholder exists or if a tour guide is already assigned
       const [existingGuideRows] = await connection.query(
-        `SELECT id, item_type, cost, item_details 
+        `SELECT id, item_type, item_details 
          FROM booking_items 
          WHERE booking_id = ? AND (item_type = 'placeholder' OR item_type = 'tour_guide')`,
         [bookingId]
@@ -614,70 +629,10 @@ exports.assignTourGuide = async (req, res) => {
         return res.status(400).json({ message: "This booking already has a tour guide assigned" });
       }
       
-      // First, get the start and end dates from booking details or hotel booking
-      const [bookingDetailsRows] = await connection.query(
-        `SELECT bi.item_details
-         FROM booking_items bi
-         WHERE bi.booking_id = ? AND bi.item_type = 'hotel'`,
-        [bookingId]
-      );
-      
-      // If there's no hotel information, try to get date information from a placeholder
-      let days = 0;
+      // Get the placeholder item
       const placeholder = existingGuideRows.find(item => item.item_type === 'placeholder');
-      let placeholderDetails = null;
-      
-      if (bookingDetailsRows.length === 0) {
-        // Check if there's a placeholder with date information
-        if (!placeholder || !placeholder.item_details) {
-          return res.status(404).json({ 
-            message: "Booking has insufficient date information to assign a tour guide" 
-          });
-        }
-        
-        // Try to parse the item_details for the placeholder
-        try {
-          if (typeof placeholder.item_details === 'string') {
-            placeholderDetails = JSON.parse(placeholder.item_details);
-          } else {
-            placeholderDetails = placeholder.item_details;
-          }
-        } catch (error) {
-          return res.status(500).json({ 
-            message: "Failed to parse booking details", 
-            error: error.message 
-          });
-        }
-        
-        // If we don't have days information in the placeholder, we can't proceed
-        if (!placeholderDetails.days || placeholderDetails.days <= 0) {
-          return res.status(400).json({ 
-            message: "Invalid booking duration for tour guide assignment" 
-          });
-        }
-        
-        days = placeholderDetails.days;
-      } else {
-        // Use hotel booking information if available
-        let itemDetails;
-        // Use our parseJsonFields helper function
-        const parsedDetails = parseJsonFields([bookingDetailsRows[0]], ['item_details']);
-        itemDetails = parsedDetails[0].item_details || {};
-        
-        const startDate = itemDetails.check_in ? new Date(itemDetails.check_in) : new Date();
-        const endDate = itemDetails.check_out ? new Date(itemDetails.check_out) : new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
-        
-        // Calculate number of days
-        days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-      }
-      
-      // Assuming a fixed cost per day for guide services
-      const guideCostPerDay = 50; // This could be stored in the tour_guides table instead
-      const guideCost = guideCostPerDay * Math.max(1, days);
       
       // Replace the placeholder with the actual tour guide
-      const guideItemToUpdate = existingGuideRows.find(item => item.item_type === 'placeholder');
-      
       await connection.query(
         `UPDATE booking_items 
          SET item_type = 'tour_guide', 
@@ -688,14 +643,19 @@ exports.assignTourGuide = async (req, res) => {
         [
           guideId,
           JSON.stringify({ 
-            days,
             assigned_by: "admin",
             assigned_at: new Date().toISOString(),
             guide_name: guideRows[0].full_name,
             location: guideRows[0].location
           }),
-          guideItemToUpdate.id
+          placeholder.id
         ]
+      );
+      
+      // Mark the tour guide as unavailable
+      await connection.query(
+        `UPDATE tour_guides SET available = FALSE WHERE user_id = ?`,
+        [guideId]
       );
       
       await connection.commit();
@@ -703,9 +663,7 @@ exports.assignTourGuide = async (req, res) => {
         message: "Tour guide assigned successfully", 
         guide: {
           id: guideRows[0].id,
-          location: guideRows[0].location,
-          cost: guideCost,
-          days
+          location: guideRows[0].location
         }
       });
     } catch (error) {
@@ -828,12 +786,13 @@ exports.getEligibleGuidesForBooking = async (req, res) => {
       .filter(item => item.item_type === 'activity')
       .map(item => item.id);
     
-    // Find tour guides based on location and expertise
+    // Find tour guides based on location, expertise, and availability
     const [guides] = await db.query(
-      `SELECT u.id, u.email, tg.full_name, tg.location, tg.expertise, tg.user_id
+      `SELECT u.id, u.email, tg.full_name, tg.location, tg.expertise, tg.user_id, tg.available
        FROM tour_guides tg
        JOIN users u ON tg.user_id = u.id
        WHERE u.role = 'tour_guide' AND u.status = 'active'
+       AND tg.available = TRUE
        AND (tg.location LIKE ? OR ? LIKE CONCAT('%', tg.location, '%'))
        ORDER BY 
          CASE WHEN tg.location = ? THEN 1
@@ -927,15 +886,6 @@ exports.cancelBooking = async (req, res) => {
         `SELECT * FROM booking_items WHERE booking_id = ?`,
         [bookingId]
       );
-
-      // Release any booked activities
-      const activityItems = itemsRows.filter(item => item.item_type === 'activity');
-      for (const item of activityItems) {
-        await connection.query(
-          `UPDATE activities SET status = 'available' WHERE id = ? AND status = 'booked'`,
-          [item.id]
-        );
-      }
 
       // Update booking status to cancelled
       await connection.query(
@@ -1142,29 +1092,6 @@ exports.processBookingPayment = async (req, res) => {
           paymentReference,
           "successful",
         ]);
-        
-        // Update activity status for all activities in this booking to 'booked'
-        // This prevents overbooking of activities
-        const [activityItems] = await connection.query(
-          `SELECT id FROM booking_items 
-           WHERE booking_id = ? AND item_type = 'activity'`,
-          [bookingId]
-        );
-        
-        // If there are activities in the booking, update their status
-        if (activityItems && activityItems.length > 0) {
-          const activityIds = activityItems.map(item => item.id);
-          
-          // Update each activity status from 'pending' to 'booked' now that payment is confirmed
-          for (const activityId of activityIds) {
-            await connection.query(
-              `UPDATE activities 
-               SET status = 'booked' 
-               WHERE id = ? AND status = 'pending'`,
-              [activityId]
-            );
-          }
-        }
 
         await connection.commit();
         connection.release();
@@ -1177,57 +1104,11 @@ exports.processBookingPayment = async (req, res) => {
           reference: paymentReference,
         });
       } else {
-        // Release any pending activities if payment fails
-        const [activityItems] = await connection.query(
-          `SELECT id FROM booking_items 
-           WHERE booking_id = ? AND item_type = 'activity'`,
-          [bookingId]
-        );
-        
-        // If there are activities in the booking, restore their status to available
-        if (activityItems && activityItems.length > 0) {
-          const activityIds = activityItems.map(item => item.id);
-          
-          // Restore each activity status from 'pending' to 'available'
-          for (const activityId of activityIds) {
-            await connection.query(
-              `UPDATE activities 
-               SET status = 'available' 
-               WHERE id = ? AND status = 'pending'`,
-              [activityId]
-            );
-          }
-        }
-        
         await connection.rollback();
         connection.release();
         res.status(500).json({ message: "Payment processing failed" });
       }
     } catch (error) {
-      // Release any pending activities if an error occurs
-      try {
-        const [activityItems] = await connection.query(
-          `SELECT id FROM booking_items 
-           WHERE booking_id = ? AND item_type = 'activity'`,
-          [bookingId]
-        );
-        
-        if (activityItems && activityItems.length > 0) {
-          const activityIds = activityItems.map(item => item.id);
-          
-          for (const activityId of activityIds) {
-            await connection.query(
-              `UPDATE activities 
-               SET status = 'available' 
-               WHERE id = ? AND status = 'pending'`,
-              [activityId]
-            );
-          }
-        }
-      } catch (cleanupError) {
-        console.error("Error releasing activities:", cleanupError);
-      }
-      
       await connection.rollback();
       connection.release();
       throw error;

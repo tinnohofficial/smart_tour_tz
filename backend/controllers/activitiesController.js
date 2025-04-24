@@ -50,8 +50,7 @@ exports.createActivity = async (req, res) => {
     description,
     destination_id,
     price,
-    group_size,
-    status = 'available'
+    group_size
   } = req.body;
 
   // Validate required fields
@@ -94,16 +93,14 @@ exports.createActivity = async (req, res) => {
         description,
         destination_id,
         price,
-        group_size,
-        status
-      ) VALUES (?, ?, ?, ?, ?, ?)`,
+        group_size
+      ) VALUES (?, ?, ?, ?, ?)`,
       [
         name,
         description,
         destination_id,
         price,
-        group_size || null,
-        status
+        group_size || null
       ],
     );
 
@@ -111,8 +108,7 @@ exports.createActivity = async (req, res) => {
       message: "Activity created successfully",
       id: result.insertId,
       name,
-      destination_id,
-      status
+      destination_id
     });
   } catch (error) {
     console.error("Error creating activity:", error);
@@ -214,7 +210,7 @@ exports.deleteActivity = async (req, res) => {
 
       // If activity is in active bookings, don't allow deletion
       const activeBookings = bookingItems.filter(
-        item => item.status !== 'canceled' && item.status !== 'completed'
+        item => item.status !== 'cancelled' && item.status !== 'completed'
       );
 
       if (activeBookings.length > 0) {
@@ -226,28 +222,16 @@ exports.deleteActivity = async (req, res) => {
         });
       }
 
-      // If activity is only in canceled/completed bookings, allow deletion
-      // For future record-keeping, we could mark as inactive instead of deleting
-      if (bookingItems.length > 0) {
-        // Instead of deleting, mark as inactive
-        await connection.query(
-          "UPDATE activities SET status = 'inactive' WHERE id = ?", 
-          [activityId]
-        );
-      } else {
-        // If not part of any bookings, we can safely delete
-        await connection.query(
-          "DELETE FROM activities WHERE id = ?", 
-          [activityId]
-        );
-      }
+      // Delete the activity since we don't have status field anymore
+      await connection.query(
+        "DELETE FROM activities WHERE id = ?", 
+        [activityId]
+      );
 
       await connection.commit();
       connection.release();
       res.status(200).json({ 
-        message: bookingItems.length > 0 
-          ? "Activity marked as inactive" 
-          : "Activity deleted successfully" 
+        message: "Activity deleted successfully" 
       });
     } catch (error) {
       await connection.rollback();
