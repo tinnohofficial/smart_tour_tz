@@ -42,13 +42,30 @@ exports.register = async (req, res) => {
       );
     }
 
-    // Don't send password hash back!
+    // Generate JWT token just like in login
+    const token = jwt.sign(
+      {
+        id: result.insertId,
+        email,
+        role,
+        status: initialStatus,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: process.env.JWT_EXPIRES_IN || "1h",
+      }
+    );
+
+    // Return token and user info like in login
     res.status(201).json({
-      message:
-        "User registered successfully. Please complete your profile if required.",
-      userId: result.insertId,
-      role,
-      status: initialStatus,
+      message: "User registered successfully. Please complete your profile if required.",
+      token,
+      user: {
+        id: result.insertId,
+        email,
+        role,
+        status: initialStatus,
+      }
     });
   } catch (error) {
     console.error("Registration Error:", error);

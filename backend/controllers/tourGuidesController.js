@@ -11,6 +11,13 @@ exports.submitTourGuideProfile = async (req, res) => {
   }
 
   try {
+    // Verify the user exists first
+    const [userRows] = await db.query("SELECT id FROM users WHERE id = ?", [userId]);
+    
+    if (userRows.length === 0) {
+      return res.status(404).json({ message: "User not found. Cannot create tour guide profile." });
+    }
+    
     // Start a transaction
     const connection = await db.getConnection();
     await connection.beginTransaction();
@@ -142,6 +149,13 @@ exports.updateGuideProfile = async (req, res) => {
   const { full_name, location, expertise, activity_expertise } = req.body;
 
   try {
+    // Verify the user exists first
+    const [userRows] = await db.query("SELECT id FROM users WHERE id = ?", [userId]);
+    
+    if (userRows.length === 0) {
+      return res.status(404).json({ message: "User not found. Cannot update tour guide profile." });
+    }
+    
     // Check if profile exists
     const [guideRows] = await db.query(
       "SELECT expertise FROM tour_guides WHERE user_id = ?",
@@ -250,6 +264,13 @@ exports.updateAvailability = async (req, res) => {
   }
   
   try {
+    // Verify the user exists first
+    const [userRows] = await db.query("SELECT id FROM users WHERE id = ?", [userId]);
+    
+    if (userRows.length === 0) {
+      return res.status(404).json({ message: "User not found. Cannot update availability status." });
+    }
+    
     // Check if profile exists
     const [guideRows] = await db.query(
       "SELECT user_id FROM tour_guides WHERE user_id = ?",
