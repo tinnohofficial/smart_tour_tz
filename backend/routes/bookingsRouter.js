@@ -4,20 +4,12 @@ const bookingsController = require("../controllers/bookingsController");
 const authenticateToken = require("../middleware/authenticateToken");
 const checkRole = require("../middleware/checkRole");
 
-// Create a new booking (F6.7)
+// Create a new booking 
 router.post(
   "/",
   authenticateToken,
   checkRole("tourist"),
   bookingsController.createBooking,
-);
-
-// Process payment for a booking (F5.4/F5.5)
-router.post(
-  "/:bookingId/payment",
-  authenticateToken,
-  checkRole("tourist"),
-  bookingsController.processBookingPayment,
 );
 
 // Get user's bookings
@@ -74,6 +66,39 @@ router.patch(
   authenticateToken,
   checkRole("travel_agent"),
   bookingsController.assignTransportTicket,
+);
+
+// Admin routes for tour guide assignment
+// Get unassigned bookings (bookings without tour guides)
+router.get(
+  "/unassigned-bookings",
+  authenticateToken,
+  checkRole("admin"),
+  bookingsController.getUnassignedBookings,
+);
+
+// Get eligible tour guides for a booking
+router.get(
+  "/:bookingId/eligible-guides",
+  authenticateToken,
+  checkRole("admin"),
+  bookingsController.getEligibleGuidesForBooking,
+);
+
+// Assign tour guide to a booking
+router.post(
+  "/:bookingId/assign-guide",
+  authenticateToken,
+  checkRole("admin"),
+  bookingsController.assignTourGuide,
+);
+
+// Cancel a booking
+router.post(
+  "/:bookingId/cancel",
+  authenticateToken,
+  checkRole("tourist"),
+  bookingsController.cancelBooking,
 );
 
 module.exports = router;

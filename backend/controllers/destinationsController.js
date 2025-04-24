@@ -29,42 +29,7 @@ exports.getDestinationById = async (req, res) => {
       return res.status(404).json({ message: "Destination not found" });
     }
 
-    const destination = destinationRows[0];
-
-    // Get activities for this destination
-    const [activitiesRows] = await db.query(
-      "SELECT * FROM activities WHERE destination_id = ?",
-      [destinationId],
-    );
-    destination.activities = activitiesRows;
-
-    // Get nearby hotels based on location
-    const [hotelsRows] = await db.query(
-      `SELECT h.id, h.name, h.location, h.description, h.images, h.rate_per_night
-       FROM hotels h
-       JOIN users u ON h.manager_user_id = u.id
-       WHERE u.status = 'active'
-       AND h.location LIKE ?
-       LIMIT 10`,
-      [`%${destination.region}%`],
-    );
-
-    // Parse JSON fields if they exist
-    hotelsRows.forEach((hotel) => {
-      if (hotel.facilities_images_urls) {
-        try {
-          hotel.facilities_images_urls = JSON.parse(
-            hotel.facilities_images_urls,
-          );
-        } catch (e) {
-          // Keep as is if parsing fails
-        }
-      }
-    });
-
-    destination.nearby_hotels = hotelsRows;
-
-    res.status(200).json(destination);
+    res.status(200).json(destinationRows[0]);
   } catch (error) {
     console.error("Error fetching destination details:", error);
     res.status(500).json({

@@ -1,4 +1,3 @@
-// filepath: /Users/tinnoh/fyp/backend/savings/routes.js
 const express = require("express");
 const router = express.Router();
 const savingsController = require("../controllers/savingsController");

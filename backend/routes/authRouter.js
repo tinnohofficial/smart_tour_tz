@@ -32,4 +32,10 @@ router.post("/login", authController.login);
 // F4.1: Update password - migrated from users controller
 router.put("/password", authenticateToken, authController.updatePassword);
 
+// F4.2: Update email
+router.put("/email", authenticateToken, authController.updateEmail);
+
+// F4.3: Update phone number
+router.put("/phone", authenticateToken, authController.updatePhone);
+
 module.exports = router;

@@ -81,11 +81,11 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials." });
     }
 
-    // if (user.status !== "active") {
-    //   return res.status(403).json({
-    //     message: `Account not active. Status: ${user.status}. Please complete profile or wait for approval.`,
-    //   });
-    // }
+    if (user.status === "inactive" || user.status === "rejected") {
+      return res.status(403).json({
+        message: `Account not active. Status: ${user.status}. Please contact support.`,
+      });
+    }
 
     const token = jwt.sign(
       {
@@ -169,5 +169,135 @@ exports.updatePassword = async (req, res) => {
     res
       .status(500)
       .json({ message: "Failed to update password", error: error.message });
+  }
+};
+
+exports.updateEmail = async (req, res) => {
+  const userId = req.user.id;
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({
+      message: "Email and current password are required",
+    });
+  }
+
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({
+      message: "Please provide a valid email address",
+    });
+  }
+
+  try {
+    // Check if email already exists for another user
+    const [existingUsers] = await db.query(
+      "SELECT id FROM users WHERE email = ? AND id != ?",
+      [email, userId]
+    );
+    
+    if (existingUsers.length > 0) {
+      return res.status(409).json({ 
+        message: "Email is already in use by another account" 
+      });
+    }
+
+    // Get current user data for password verification
+    const [userResult] = await db.query(
+      "SELECT password_hash FROM users WHERE id = ?", 
+      [userId]
+    );
+
+    if (userResult.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const passwordHash = userResult[0].password_hash;
+
+    // Verify current password
+    const isPasswordValid = await bcrypt.compare(password, passwordHash);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: "Password is incorrect" });
+    }
+
+    // Update email
+    await db.query(
+      "UPDATE users SET email = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      [email, userId]
+    );
+
+    res.json({ message: "Email updated successfully" });
+  } catch (error) {
+    console.error("Error updating email:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to update email", error: error.message });
+  }
+};
+
+exports.updatePhone = async (req, res) => {
+  const userId = req.user.id;
+  const { phone_number, password } = req.body;
+
+  if (!phone_number || !password) {
+    return res.status(400).json({
+      message: "Phone number and current password are required",
+    });
+  }
+
+  // Simple phone validation - can be enhanced with more specific regex
+  // based on country requirements
+  if (phone_number.length < 8) {
+    return res.status(400).json({
+      message: "Please provide a valid phone number",
+    });
+  }
+
+  try {
+    // Check if phone number already exists for another user
+    const [existingUsers] = await db.query(
+      "SELECT id FROM users WHERE phone_number = ? AND id != ?",
+      [phone_number, userId]
+    );
+    
+    if (existingUsers.length > 0) {
+      return res.status(409).json({ 
+        message: "Phone number is already in use by another account" 
+      });
+    }
+
+    // Get current user data for password verification
+    const [userResult] = await db.query(
+      "SELECT password_hash FROM users WHERE id = ?", 
+      [userId]
+    );
+
+    if (userResult.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const passwordHash = userResult[0].password_hash;
+
+    // Verify current password
+    const isPasswordValid = await bcrypt.compare(password, passwordHash);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: "Password is incorrect" });
+    }
+
+    // Update phone number
+    await db.query(
+      "UPDATE users SET phone_number = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      [phone_number, userId]
+    );
+
+    res.json({ message: "Phone number updated successfully" });
+  } catch (error) {
+    console.error("Error updating phone number:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to update phone number", error: error.message });
   }
 };
