@@ -11,6 +11,13 @@ exports.submitTourGuideProfile = async (req, res) => {
   }
 
   try {
+    // Verify the user exists first
+    const [userRows] = await db.query("SELECT id FROM users WHERE id = ?", [userId]);
+    
+    if (userRows.length === 0) {
+      return res.status(404).json({ message: "User not found. Cannot create tour guide profile." });
+    }
+    
     // Start a transaction
     const connection = await db.getConnection();
     await connection.beginTransaction();
@@ -142,6 +149,13 @@ exports.updateGuideProfile = async (req, res) => {
   const { full_name, location, expertise, activity_expertise } = req.body;
 
   try {
+    // Verify the user exists first
+    const [userRows] = await db.query("SELECT id FROM users WHERE id = ?", [userId]);
+    
+    if (userRows.length === 0) {
+      return res.status(404).json({ message: "User not found. Cannot update tour guide profile." });
+    }
+    
     // Check if profile exists
     const [guideRows] = await db.query(
       "SELECT expertise FROM tour_guides WHERE user_id = ?",
@@ -235,5 +249,49 @@ exports.updateGuideProfile = async (req, res) => {
     res
       .status(500)
       .json({ message: "Failed to update profile", error: error.message });
+  }
+};
+
+/**
+ * Update tour guide availability status
+ */
+exports.updateAvailability = async (req, res) => {
+  const userId = req.user.id;
+  const { available } = req.body;
+  
+  if (available === undefined) {
+    return res.status(400).json({ message: "Availability status is required" });
+  }
+  
+  try {
+    // Verify the user exists first
+    const [userRows] = await db.query("SELECT id FROM users WHERE id = ?", [userId]);
+    
+    if (userRows.length === 0) {
+      return res.status(404).json({ message: "User not found. Cannot update availability status." });
+    }
+    
+    // Check if profile exists
+    const [guideRows] = await db.query(
+      "SELECT user_id FROM tour_guides WHERE user_id = ?",
+      [userId],
+    );
+
+    if (guideRows.length === 0) {
+      return res.status(404).json({ message: "Tour guide profile not found" });
+    }
+    
+    // Update availability status
+    await db.query(
+      "UPDATE tour_guides SET available = ? WHERE user_id = ?",
+      [available, userId],
+    );
+    
+    res.status(200).json({ 
+      message: `Successfully updated availability status to ${available ? 'available' : 'unavailable'}` 
+    });
+  } catch (error) {
+    console.error("Error updating availability status:", error);
+    res.status(500).json({ message: "Failed to update availability status", error: error.message });
   }
 };

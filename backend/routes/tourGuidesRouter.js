@@ -28,4 +28,12 @@ router.put(
   tourGuideController.updateGuideProfile,
 );
 
+// Tour Guide updates availability status
+router.patch(
+  "/availability",
+  authenticateToken,
+  checkRole("tour_guide"),
+  tourGuideController.updateAvailability,
+);
+
 module.exports = router;

@@ -1,0 +1,11 @@
+{ 
+  "name": "fyp-backend", 
+  "engines": { 
+    "node": ">=16" 
+  }, 
+  "scripts": { 
+    "start": "cd backend && npm start",
+    "postinstall": "cd backend && npm install"
+  }, 
+  "cwd": "backend" 
+}
