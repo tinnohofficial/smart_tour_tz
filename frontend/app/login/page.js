@@ -13,6 +13,8 @@ export default function Login() {
   const router = useRouter()
   const { email, password, isLoading, setEmail, setPassword, setIsLoading } = useLoginStore(); 
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL
+
   const onSubmit = async (event) => {
     event.preventDefault();
     setIsLoading(true);
@@ -36,12 +38,29 @@ export default function Login() {
     }
 
     try {
-      // i will remove this once i finish my testing
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.message || "Invalid email or password. Please try again.");
+        setIsLoading(false);
+        return;
+      }
 
       toast.success("Welcome back to Smart Tour System.");
 
-      
+      localStorage.setItem("token", data.token);
+
       router.push("/");
     } catch (error) {
       toast.error("Invalid email or password. Please try again.");

@@ -1,134 +1,167 @@
 "use client"
 
+import { useEffect } from "react" // Keep useEffect for initial fetch trigger
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import { FileUploader } from "../../components/file-uploader"
-import { toast } from "sonner"
+import { FileUploader } from "../../components/file-uploader" // Adjust path if needed
+import { toast } from "sonner" // Import from sonner
+import { z } from "zod"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Separator } from "@/components/ui/separator"
-import { User, Save, ArrowLeft } from "lucide-react"
+import { User, Save, ArrowLeft, MapPin, Award, Loader2 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import {create} from 'zustand'
+import { Checkbox } from "@/components/ui/checkbox"
+import { useTourGuideProfileStore } from './store'
 
-
-const useTourGuideProfileStore = create((set) => ({
-  fullName: "",
-  location: "",
-  expertise: "",
-  licenseDocuments: [],
-  isSubmitting: false,
-  isSaved: false,
-
-  setFullName: (fullName) => set({ fullName }),
-  setLocation: (location) => set({ location }),
-  setExpertise: (expertise) => set({ expertise }),
-  setLicenseDocuments: (licenseDocuments) => set({ licenseDocuments }),
-  setIsSubmitting: (isSubmitting) => set({ isSubmitting }),
-  setIsSaved: (isSaved) => set({ isSaved }),
-
-  resetForm: () => set({ // Optional: Reset form fields
-    fullName: "",
-    location: "",
-    expertise: "",
-    licenseDocuments: [],
-    isSubmitting: false,
-    isSaved: false,
-  }),
-}));
-
+// Tour guide profile schema (keep Zod for validation)
+const tourGuideSchema = z.object({
+  full_name: z.string().min(2, { message: "Please enter your full name" }),
+  location: z.string().min(2, { message: "Please enter your location" }),
+  expertise: z.string().min(2, { message: "Please enter your areas of expertise" }),
+  license_document_url: z.string().optional().nullable(), // Allow null/optional
+  activity_expertise: z.array(z.number()).min(1, { message: "Please select at least one activity" }),
+})
 
 export default function TourGuideProfile() {
   const router = useRouter()
+
+  // Get state and actions from Zustand store
   const {
-    fullName,
-    location,
-    expertise,
-    licenseDocuments,
     isSubmitting,
     isSaved,
-    setFullName,
-    setLocation,
-    setExpertise,
-    setLicenseDocuments,
-    setIsSubmitting,
-    setIsSaved,
-    resetForm
-  } = useTourGuideProfileStore(); // Use Zustand store
+    activities,
+    isLoading,
+    profileStatus,
+    licenseFile, // Needed for display logic
+    isUploading,
+    fetchInitialData,
+    setLicenseFile,
+    submitProfile,
+    fetchedProfileData, // Get fetched data to populate form
+  } = useTourGuideProfileStore()
 
+  // Form for tour guide (Type is inferred by zodResolver)
+  const form = useForm({
+    resolver: zodResolver(tourGuideSchema),
+    defaultValues: {
+      full_name: "",
+      location: "",
+      expertise: "",
+      license_document_url: "",
+      activity_expertise: [],
+    },
+  })
 
-  const onSubmit = async (event) => {
-    event.preventDefault(); 
-    setIsSubmitting(true); 
+  // Fetch initial data on mount and reset form when data arrives
+  useEffect(() => {
+    fetchInitialData()
+  }, [fetchInitialData])
 
-    if (!fullName || !location || !expertise) {
-      toast.error("Please fill in all fields.");
-      setIsSubmitting(false);
-      return;
+  // Effect to reset form when fetched profile data is available or changes
+   useEffect(() => {
+    if (fetchedProfileData) {
+      form.reset({
+        full_name: fetchedProfileData.full_name || "",
+        location: fetchedProfileData.location || "",
+        expertise: fetchedProfileData.expertise || "",
+        license_document_url: fetchedProfileData.license_document_url || "",
+        // Ensure activity_expertise is always an array
+        activity_expertise: Array.isArray(fetchedProfileData.activity_expertise)
+          ? fetchedProfileData.activity_expertise
+          : [],
+      })
     }
-    if (fullName.length < 2) {
-      toast.error("Please enter your full name.");
-      setIsSubmitting(false);
-      return;
-    }
-    if (location.length < 2) {
-      toast.error("Please enter your location.");
-      setIsSubmitting(false);
-      return;
-    }
-    if (expertise.length < 2) {
-      toast.error("Please enter your areas of expertise.");
-      setIsSubmitting(false);
-      return;
-    }
+     // Only reset based on fetchedProfileData changing
+   }, [fetchedProfileData, form])
 
 
-    try {
-      // i will send this data to the API
-      console.log("Tour Guide Profile data:", { fullName, location, expertise, licenseDocuments });
-
-      // Here i will call an api 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      setIsSaved(true); 
-      toast.success("Your profile is now pending approval by the administrator.");
-      resetForm(); 
-    } catch (error) {
-      toast.error("There was an error saving your profile. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const onSavePartial = () => {
-    // i will implement partial save of data
-    console.log("Saving partial data:", { fullName, location, expertise, licenseDocuments });
-
-    toast.success("Your profile information has been saved. You can complete it later.");
-  };
-
+  // Handle file selection from FileUploader
   const handleFileChange = (files) => {
-    setLicenseDocuments(files); 
-  };
+    if (files.length > 0) {
+      setLicenseFile(files[0]) // Update store state
+    } else {
+      setLicenseFile(null) // Update store state
+    }
+  }
 
+  // Handle form submission - call store action
+  const onSubmit = async (data) => {
+    // The submitProfile action now handles upload and API call logic
+    await submitProfile(data)
+    // Potentially reset the form again if needed, or rely on fetchInitialData update
+    // form.reset(useTourGuideProfileStore.getState().fetchedProfileData); // Example if needed immediately
+  }
+
+  // Save draft locally (can stay in component)
+  const onSavePartial = () => {
+    const currentData = form.getValues()
+    localStorage.setItem("tourGuideProfileDraft", JSON.stringify(currentData))
+    toast.info("Progress saved", {
+      description: "Your profile information has been saved locally. You can complete it later.",
+    })
+  }
+
+  // --- Render Logic ---
+
+  if (isLoading) {
+    return (
+      <div className="container max-w-3xl mx-auto py-10 flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading profile data...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="container max-w-3xl mx-auto py-10">
-      <Button variant="outline" className="mb-6 hover:bg-blue-100" onClick={() => router.push("/dashboard")}>
+      <Button variant="outline" className="mb-6" onClick={() => router.push("/dashboard")}>
         <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
       </Button>
 
-      {isSaved && (
-        <Alert className="mb-6 bg-green-50 border-green-200">
-          <AlertTitle className="text-green-800">Profile Submitted</AlertTitle>
-          <AlertDescription className="text-green-700">
+      {/* Profile Status Alerts */}
+      {profileStatus === "pending_approval" && (
+        <Alert className="mb-6 bg-yellow-50 border-yellow-200">
+          <AlertTitle className="text-yellow-800">Profile Pending Approval</AlertTitle>
+          <AlertDescription className="text-yellow-700">
             Your profile has been submitted and is pending approval by the administrator.
           </AlertDescription>
         </Alert>
       )}
+      {profileStatus === "rejected" && (
+         <Alert className="mb-6 bg-red-50 border-red-200">
+           <AlertTitle className="text-red-800">Profile Rejected</AlertTitle>
+           <AlertDescription className="text-red-700">
+             Your profile has been rejected. Please update your information and submit again.
+           </AlertDescription>
+         </Alert>
+      )}
+      {profileStatus === "active" && (
+        <Alert className="mb-6 bg-green-50 border-green-200">
+          <AlertTitle className="text-green-800">Profile Active</AlertTitle>
+          <AlertDescription className="text-green-700">
+            Your profile is active. You can update your information at any time.
+          </AlertDescription>
+        </Alert>
+      )}
+       {/* Optional: Handle error state from fetch */}
+       {profileStatus === 'error' && (
+         <Alert variant="destructive" className="mb-6">
+           <AlertTitle>Loading Error</AlertTitle>
+           <AlertDescription>
+             There was an issue loading your profile data. Please try refreshing the page.
+           </AlertDescription>
+         </Alert>
+       )}
 
-      <Card className="border-blue-100 shadow-md">
+
+      <Card className="border-primary/10 shadow-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">Complete Your Tour Guide Profile</CardTitle>
           <CardDescription>
@@ -136,69 +169,195 @@ export default function TourGuideProfile() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={onSubmit} className="space-y-6">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-blue-600 font-medium mb-2">
-                <User size={18} />
-                <h3>Tour Guide Information</h3>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {/* Personal Information Section */}
+              <div className="space-y-4">
+                 <div className="flex items-center gap-2 text-primary font-medium mb-2">
+                   <User size={18} />
+                   <h3>Tour Guide Information</h3>
+                 </div>
+                 <Separator />
+                 {/* Form Fields */}
+                 <FormField
+                   control={form.control}
+                   name="full_name"
+                   render={({ field }) => (
+                     <FormItem>
+                       <FormLabel>Full Name</FormLabel>
+                       <FormControl>
+                         <Input placeholder="John Doe" {...field} />
+                       </FormControl>
+                       <FormMessage />
+                     </FormItem>
+                   )}
+                 />
+                 <FormField
+                   control={form.control}
+                   name="location"
+                   render={({ field }) => (
+                     <FormItem>
+                       <FormLabel>Location</FormLabel>
+                       <FormControl>
+                         <div className="relative">
+                           <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                           <Input placeholder="City, Country" className="pl-10" {...field} />
+                         </div>
+                       </FormControl>
+                       <FormDescription>Enter the location where you provide tour guide services</FormDescription>
+                       <FormMessage />
+                     </FormItem>
+                   )}
+                 />
+                 <FormField
+                   control={form.control}
+                   name="expertise"
+                   render={({ field }) => (
+                     <FormItem>
+                       <FormLabel>Areas of Expertise</FormLabel>
+                       <FormControl>
+                         <Textarea
+                           placeholder="Wildlife, History, Adventure, etc."
+                           className="min-h-[100px]"
+                           {...field}
+                         />
+                       </FormControl>
+                       <FormDescription>
+                         Describe your expertise, experience, and specialties as a tour guide
+                       </FormDescription>
+                       <FormMessage />
+                     </FormItem>
+                   )}
+                 />
+                 <FormField
+                   control={form.control}
+                   name="license_document_url" // This field now holds the URL string
+                   render={({ field }) => ( // field.value here is the URL from the form state
+                     <FormItem>
+                       <FormLabel>License Documents</FormLabel>
+                       <FormControl>
+                         <div className="space-y-2">
+                           <FileUploader
+                             onChange={handleFileChange} // Updates Zustand state
+                             maxFiles={1}
+                             acceptedFileTypes="application/pdf,image/*"
+                           />
+                           {/* Show current document URL if exists and no new file is staged */}
+                           {field.value && !licenseFile && (
+                             <div className="text-sm text-muted-foreground mt-2">
+                               Current document:{" "}
+                               <a
+                                 href={field.value}
+                                 target="_blank"
+                                 rel="noopener noreferrer"
+                                 className="text-primary underline"
+                               >
+                                 View Document
+                               </a>
+                             </div>
+                           )}
+                            {/* Show newly selected file name */}
+                            {licenseFile && (
+                              <div className="text-sm text-muted-foreground mt-2">
+                                Staged file: {licenseFile.name}
+                              </div>
+                            )}
+                         </div>
+                       </FormControl>
+                       <FormDescription>Upload your tour guide license or certification (PDF or images)</FormDescription>
+                       {/* FormMessage refers to the license_document_url field (e.g., if it were required by Zod) */}
+                       <FormMessage />
+                     </FormItem>
+                   )}
+                 />
               </div>
-              <Separator />
 
-              <div className="space-y-2">
-                <label htmlFor="fullName" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Full Name</label>
-                <Input
-                  id="fullName"
-                  placeholder="Eddie Thinker"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                />
+              {/* Activity Expertise Section */}
+              <div className="pt-4">
+                 <div className="flex items-center gap-2 text-primary font-medium mb-2">
+                   <Award size={18} />
+                   <h3>Activity Expertise</h3>
+                 </div>
+                 <Separator className="mb-4" />
+                 <FormField
+                   control={form.control}
+                   name="activity_expertise"
+                   render={() => ( // No need for field here, we access activities from store
+                     <FormItem>
+                       <div className="mb-4">
+                         <FormLabel>Select Activities</FormLabel>
+                         <FormDescription>
+                           Choose the activities you are qualified to guide tourists through
+                         </FormDescription>
+                       </div>
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         {activities.map((activity) => (
+                           <FormField
+                             key={activity.id}
+                             control={form.control}
+                             name="activity_expertise"
+                             render={({ field }) => { // field here is the activity_expertise array
+                               return (
+                                 <FormItem
+                                   key={activity.id}
+                                   className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4"
+                                 >
+                                   <FormControl>
+                                     <Checkbox
+                                        // Check if the activity id is included in the form's array
+                                       checked={field.value?.includes(activity.id)}
+                                       onCheckedChange={(checked) => {
+                                         const currentValues = field.value || []
+                                         return checked
+                                           ? field.onChange([...currentValues, activity.id])
+                                           : field.onChange(currentValues?.filter((value) => value !== activity.id))
+                                       }}
+                                     />
+                                   </FormControl>
+                                   <div className="space-y-1 leading-none">
+                                     <FormLabel className="font-medium">{activity.name}</FormLabel>
+                                     <FormDescription className="text-xs">{activity.description}</FormDescription>
+                                   </div>
+                                 </FormItem>
+                               )
+                             }}
+                           />
+                         ))}
+                       </div>
+                       <FormMessage /> {/* Shows errors for the activity_expertise array */}
+                     </FormItem>
+                   )}
+                 />
               </div>
 
-              <div className="space-y-2">
-                <label htmlFor="location" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Location</label>
-                <Input
-                  id="location"
-                  placeholder="City, Country"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                />
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button type="button" variant="outline" className="flex-1" onClick={onSavePartial}>
+                  <Save className="mr-2 h-4 w-4" /> Save Progress
+                </Button>
+                <Button type="submit" className="flex-1" disabled={isSubmitting || isUploading}>
+                  {isSubmitting || isUploading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {isUploading ? "Uploading..." : "Submitting..."}
+                    </>
+                  ) : isSaved ? ( // Use isSaved state from store
+                    "Update Profile"
+                  ) : (
+                    "Submit Profile"
+                  )}
+                </Button>
               </div>
-
-              <div className="space-y-2">
-                <label htmlFor="expertise" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Areas of Expertise</label>
-                <Textarea
-                  id="expertise"
-                  placeholder="Wildlife, History, Adventure, etc."
-                  className="min-h-[100px]"
-                  value={expertise}
-                  onChange={(e) => setExpertise(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="licenseDocuments" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">License Documents</label>
-                <FileUploader
-                  onChange={handleFileChange}
-                  maxFiles={3}
-                  acceptedFileTypes="application/pdf,image/*"
-                />
-                <p className="text-xs text-gray-500">Upload your tour guide license or certification (PDF or images)</p>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Button type="button" variant="outline" className="flex-1 hover:bg-blue-100" onClick={onSavePartial}>
-                <Save className="mr-2 h-4 w-4" /> Save Progress
-              </Button>
-              <Button type="submit" className="flex-1 text-white bg-blue-600 hover:bg-blue-700" disabled={isSubmitting || isSaved}>
-                {isSubmitting ? "Submitting..." : isSaved ? "Submitted" : "Submit Profile"}
-              </Button>
-            </div>
-          </form>
+            </form>
+          </Form>
         </CardContent>
         <CardFooter className="border-t pt-6">
-          <p className="text-sm text-gray-500">
-            Your profile will be reviewed by an administrator before it becomes active.
+          <p className="text-sm text-muted-foreground">
+            {profileStatus !== "active" && profileStatus !== 'error' // Don't show review message on error
+              ? "Your profile will be reviewed by an administrator before it becomes active."
+              : profileStatus === "active"
+              ? "Your profile is active. You can update your information at any time."
+              : ""}
           </p>
         </CardFooter>
       </Card>

@@ -19,7 +19,7 @@ export default function RootLayout({ children }) {
       >
         <Navbar />
         <main className="flex-grow container mx-auto px-4 py-8 md:px-6 lg:px-8">{children}</main>
-        <Toaster />
+        <Toaster className="bg-white" />
       </body>
     </html>
   );

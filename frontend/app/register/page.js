@@ -16,9 +16,10 @@ export default function Register() {
     setRole,
     setBasicFormData,
   } = useRegisterStore();
+  
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-
-  const onBasicSubmit = (event) => {
+  const onBasicSubmit = async (event) => {
     event.preventDefault();
 
     const email = basicFormData.email;
@@ -67,11 +68,52 @@ export default function Register() {
       return;
     }
 
-    setRole(selectedRole);
-    if (selectedRole === "tourist") {
-      router.push("/dashboard")
-    } else {
-        router.push(`/dashboard?completeProfile=true&role=${selectedRole}`)
+    try {
+      const response = await fetch(`${API_URL}/auth/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          phone_number: phoneNumber, 
+          role: selectedRole,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.message || "Registration failed.");
+        return;
+      }
+
+      // Store the token and user data
+      localStorage.setItem('token', data.token);
+      
+      toast.success("Registration successful!");
+
+      // Set role in store and redirect based on role
+      setRole(selectedRole);
+      if (selectedRole === "tourist") {
+        router.push("/dashboard");
+      } else {
+        // For other roles that need profile completion
+        const profilePath = {
+          "tour_guide": "/profile/tourGuide",
+          "hotel_manager": "/profile/hotelManager",
+          "travel_agent": "/profile/travelAgent"
+        }[selectedRole];
+        
+        if (profilePath) {
+          router.push(profilePath);
+        } else {
+          router.push("/dashboard?completeProfile=true");
+        }
+      }
+    } catch (error) {
+      toast.error("An error occurred. Please try again.");
     }
   };
 
@@ -142,9 +184,9 @@ export default function Register() {
                     </SelectTrigger>
                     <SelectContent className="bg-white">
                       <SelectItem value="tourist">Tourist</SelectItem>
-                      <SelectItem value="tourGuide">Tour Guide</SelectItem>
-                      <SelectItem value="hotelManager">Hotel Manager</SelectItem>
-                      <SelectItem value="travelAgent">Travel Agent</SelectItem>
+                      <SelectItem value="tour_guide">Tour Guide</SelectItem>
+                      <SelectItem value="hotel_manager">Hotel Manager</SelectItem>
+                      <SelectItem value="travel_agent">Travel Agent</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-gray-500">

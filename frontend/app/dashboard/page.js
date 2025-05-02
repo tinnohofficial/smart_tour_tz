@@ -13,8 +13,10 @@ import {create} from 'zustand'
 const useDashboardStore = create((set) => ({
   userRole: "",
   userName: "",
+  userStatus: "active",
   setUserRole: (role) => set({ userRole: role }),
   setUserName: (name) => set({ userName: name }),
+  setUserStatus: (status) => set({ userStatus: status }),
 }));
 
 
@@ -31,7 +33,7 @@ export default function Dashboard() {
     if (role) {
       setUserRole(role);
     } else {
-      const roles = ["tourist", "tourGuide", "hotelManager", "travelAgent", "admin"];
+      const roles = ["tourist", "tour_guide", "hotel_manager", "travel_agent", "admin"];
       setUserRole(roles[Math.floor(Math.random() * roles.length)]);
     }
 
@@ -41,18 +43,35 @@ export default function Dashboard() {
 
   const roleDisplayName = () => {
     switch (userRole) {
-      case "tourGuide":
+      case "tour_guide":
         return " Tour Guide";
-      case "hotelManager":
+      case "hotel_manager":
         return " Hotel Manager";
-      case "travelAgent":
+      case "travel_agent":
         return " Travel Agent";
       default:
-        return " Tourist";
+        return " tourist";
     }
   }
 
   const getDashboardContent = () => {
+    // If profile needs completion, only show profile management option
+    if (completeProfile === "true") {
+      return (
+        <div>
+          <h2 className="text-xl mb-2">{roleDisplayName()} Dashboard</h2>
+          <div className="grid grid-cols-1 gap-4">
+            <Button className="w-full bg-white border hover:bg-blue-100" asChild>
+              <Link href={`/profile/${userRole.replace('_', '')}`}>
+                <User className="mr-2 h-4 w-4" />Complete Your Profile
+              </Link>
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    // Regular dashboard content based on role
     switch (userRole) {
       case "tourist":
         return (
@@ -71,7 +90,7 @@ export default function Dashboard() {
             </div>
           </div>
         );
-      case "tourGuide":
+      case "tour_guide":
         return (
           <div>
             <h2 className="text-xl mb-2">Tour Guide Dashboard</h2>
@@ -88,13 +107,13 @@ export default function Dashboard() {
             </div>
           </div>
         );
-      case "hotelManager":
+      case "hotel_manager":
         return (
           <div>
             <h2 className="text-xl mb-2">Hotel Manager Dashboard</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Button className="w-full bg-white border hover:bg-blue-100" asChild>
-                <Link href="/profile/hotelManager">Manage Hotel Profile</Link>
+                <Link href="/hotel-manager/profile">Manage Hotel Profile</Link>
               </Button>
               <Button className="w-full text-white bg-blue-600 hover:bg-blue-700" asChild>
                 <Link href="/dashboard/hotel-manager/bookings">
@@ -105,7 +124,7 @@ export default function Dashboard() {
             </div>
           </div>
         );
-      case "travelAgent":
+      case "travel_agent":
         return (
           <div>
             <h2 className="text-xl mb-2">Travel Agent Dashboard</h2>

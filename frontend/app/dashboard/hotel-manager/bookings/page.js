@@ -12,57 +12,14 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { create } from 'zustand'
+import { getHotelBookings, confirmHotelRoom } from "@/app/services/api"
+import { useEffect } from "react"
 
-// Mock data for bookings
-const mockBookings = [
-  {
-    id: "HB001",
-    touristName: "Mr & Mrs Tinnoh",
-    checkIn: "2025-07-15",
-    checkOut: "2025-07-20",
-    guests: 2,
-    status: "pending",
-    paymentStatus: "paid",
-  },
-  {
-    id: "HB002",
-    touristName: "Eddie Thinker",
-    checkIn: "2025-08-01",
-    checkOut: "2025-08-07",
-    guests: 3,
-    status: "pending",
-    paymentStatus: "paid",
-  },
-  {
-    id: "HB003",
-    touristName: "Michael Brown",
-    checkIn: "2025-09-10",
-    checkOut: "2025-09-15",
-    guests: 1,
-    status: "confirmed",
-    paymentStatus: "paid",
-    roomNumber: "201",
-    roomType: "Deluxe",
-  },
-  {
-    id: "HB004",
-    touristName: "Emily Davis",
-    checkIn: "2025-10-05",
-    checkOut: "2025-10-10",
-    guests: 4,
-    status: "confirmed",
-    paymentStatus: "paid",
-    roomNumber: "305",
-    roomType: "Family Suite",
-  },
-]
-
-// Mock data for room types
 const roomTypes = ["Standard", "Deluxe", "Suite", "Family Suite", "Presidential Suite"]
 
 // Zustand store for HotelManagerBookings
 const useHotelBookingsStore = create((set, get) => ({
-  bookings: mockBookings,
+  bookings: [],
   searchTerm: "",
   isLoading: false,
   selectedRoomType: "",
@@ -80,23 +37,37 @@ const useHotelBookingsStore = create((set, get) => ({
     const bookings = get().bookings;
     return bookings.filter(
       (booking) =>
-        booking.touristName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        booking.id.toLowerCase().includes(searchTerm.toLowerCase())
+        booking.tourist_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        booking.id?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   },
 
   // Derived state for pending bookings
   getPendingBookings: () => {
-    return get().getFilteredBookings().filter((booking) => booking.status === "pending");
+    return get().getFilteredBookings().filter((booking) => booking.provider_status === "pending");
   },
 
   // Derived state for confirmed bookings
   getConfirmedBookings: () => {
-    return get().getFilteredBookings().filter((booking) => booking.status === "confirmed");
+    return get().getFilteredBookings().filter((booking) => booking.provider_status === "confirmed");
   },
 
-  handleConfirmBooking: async (bookingId) => {
-    const { selectedRoomType, roomNumber, bookings, setBookings, setIsLoading, setSelectedRoomType, setRoomNumber } = get();
+  // Fetch bookings from API
+  fetchBookings: async () => {
+    const { setIsLoading, setBookings } = get();
+    setIsLoading(true);
+    try {
+      const bookingsData = await getHotelBookings();
+      setBookings(bookingsData);
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  },
+
+  handleConfirmBooking: async (itemId) => {
+    const { selectedRoomType, roomNumber, fetchBookings, setIsLoading, setSelectedRoomType, setRoomNumber } = get();
 
     if (!selectedRoomType || !roomNumber) {
       toast.error("Please select a room type and enter a room number.");
@@ -105,36 +76,27 @@ const useHotelBookingsStore = create((set, get) => ({
 
     setIsLoading(true);
 
-    // i need to remove this after i complete my testing
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    // Updating the booking status
-    const updatedBookings = bookings.map((booking) => {
-      if (booking.id === bookingId) {
-        return {
-          ...booking,
-          status: "confirmed",
-          roomNumber,
-          roomType: selectedRoomType,
-        };
-      }
-      return booking;
-    });
-
-    setBookings(updatedBookings);
-    setIsLoading(false);
-    setSelectedRoomType("");
-    setRoomNumber("");
-
-    toast.success( `Room #${roomNumber} (${selectedRoomType}) has been assigned to the tourist.`);
+    try {
+      await confirmHotelRoom(itemId, {
+        roomType: selectedRoomType,
+        roomNumber: roomNumber
+      });
+      
+      toast.success(`Room #${roomNumber} (${selectedRoomType}) has been assigned to the tourist.`);
+      await fetchBookings(); // Refresh bookings after confirmation
+      setSelectedRoomType("");
+      setRoomNumber("");
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
+    }
   },
 }));
-
 
 export default function HotelManagerBookings() {
   const router = useRouter()
   const {
-    bookings,
     searchTerm,
     isLoading,
     selectedRoomType,
@@ -142,20 +104,32 @@ export default function HotelManagerBookings() {
     setSearchTerm,
     setSelectedRoomType,
     setRoomNumber,
-    getFilteredBookings,
     getPendingBookings,
     getConfirmedBookings,
     handleConfirmBooking,
-  } = useHotelBookingsStore(); 
+    fetchBookings
+  } = useHotelBookingsStore();
+
+  // Fetch bookings on component mount
+  useEffect(() => {
+    fetchBookings();
+  }, [fetchBookings]);
 
   const pendingBookings = getPendingBookings();
   const confirmedBookings = getConfirmedBookings();
-
 
   const formatDate = (dateString) => {
     const options = { year: "numeric", month: "short", day: "numeric" };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
 
   return (
     <div className="container mx-auto py-6">
@@ -163,14 +137,14 @@ export default function HotelManagerBookings() {
         <Button className="border border-blue-100 hover:bg-blue-100" onClick={() => router.push("/dashboard")}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
         </Button>
-        <h1 className="text-2xl font-bold ">Hotel Bookings Management</h1>
+        <h1 className="text-2xl font-bold">Hotel Bookings Management</h1>
       </div>
 
       <div className="mb-6">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
           <Input
-            placeholder="Search bookings by tourist name or booking ID..."
+            placeholder="Search bookings by tourist email or booking ID..."
             className="pl-10"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -204,53 +178,46 @@ export default function HotelManagerBookings() {
           <Card>
             <CardHeader>
               <CardTitle>Pending Bookings</CardTitle>
-              <CardDescription className="text-gray-500">Review and process bookings that require room assignment</CardDescription>
+              <CardDescription>Review and process bookings that require room assignment</CardDescription>
             </CardHeader>
             <CardContent>
               {pendingBookings.length === 0 ? (
                 <div className="text-center py-6 text-gray-500">No pending bookings found</div>
               ) : (
                 <Table>
-                  <TableHeader className="bg-gray-100">
+                  <TableHeader>
                     <TableRow>
                       <TableHead>Booking ID</TableHead>
-                      <TableHead>Tourist</TableHead>
-                      <TableHead>Check-in / Check-out</TableHead>
-                      <TableHead>Guests</TableHead>
+                      <TableHead>Tourist Email</TableHead>
+                      <TableHead>Created At</TableHead>
                       <TableHead>Payment</TableHead>
                       <TableHead>Room Assignment</TableHead>
-                      <TableHead>Actions</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {pendingBookings.map((booking) => (
                       <TableRow key={booking.id}>
                         <TableCell className="font-medium">{booking.id}</TableCell>
-                        <TableCell>{booking.touristName}</TableCell>
+                        <TableCell>{booking.tourist_email}</TableCell>
+                        <TableCell>{formatDate(booking.created_at)}</TableCell>
                         <TableCell>
-                          {formatDate(booking.checkIn)} - {formatDate(booking.checkOut)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <Users className="h-4 w-4 mr-1" /> {booking.guests}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={booking.paymentStatus === "paid" ? "success" : "destructive"}>
-                            {booking.paymentStatus}
+                          <Badge variant={booking.payment_status === "paid" ? "success" : "destructive"}>
+                            {booking.payment_status || "pending"}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <div className="flex flex-col gap-2">
+                          <div className="space-y-2">
                             <div>
-                              <Label htmlFor={`roomType-${booking.id}`} className="text-xs">
-                                Room Type
-                              </Label>
-                              <Select value={selectedRoomType} onValueChange={setSelectedRoomType}>
-                                <SelectTrigger id={`roomType-${booking.id}`} className="w-full">
+                              <Label htmlFor={`roomType-${booking.id}`}>Room Type</Label>
+                              <Select
+                                value={selectedRoomType}
+                                onValueChange={setSelectedRoomType}
+                              >
+                                <SelectTrigger id={`roomType-${booking.id}`}>
                                   <SelectValue placeholder="Select room type" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-white">
+                                <SelectContent>
                                   {roomTypes.map((type) => (
                                     <SelectItem key={type} value={type}>
                                       {type}
@@ -260,14 +227,12 @@ export default function HotelManagerBookings() {
                               </Select>
                             </div>
                             <div>
-                              <Label htmlFor={`roomNumber-${booking.id}`} className="text-xs">
-                                Room Number
-                              </Label>
+                              <Label htmlFor={`roomNumber-${booking.id}`}>Room Number</Label>
                               <Input
                                 id={`roomNumber-${booking.id}`}
-                                placeholder="e.g. 101"
                                 value={roomNumber}
                                 onChange={(e) => setRoomNumber(e.target.value)}
+                                placeholder="e.g. 101"
                               />
                             </div>
                           </div>
@@ -275,8 +240,8 @@ export default function HotelManagerBookings() {
                         <TableCell className="text-right">
                           <Button
                             onClick={() => handleConfirmBooking(booking.id)}
-                            disabled={isLoading || booking.paymentStatus !== "paid"}
-                            className="flex items-center text-white bg-blue-600 hover:bg-blue-700"
+                            disabled={isLoading || booking.payment_status !== "paid"}
+                            className="bg-blue-600 text-white hover:bg-blue-700"
                           >
                             <Hotel className="mr-2 h-4 w-4" />
                             Assign Room
@@ -306,8 +271,7 @@ export default function HotelManagerBookings() {
                     <TableRow>
                       <TableHead>Booking ID</TableHead>
                       <TableHead>Tourist</TableHead>
-                      <TableHead>Check-in / Check-out</TableHead>
-                      <TableHead>Guests</TableHead>
+                      <TableHead>Created At</TableHead>
                       <TableHead>Room Type</TableHead>
                       <TableHead>Room Number</TableHead>
                     </TableRow>
@@ -316,19 +280,12 @@ export default function HotelManagerBookings() {
                     {confirmedBookings.map((booking) => (
                       <TableRow key={booking.id}>
                         <TableCell className="font-medium">{booking.id}</TableCell>
-                        <TableCell>{booking.touristName}</TableCell>
-                        <TableCell>
-                          {formatDate(booking.checkIn)} - {formatDate(booking.checkOut)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <Users className="h-4 w-4 mr-1" /> {booking.guests}
-                          </div>
-                        </TableCell>
-                        <TableCell>{booking.roomType}</TableCell>
+                        <TableCell>{booking.tourist_email}</TableCell>
+                        <TableCell>{formatDate(booking.created_at)}</TableCell>
+                        <TableCell>{booking.item_details?.roomType}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className="font-mono">
-                            {booking.roomNumber}
+                            {booking.item_details?.roomNumber}
                           </Badge>
                         </TableCell>
                       </TableRow>

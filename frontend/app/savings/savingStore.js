@@ -7,12 +7,19 @@ const useSavingsStore = create((set, get) => ({
   depositAmount: "",
   isDepositing: false,
   isBalanceVisible: false,
+  targetAmount: 5000,
+  transactions: [
+    { id: 1, type: "deposit", amount: 500, method: "Credit Card", date: "2023-05-15" },
+    { id: 2, type: "deposit", amount: 1000, method: "Cryptocurrency", date: "2023-05-01" },
+    { id: 3, type: "deposit", amount: 300, method: "Credit Card", date: "2023-04-22" },
+  ],
 
   setBalance: (newBalance) => set({ balance: newBalance }),
   setSavingDuration: (duration) => set({ savingDuration: duration }),
   setDepositAmount: (amount) => set({ depositAmount: amount }),
   setIsDepositing: (depositing) => set({ isDepositing: depositing }),
   setIsBalanceVisible: (visible) => set({ isBalanceVisible: visible }),
+  setTargetAmount: (amount) => set({ targetAmount: amount }),
 
   toggleBalanceVisibility: () => set((state) => ({ isBalanceVisible: !state.isBalanceVisible })),
 
@@ -21,8 +28,23 @@ const useSavingsStore = create((set, get) => ({
     try {
       // Simulate API delay
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      // Simulate successful deposit
-      set((state) => ({ balance: state.balance + amount, depositAmount: "" })); // Update balance and reset depositAmount
+
+      // Create new transaction
+      const newTransaction = {
+        id: Date.now(),
+        type: "deposit",
+        amount: amount,
+        method: method,
+        date: new Date().toISOString().split('T')[0],
+      };
+
+      // Update balance and add transaction
+      set((state) => ({
+        balance: state.balance + amount,
+        depositAmount: "",
+        transactions: [newTransaction, ...state.transactions],
+      }));
+
       return { success: true };
     } catch (error) {
       console.error("Deposit failed:", error); // Log error for debugging
@@ -31,6 +53,38 @@ const useSavingsStore = create((set, get) => ({
       set({ isDepositing: false }); // Set isDepositing back to false in finally block
     }
   },
+
+  getProgress: () => {
+    const state = get();
+    return (state.balance / state.targetAmount) * 100;
+  },
+
+  getMonthlyGrowth: () => {
+    const state = get();
+    const currentMonth = new Date().getMonth();
+    const currentMonthDeposits = state.transactions
+      .filter((t) => {
+        const transactionMonth = new Date(t.date).getMonth();
+        return transactionMonth === currentMonth;
+      })
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const previousMonthDeposits = state.transactions
+      .filter((t) => {
+        const transactionMonth = new Date(t.date).getMonth();
+        return transactionMonth === previousMonth;
+      })
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    if (previousMonthDeposits === 0) return 0;
+    return ((currentMonthDeposits - previousMonthDeposits) / previousMonthDeposits) * 100;
+  },
+
+  getLastDeposit: () => {
+    const state = get();
+    return state.transactions[0]?.amount || 0;
+  },
 }));
 
-export { useSavingsStore }
+export { useSavingsStore };

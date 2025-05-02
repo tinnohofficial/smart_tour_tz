@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,39 +11,7 @@ import { toast } from "sonner"
 import { Separator } from "@/components/ui/separator"
 import { Hotel, Save, ArrowLeft } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { create } from 'zustand'
-
-// Zustand store for HotelManagerProfile
-const useHotelManagerProfileStore = create((set) => ({
-  hotelName: "",
-  hotelLocation: "",
-  hotelCapacity: "",
-  accommodationCosts: "",
-  hotelFacilities: "",
-  hotelImages: [], // Initialize as array for FileUploader
-  isSubmitting: false,
-  isSaved: false,
-
-  setHotelName: (hotelName) => set({ hotelName }),
-  setHotelLocation: (hotelLocation) => set({ hotelLocation }),
-  setHotelCapacity: (hotelCapacity) => set({ hotelCapacity }),
-  setAccommodationCosts: (accommodationCosts) => set({ accommodationCosts }),
-  setHotelFacilities: (hotelFacilities) => set({ hotelFacilities }),
-  setHotelImages: (hotelImages) => set({ hotelImages }),
-  setIsSubmitting: (isSubmitting) => set({ isSubmitting }),
-  setIsSaved: (isSaved) => set({ isSaved }),
-
-  resetForm: () => set({ 
-    hotelName: "",
-    hotelLocation: "",
-    hotelCapacity: "",
-    accommodationCosts: "",
-    hotelFacilities: "",
-    hotelImages: [],
-    isSubmitting: false,
-    isSaved: false,
-  }),
-}));
+import { useHotelManagerProfileStore } from "./store"
 
 
 export default function HotelManagerProfile() {
@@ -64,82 +33,64 @@ export default function HotelManagerProfile() {
     setHotelImages,
     setIsSubmitting,
     setIsSaved,
-    resetForm
-  } = useHotelManagerProfileStore(); // Use Zustand store
+    resetForm,
+    fetchProfile,
+    submitProfile,
+    savePartial
+  } = useHotelManagerProfileStore();
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
 
 
   const onSubmit = async (event) => {
-    event.preventDefault(); // Prevent default form submission
-    setIsSubmitting(true); // Use Zustand setter
-
+    event.preventDefault();
     if (!hotelName || !hotelLocation || !hotelCapacity || !accommodationCosts || !hotelFacilities) {
       toast.error("Please fill in all fields.");
-      setIsSubmitting(false);
       return;
     }
-     if (hotelName.length < 2) {
+    if (hotelName.length < 2) {
       toast.error("Please enter the hotel name.");
-      setIsSubmitting(false);
       return;
     }
     if (hotelLocation.length < 2) {
       toast.error("Please enter the hotel location.");
-      setIsSubmitting(false);
       return;
     }
     if (hotelCapacity.length < 1) {
       toast.error("Please enter the hotel capacity.");
-      setIsSubmitting(false);
       return;
     }
     if (accommodationCosts.length < 1) {
-        toast.error("Please enter accommodation costs.");
-        setIsSubmitting(false);
-        return;
-      }
+      toast.error("Please enter accommodation costs.");
+      return;
+    }
     if (hotelFacilities.length < 2) {
       toast.error("Please describe the hotel facilities.");
-      setIsSubmitting(false);
       return;
     }
 
-
     try {
-      // Here i will call an api 
-      console.log("Hotel Manager Profile data:", {
-        hotelName,
-        hotelLocation,
-        hotelCapacity,
-        accommodationCosts,
-        hotelFacilities,
-        hotelImages
-      });
-
-      // i will remove this once i finish my testing
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      setIsSaved(true); 
+      await submitProfile();
       toast.success("Your hotel profile is now pending approval by the administrator.");
-      resetForm(); 
     } catch (error) {
       toast.error("There was an error saving your hotel profile. Please try again.");
-    } finally {
-      setIsSubmitting(false); 
     }
   };
 
-  const onSavePartial = () => {
-    // here i will implement partial save of data
-    console.log("Saving partial data:", {
-      hotelName,
-      hotelLocation,
-      hotelCapacity,
-      accommodationCosts,
-      hotelFacilities,
-      hotelImages
-    });
+  const onSavePartial = async () => {
+    if (!hotelName && !hotelLocation && !hotelCapacity && !accommodationCosts && !hotelFacilities && !hotelImages.length) {
+      toast.error("Please fill in at least one field to save progress");
+      return;
+    }
 
-    toast.success("Your progress has been saved successfully.");
+    try {
+      await savePartial();
+      toast.success("Your progress has been saved successfully.");
+    } catch (error) {
+      toast.error("There was an error saving your progress. Please try again.");
+    }
   };
 
   const handleFileChange = (files) => {
