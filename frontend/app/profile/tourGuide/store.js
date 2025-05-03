@@ -1,7 +1,6 @@
 // store/tourGuideProfileStore.js
 import { create } from 'zustand'
 import { toast } from 'sonner'
-import { uploadToBlob } from '@/app/services/blob-service' // Adjust path if needed
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL 
 
@@ -81,15 +80,28 @@ export const useTourGuideProfileStore = create((set, get) => ({
       if (licenseFile) {
         set({ isUploading: true })
         try {
-          uploadedUrl = await uploadToBlob(licenseFile)
-          data.license_document_url = uploadedUrl // Update data payload
+          const formData = new FormData()
+          formData.append("file", licenseFile)
+
+          const response = await fetch("/api/upload-url", {
+            method: "POST",
+            body: formData,
+          })
+
+          if (!response.ok) {
+            const errorData = await response.json()
+            throw new Error(errorData.message || "Failed to upload file")
+          }
+
+          const { url } = await response.json()
+          data.license_document_url = url // Update data payload with new URL
         } catch (error) {
           console.error('Upload Error:', error)
           toast.error('Failed to upload license document. Please try again.')
           set({ isSubmitting: false, isUploading: false })
           return // Stop submission
         } finally {
-           set({ isUploading: false })
+          set({ isUploading: false })
         }
       }
 

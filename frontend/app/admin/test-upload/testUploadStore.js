@@ -1,4 +1,3 @@
-// src/stores/testUploadStore.js (or your preferred location)
 import { create } from 'zustand';
 import { toast } from 'sonner'; // Import toast from sonner
 
@@ -15,12 +14,23 @@ export const useTestUploadStore = create((set, get) => ({
   // Handles file selection and preview generation
   setFileAndPreview: (file) => {
     if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+        set({ error: "Please select an image or PDF file" });
+        toast.error("Invalid file type. Please select an image or PDF file");
+        return;
+      }
       set({ selectedFile: file, error: null, uploadedUrl: null }); // Reset error/uploaded URL on new file select
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        set({ previewUrl: reader.result });
-      };
-      reader.readAsDataURL(file);
+      // Only create preview URL for images
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          set({ previewUrl: reader.result });
+        };
+        reader.readAsDataURL(file);
+      } else {
+        set({ previewUrl: 'pdf' }); // Just a marker for PDF files
+      }
     } else {
       // Clear state if no file is selected (e.g., user cancels file dialog)
       set({ selectedFile: null, previewUrl: null, error: null, uploadedUrl: null });
@@ -52,7 +62,7 @@ export const useTestUploadStore = create((set, get) => ({
       });
 
       if (!response.ok) {
-        let errorMsg = "Failed to upload image";
+        let errorMsg = `Failed to upload ${selectedFile.type.startsWith('image/') ? 'image' : 'PDF'}`;
         try {
             const errorData = await response.json();
             errorMsg = errorData.error || errorMsg;
@@ -62,11 +72,11 @@ export const useTestUploadStore = create((set, get) => ({
 
       const { url } = await response.json();
       set({ uploadedUrl: url });
-      toast.success("Image uploaded successfully!"); // Use sonner toast
+      toast.success(`${selectedFile.type.startsWith('image/') ? 'Image' : 'PDF'} uploaded successfully!`); // Use sonner toast
 
     } catch (err) {
-      console.error("Error uploading image:", err);
-      const errorMsg = err instanceof Error ? err.message : "Failed to upload image";
+      console.error("Error uploading file:", err);
+      const errorMsg = err instanceof Error ? err.message : `Failed to upload ${selectedFile.type.startsWith('image/') ? 'image' : 'PDF'}`;
       set({ error: errorMsg });
       toast.error(`Upload failed: ${errorMsg}`); // Use sonner toast
     } finally {

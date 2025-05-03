@@ -11,16 +11,19 @@ export async function POST(request) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
     }
 
-    // Validate file type (runtime check)
-    // Note: Accessing file.type relies on the 'file' object having this property at runtime.
-    if (!file.type || !file.type.startsWith("image/")) {
-      return NextResponse.json({ error: "File must be an image" }, { status: 400 })
+      // Validate file type (Allow Images and PDFs)
+    const fileType = file.type; // Get the type once for clarity
+
+    // Check if the file type is missing or if it's NOT an image AND NOT a PDF
+    if (!fileType || !(fileType.startsWith("image/") || fileType === "application/pdf")) {
+      // Update the error message to reflect the allowed types
+      return NextResponse.json({ error: "File must be an image or PDF" }, { status: 400 });
     }
 
     // Generate a unique filename
     // Note: Accessing file.name relies on the 'file' object having this property at runtime.
     const fileExtension = file.name.split(".").pop()
-    const uniqueFilename = `destinations/${nanoid()}.${fileExtension}`
+    const uniqueFilename = `license_documents/${nanoid()}.${fileExtension}`
 
     // Upload to Vercel Blob using the environment variable
     const blob = await put(uniqueFilename, file, {

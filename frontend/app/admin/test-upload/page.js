@@ -39,24 +39,32 @@ export default function TestUploadPage() {
     <div className="container mx-auto py-10">
       <Card>
         <CardHeader>
-          <CardTitle>Test Image Upload</CardTitle>
-          <CardDescription>Test Vercel Blob image upload functionality</CardDescription>
+          <CardTitle>Test File Upload</CardTitle>
+          <CardDescription>Test file upload functionality for images and PDFs</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* File Input */}
           <div className="space-y-2">
-            <Label htmlFor="image">Select Image</Label>
-            {/* Use store action in onChange */}
-            <Input id="image" type="file" accept="image/*" onChange={handleFileChange} />
+            <Label htmlFor="file">Select File</Label>
+            {/* Updated to accept both image and PDF files */}
+            <Input id="file" type="file" accept="image/*,.pdf" onChange={handleFileChange} />
           </div>
 
           {/* Preview */}
-          {previewUrl && (
+          {previewUrl && selectedFile && (
             <div className="space-y-2">
               <Label>Preview</Label>
               <div className="relative h-60 w-full overflow-hidden rounded-md border">
-                {/* Read previewUrl from store */}
-                <img src={previewUrl || "/placeholder.svg"} alt="Preview" className="h-full w-full object-contain" />
+                {selectedFile.type.startsWith('image/') ? (
+                  <img src={previewUrl} alt="Preview" className="h-full w-full object-contain" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-gray-100">
+                    <div className="text-center">
+                      <p className="text-lg font-medium">PDF Document</p>
+                      <p className="text-sm text-gray-500">{selectedFile.name}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -67,7 +75,6 @@ export default function TestUploadPage() {
           {/* Upload Button */}
           <Button
             onClick={handleUploadClick}
-            // Disable button if no file selected or currently uploading
             disabled={!selectedFile || isUploading}
             className="w-full"
           >
@@ -77,20 +84,31 @@ export default function TestUploadPage() {
                 Uploading...
               </>
             ) : (
-              "Upload Image"
+              `Upload ${selectedFile?.type.startsWith('image/') ? 'Image' : 'PDF'}`
             )}
           </Button>
 
           {/* Uploaded Result */}
           {uploadedUrl && (
             <div className="space-y-2">
-              <Label>Uploaded Image URL</Label>
-              {/* Read uploadedUrl from store */}
+              <Label>Uploaded File URL</Label>
               <div className="break-all rounded-md bg-muted p-2 text-sm">{uploadedUrl}</div>
-              <div className="relative h-60 w-full overflow-hidden rounded-md border">
-                {/* Display uploaded image */}
-                <img src={uploadedUrl || "/placeholder.svg"} alt="Uploaded" className="h-full w-full object-contain" />
-              </div>
+              {selectedFile?.type.startsWith('image/') ? (
+                <div className="relative h-60 w-full overflow-hidden rounded-md border">
+                  <img src={uploadedUrl} alt="Uploaded" className="h-full w-full object-contain" />
+                </div>
+              ) : (
+                <div className="flex h-60 w-full items-center justify-center rounded-md border bg-gray-100">
+                  <div className="text-center">
+                    <p className="text-lg font-medium">PDF Document</p>
+                    <p className="text-sm text-gray-500">
+                      <a href={uploadedUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        View PDF
+                      </a>
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </CardContent>

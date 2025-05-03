@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,33 +9,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { FileUploader } from "../../components/file-uploader"
 import { toast } from "sonner"
 import { Separator } from "@/components/ui/separator"
-import { Briefcase, Save, ArrowLeft } from "lucide-react"
+import { Briefcase, Save, ArrowLeft, Loader2 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { create } from 'zustand'
-
-// Zustand store for TravelAgentProfile
-const useTravelAgentProfileStore = create((set) => ({
-  companyName: "",
-  travelRoutes: "",
-  legalDocuments: [], 
-  isSubmitting: false,
-  isSaved: false,
-
-  setCompanyName: (companyName) => set({ companyName }),
-  setTravelRoutes: (travelRoutes) => set({ travelRoutes }),
-  setLegalDocuments: (legalDocuments) => set({ legalDocuments }),
-  setIsSubmitting: (isSubmitting) => set({ isSubmitting }),
-  setIsSaved: (isSaved) => set({ isSaved }),
-
-  resetForm: () => set({ 
-    companyName: "",
-    travelRoutes: "",
-    legalDocuments: [],
-    isSubmitting: false,
-    isSaved: false,
-  }),
-}));
-
+import { useTravelAgentProfileStore } from "./store"
 
 export default function TravelAgentProfile() {
   const router = useRouter()
@@ -43,65 +20,34 @@ export default function TravelAgentProfile() {
     travelRoutes,
     legalDocuments,
     isSubmitting,
+    isUploading,
     isSaved,
     setCompanyName,
     setTravelRoutes,
     setLegalDocuments,
-    setIsSubmitting,
-    setIsSaved,
-    resetForm
-  } = useTravelAgentProfileStore(); 
+    fetchProfile,
+    submitProfile,
+    savePartial
+  } = useTravelAgentProfileStore()
 
+  useEffect(() => {
+    fetchProfile()
+  }, [fetchProfile])
 
   const onSubmit = async (event) => {
-    event.preventDefault(); 
-    setIsSubmitting(true); 
+    event.preventDefault()
 
     if (!companyName || !travelRoutes) {
-      toast.error("Please fill in all fields.");
-      setIsSubmitting(false);
-      return;
-    }
-    if (companyName.length < 2) {
-      toast.error("Please enter the company name.");
-      setIsSubmitting(false);
-      return;
-    }
-    if (travelRoutes.length < 2) {
-      toast.error("Please enter your travel routes with pricing.");
-      setIsSubmitting(false);
-      return;
+      toast.error("Please fill in all required fields")
+      return
     }
 
-
-    try {
-      // i will send this data to the API
-      console.log("Travel Agent Profile data:", { companyName, travelRoutes, legalDocuments });
-
-      // i will remove this once i finish my testing
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      setIsSaved(true); 
-      toast.success("Your travel agency profile is now pending approval by the administrator.");
-      resetForm(); 
-    } catch (error) {
-      toast.error("There was an error saving your profile. Please try again.");
-    } finally {
-      setIsSubmitting(false); 
-    }
-  };
-
-  const onSavePartial = () => {
-    //  i will implement partial save of data
-    console.log("Saving partial data:", { companyName, travelRoutes, legalDocuments });
-
-    toast.success("Your travel agency information has been saved. You can complete it later.");
-  };
+    await submitProfile()
+  }
 
   const handleFileChange = (files) => {
-    setLegalDocuments(files); 
-  };
-
+    setLegalDocuments(files)
+  }
 
   return (
     <div className="container max-w-3xl mx-auto py-10">
@@ -161,6 +107,7 @@ export default function TravelAgentProfile() {
                   onChange={handleFileChange}
                   maxFiles={3}
                   acceptedFileTypes="application/pdf,image/*"
+                  value={legalDocuments}
                 />
                 <p className="text-xs text-gray-500">
                   Upload your business license and other legal documents (PDF or images)
@@ -169,11 +116,24 @@ export default function TravelAgentProfile() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button type="button" variant="outline" className="flex-1 hover:bg-blue-100" onClick={onSavePartial}>
+              <Button type="button" variant="outline" className="flex-1 hover:bg-blue-100" onClick={savePartial}>
                 <Save className="mr-2 h-4 w-4" /> Save Progress
               </Button>
-              <Button type="submit" className="flex-1 text-white bg-blue-600 hover:bg-blue-700" disabled={isSubmitting || isSaved}>
-                {isSubmitting ? "Submitting..." : isSaved ? "Submitted" : "Submit Profile"}
+              <Button 
+                type="submit" 
+                className="flex-1 text-white bg-blue-600 hover:bg-blue-700" 
+                disabled={isSubmitting || isUploading}
+              >
+                {isSubmitting || isUploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {isUploading ? "Uploading..." : "Submitting..."}
+                  </>
+                ) : isSaved ? (
+                  "Update Profile"
+                ) : (
+                  "Submit Profile"
+                )}
               </Button>
             </div>
           </form>

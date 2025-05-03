@@ -3,26 +3,20 @@ import { toast } from 'sonner'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
-export const useHotelManagerProfileStore = create((set, get) => ({
+export const useTravelAgentProfileStore = create((set, get) => ({
   // State
-  hotelName: "",
-  hotelLocation: "",
-  hotelCapacity: "",
-  accommodationCosts: "",
-  hotelFacilities: "",
-  hotelImages: [],
+  companyName: "",
+  travelRoutes: "",
+  legalDocuments: [],
   isSubmitting: false,
   isSaved: false,
   isUploading: false,
   fetchedProfileData: null,
 
   // Actions
-  setHotelName: (hotelName) => set({ hotelName }),
-  setHotelLocation: (hotelLocation) => set({ hotelLocation }),
-  setHotelCapacity: (hotelCapacity) => set({ hotelCapacity }),
-  setAccommodationCosts: (accommodationCosts) => set({ accommodationCosts }),
-  setHotelFacilities: (hotelFacilities) => set({ hotelFacilities }),
-  setHotelImages: (hotelImages) => set({ hotelImages }),
+  setCompanyName: (companyName) => set({ companyName }),
+  setTravelRoutes: (travelRoutes) => set({ travelRoutes }),
+  setLegalDocuments: (legalDocuments) => set({ legalDocuments }),
   setIsSubmitting: (isSubmitting) => set({ isSubmitting }),
   setIsSaved: (isSaved) => set({ isSaved }),
   setIsUploading: (isUploading) => set({ isUploading }),
@@ -35,7 +29,7 @@ export const useHotelManagerProfileStore = create((set, get) => ({
         return
       }
 
-      const response = await fetch(`${API_URL}/hotels/manager/profile`, {
+      const response = await fetch(`${API_URL}/travel-agents/profile`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -44,12 +38,9 @@ export const useHotelManagerProfileStore = create((set, get) => ({
       if (response.ok) {
         const profileData = await response.json()
         set({
-          hotelName: profileData.hotel_name || "",
-          hotelLocation: profileData.location || "",
-          hotelCapacity: profileData.capacity || "",
-          accommodationCosts: profileData.accommodation_costs || "",
-          hotelFacilities: profileData.facilities || "",
-          hotelImages: profileData.images || [],
+          companyName: profileData.company_name || "",
+          travelRoutes: profileData.travel_routes || "",
+          legalDocuments: profileData.legal_documents || [],
           fetchedProfileData: profileData,
           isSaved: true
         })
@@ -65,15 +56,15 @@ export const useHotelManagerProfileStore = create((set, get) => ({
     const state = get()
     
     try {
-      // Upload any new images first
+      // Upload any new documents first
       set({ isUploading: true })
-      const uploadedImageUrls = []
+      const uploadedDocUrls = []
       
-      for (const imageFile of state.hotelImages) {
-        if (imageFile instanceof File) {
+      for (const docFile of state.legalDocuments) {
+        if (docFile instanceof File) {
           try {
             const formData = new FormData()
-            formData.append("file", imageFile)
+            formData.append("file", docFile)
             
             const response = await fetch("/api/upload-url", {
               method: "POST",
@@ -86,15 +77,15 @@ export const useHotelManagerProfileStore = create((set, get) => ({
             }
 
             const { url } = await response.json()
-            uploadedImageUrls.push(url)
+            uploadedDocUrls.push(url)
           } catch (error) {
             console.error('Upload Error:', error)
-            toast.error(`Failed to upload image: ${imageFile.name}`)
+            toast.error(`Failed to upload document: ${docFile.name}`)
             set({ isSubmitting: false, isUploading: false })
             return
           }
         } else {
-          uploadedImageUrls.push(imageFile) // Keep existing URLs
+          uploadedDocUrls.push(docFile) // Keep existing URLs
         }
       }
 
@@ -107,16 +98,13 @@ export const useHotelManagerProfileStore = create((set, get) => ({
 
       // Prepare data for submission
       const profileData = {
-        hotel_name: state.hotelName,
-        location: state.hotelLocation,
-        capacity: state.hotelCapacity,
-        accommodation_costs: state.accommodationCosts,
-        facilities: state.hotelFacilities,
-        images: uploadedImageUrls
+        company_name: state.companyName,
+        travel_routes: state.travelRoutes,
+        legal_documents: uploadedDocUrls
       }
 
       const method = state.isSaved ? 'PUT' : 'POST'
-      const response = await fetch(`${API_URL}/hotels`, {
+      const response = await fetch(`${API_URL}/travel-agents/profile`, {
         method,
         headers: {
           'Content-Type': 'application/json',
@@ -134,7 +122,7 @@ export const useHotelManagerProfileStore = create((set, get) => ({
       set({
         isSaved: true,
         fetchedProfileData: responseData,
-        hotelImages: uploadedImageUrls // Update with new URLs
+        legalDocuments: uploadedDocUrls // Update with new URLs
       })
 
       toast.success('Profile saved successfully!', {
@@ -152,33 +140,26 @@ export const useHotelManagerProfileStore = create((set, get) => ({
 
   savePartial: () => {
     const state = get()
-    if (!state.hotelName && !state.hotelLocation && !state.hotelCapacity && 
-        !state.accommodationCosts && !state.hotelFacilities && state.hotelImages.length === 0) {
+    if (!state.companyName && !state.travelRoutes && state.legalDocuments.length === 0) {
       toast.error("Please fill in at least one field to save progress")
       return
     }
     
     // Save current state to localStorage
     const draft = {
-      hotelName: state.hotelName,
-      hotelLocation: state.hotelLocation,
-      hotelCapacity: state.hotelCapacity,
-      accommodationCosts: state.accommodationCosts,
-      hotelFacilities: state.hotelFacilities,
-      hotelImages: state.hotelImages.filter(img => !(img instanceof File)) // Only save URLs, not files
+      companyName: state.companyName,
+      travelRoutes: state.travelRoutes,
+      legalDocuments: state.legalDocuments.filter(doc => !(doc instanceof File)) // Only save URLs, not files
     }
     
-    localStorage.setItem('hotelManagerProfileDraft', JSON.stringify(draft))
+    localStorage.setItem('travelAgentProfileDraft', JSON.stringify(draft))
     toast.success("Progress saved locally")
   },
 
   resetForm: () => set({
-    hotelName: "",
-    hotelLocation: "",
-    hotelCapacity: "",
-    accommodationCosts: "",
-    hotelFacilities: "",
-    hotelImages: [],
+    companyName: "",
+    travelRoutes: "",
+    legalDocuments: [],
     isSubmitting: false,
     isSaved: false,
     isUploading: false

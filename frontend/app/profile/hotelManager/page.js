@@ -9,10 +9,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { FileUploader } from "../../components/file-uploader"
 import { toast } from "sonner"
 import { Separator } from "@/components/ui/separator"
-import { Hotel, Save, ArrowLeft } from "lucide-react"
+import { Hotel, Save, ArrowLeft, Loader2 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useHotelManagerProfileStore } from "./store"
-
 
 export default function HotelManagerProfile() {
   const router = useRouter()
@@ -24,6 +23,7 @@ export default function HotelManagerProfile() {
     hotelFacilities,
     hotelImages,
     isSubmitting,
+    isUploading,
     isSaved,
     setHotelName,
     setHotelLocation,
@@ -31,72 +31,29 @@ export default function HotelManagerProfile() {
     setAccommodationCosts,
     setHotelFacilities,
     setHotelImages,
-    setIsSubmitting,
-    setIsSaved,
-    resetForm,
     fetchProfile,
     submitProfile,
     savePartial
-  } = useHotelManagerProfileStore();
+  } = useHotelManagerProfileStore()
 
   useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
-
+    fetchProfile()
+  }, [fetchProfile])
 
   const onSubmit = async (event) => {
-    event.preventDefault();
+    event.preventDefault()
+
     if (!hotelName || !hotelLocation || !hotelCapacity || !accommodationCosts || !hotelFacilities) {
-      toast.error("Please fill in all fields.");
-      return;
-    }
-    if (hotelName.length < 2) {
-      toast.error("Please enter the hotel name.");
-      return;
-    }
-    if (hotelLocation.length < 2) {
-      toast.error("Please enter the hotel location.");
-      return;
-    }
-    if (hotelCapacity.length < 1) {
-      toast.error("Please enter the hotel capacity.");
-      return;
-    }
-    if (accommodationCosts.length < 1) {
-      toast.error("Please enter accommodation costs.");
-      return;
-    }
-    if (hotelFacilities.length < 2) {
-      toast.error("Please describe the hotel facilities.");
-      return;
+      toast.error("Please fill in all required fields")
+      return
     }
 
-    try {
-      await submitProfile();
-      toast.success("Your hotel profile is now pending approval by the administrator.");
-    } catch (error) {
-      toast.error("There was an error saving your hotel profile. Please try again.");
-    }
-  };
-
-  const onSavePartial = async () => {
-    if (!hotelName && !hotelLocation && !hotelCapacity && !accommodationCosts && !hotelFacilities && !hotelImages.length) {
-      toast.error("Please fill in at least one field to save progress");
-      return;
-    }
-
-    try {
-      await savePartial();
-      toast.success("Your progress has been saved successfully.");
-    } catch (error) {
-      toast.error("There was an error saving your progress. Please try again.");
-    }
-  };
+    await submitProfile()
+  }
 
   const handleFileChange = (files) => {
-    setHotelImages(files); 
-  };
-
+    setHotelImages(files)
+  }
 
   return (
     <div className="container max-w-3xl mx-auto py-10">
@@ -188,17 +145,31 @@ export default function HotelManagerProfile() {
                   onChange={handleFileChange}
                   maxFiles={5}
                   acceptedFileTypes="image/*"
+                  value={hotelImages}
                 />
                 <p className="text-xs text-gray-500">Upload images of your hotel (up to 5 images)</p>
               </div>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button type="button" variant="outline" className="flex-1 hover:bg-blue-100" onClick={onSavePartial}>
+              <Button type="button" variant="outline" className="flex-1 hover:bg-blue-100" onClick={savePartial}>
                 <Save className="mr-2 h-4 w-4" /> Save Progress
               </Button>
-              <Button type="submit" className="flex-1 text-white bg-blue-600 hover:bg-blue-700" disabled={isSubmitting || isSaved}>
-                {isSubmitting ? "Submitting..." : isSaved ? "Submitted" : "Submit Profile"}
+              <Button 
+                type="submit" 
+                className="flex-1 text-white bg-blue-600 hover:bg-blue-700" 
+                disabled={isSubmitting || isUploading}
+              >
+                {isSubmitting || isUploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {isUploading ? "Uploading..." : "Submitting..."}
+                  </>
+                ) : isSaved ? (
+                  "Update Profile"
+                ) : (
+                  "Submit Profile"
+                )}
               </Button>
             </div>
           </form>
