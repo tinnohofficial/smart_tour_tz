@@ -66,7 +66,7 @@ export default function TourGuideProfile() {
       form.reset({
         full_name: fetchedProfileData.full_name || "",
         location: fetchedProfileData.location || "",
-        expertise: fetchedProfileData.expertise || "",
+        expertise: fetchedProfileData.expertise?.general || fetchedProfileData.expertise || "",
         license_document_url: fetchedProfileData.license_document_url || "",
         activity_expertise: Array.isArray(fetchedProfileData.activity_expertise)
           ? fetchedProfileData.activity_expertise
@@ -111,7 +111,7 @@ export default function TourGuideProfile() {
 
   return (
     <div className="container max-w-3xl mx-auto py-10">
-      <Button variant="outline" className="mb-6" onClick={() => router.push("/dashboard")}>
+      <Button variant="outline" className="mb-6" onClick={() => router.push("/tour-guide/dashboard")}>
         <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
       </Button>
 

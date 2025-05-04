@@ -1,125 +1,167 @@
 import { create } from 'zustand'
 import { toast } from 'sonner'
-// import { tourGuideApi } from '@/app/services/api'
 
-export const useProfileStore = create((set) => ({
+const API_URL = process.env.NEXT_PUBLIC_API_URL
+
+export const useProfileStore = create((set, get) => ({
   // Profile data
-  full_name: "",
+  profileData: null,
+  isLoading: true,
+  isSubmitting: false,
+  isUploading: false,
+  error: null,
+  licenseFile: null,
+
+  // Form data
+  fullName: "",
   location: "",
   expertise: {
     general: "",
     activities: []
   },
-  license_document_url: "",
-  available: true,
-  
-  // UI state
-  isLoading: true,
-  isSubmitting: false,
-  availabilityUpdating: false,
-  errors: null,
-  
-  // Activities list (these should match the IDs in your database)
-  activities: [
-    { id: "game-drive", name: "Game Drive Safari", description: "Lead safari tours through national parks" },
-    { id: "balloon-safari", name: "Hot Air Balloon Safari", description: "Guide aerial tours over wildlife areas" },
-    { id: "nature-walk", name: "Guided Nature Walk", description: "Lead walking tours through scenic trails" },
-    { id: "cultural-tour", name: "Cultural Village Tours", description: "Guide tours to local communities" },
-    { id: "hiking", name: "Mountain Hiking", description: "Lead hiking expeditions on mountain trails" },
-    { id: "bird-watching", name: "Bird Watching", description: "Guide bird watching tours in various habitats" }
-  ],
+  licenseUrl: "",
+  activityExpertise: [],
+  isAvailable: false,
 
   // Actions
-  setFullName: (name) => set({ full_name: name }),
-  setLocation: (loc) => set({ location: loc }),
-  setGeneralExpertise: (exp) => set(state => ({
-    expertise: {
-      ...state.expertise,
-      general: exp
-    }
-  })),
-  setActivityExpertise: (activities) => set(state => ({
-    expertise: {
-      ...state.expertise,
-      activities: activities
-    }
-  })),
-  setLicenseDocument: (url) => set({ license_document_url: url }),
-
-  // API actions
-  fetchProfileData: async () => {
+  setLicenseFile: (file) => set({ licenseFile: file }),
+  
+  fetchProfile: async () => {
+    set({ isLoading: true })
     try {
-      set({ isLoading: true, errors: null });
-      const data = await tourGuideApi.getProfile();
-      
-      set({
-        full_name: data.full_name || "",
-        location: data.location || "",
-        expertise: data.expertise ? 
-          (typeof data.expertise === 'string' ? 
-            { general: data.expertise, activities: [] } : 
-            data.expertise
-          ) : { general: "", activities: [] },
-        license_document_url: data.license_document_url || "",
-        available: data.available || false,
-        isLoading: false
-      });
-      
-      return data;
+      const token = localStorage.getItem('token')
+      if (!token) throw new Error('No authentication token found')
+
+      const response = await fetch(`${API_URL}/tour-guides/profile`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        set({
+          profileData: data,
+          fullName: data.full_name || "",
+          location: data.location || "",
+          expertise: typeof data.expertise === 'object' ? data.expertise : { general: data.expertise || "", activities: [] },
+          licenseUrl: data.license_document_url || "",
+          activityExpertise: data.activity_expertise || [],
+          isAvailable: data.available || false,
+        })
+      } else if (response.status === 404) {
+        // New profile, initialize empty state
+        set({ profileData: null })
+      } else {
+        throw new Error('Failed to fetch profile data')
+      }
     } catch (error) {
-      set({ 
-        errors: error.response?.data?.message || "Failed to load profile",
-        isLoading: false 
-      });
-      throw error;
+      console.error('Error fetching profile:', error)
+      toast.error('Failed to load profile data')
+      set({ error: error.message })
+    } finally {
+      set({ isLoading: false })
     }
   },
 
-  updateProfile: async (data) => {
+  updateProfile: async (formData) => {
+    set({ isSubmitting: true })
     try {
-      set({ isSubmitting: true, errors: null });
-      
-      // Format the data to match backend expectations
-      const formattedData = {
-        full_name: data.full_name,
-        location: data.location,
-        expertise: {
-          general: data.expertise.general,
-          activities: data.expertise.activities
+      const token = localStorage.getItem('token')
+      if (!token) {
+        throw new Error('No authentication token found')
+      }
+
+      // Handle file upload if there's a new license document
+      if (get().licenseFile) {
+        set({ isUploading: true })
+        const uploadFormData = new FormData()
+        uploadFormData.append('file', get().licenseFile)
+
+        const uploadResponse = await fetch('/api/upload-url', {
+          method: 'POST',
+          body: uploadFormData
+        })
+
+        if (!uploadResponse.ok) {
+          throw new Error('Failed to upload license document')
+        }
+
+        const { url } = await uploadResponse.json()
+        formData.license_document_url = url
+      }
+
+      // Format expertise data
+      const expertiseData = {
+        general: formData.expertise,
+        activities: get().activityExpertise
+      }
+
+      const profileData = {
+        full_name: formData.full_name,
+        location: formData.location,
+        expertise: expertiseData,
+        activity_expertise: get().activityExpertise,
+        license_document_url: formData.license_document_url || get().licenseUrl
+      }
+
+      const response = await fetch(`${API_URL}/tour-guides/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
         },
-        activity_expertise: data.expertise.activities,
-        license_document_url: Array.isArray(data.license_document_url) ? 
-          data.license_document_url[0] : 
-          data.license_document_url
-      };
+        body: JSON.stringify(profileData)
+      })
 
-      const response = await tourGuideApi.updateProfile(formattedData);
-      set({ isSubmitting: false });
-      return response;
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Failed to update profile')
+      }
+
+      const updatedData = await response.json()
+      set({
+        profileData: updatedData,
+        fullName: updatedData.full_name,
+        location: updatedData.location,
+        expertise: updatedData.expertise,
+        licenseUrl: updatedData.license_document_url,
+        activityExpertise: updatedData.activity_expertise,
+      })
+
+      toast.success('Profile updated successfully')
     } catch (error) {
-      set({ 
-        isSubmitting: false,
-        errors: error.response?.data?.message || "Failed to update profile" 
-      });
-      throw error;
+      console.error('Error updating profile:', error)
+      toast.error('Failed to update profile')
+      set({ error: error.message })
+    } finally {
+      set({ isSubmitting: false, isUploading: false })
     }
   },
 
-  toggleAvailability: async (available) => {
+  updateAvailability: async (available) => {
     try {
-      set({ availabilityUpdating: true, errors: null });
-      const response = await tourGuideApi.updateAvailability(available);
-      set({ 
-        available,
-        availabilityUpdating: false 
-      });
-      return response;
+      const token = localStorage.getItem('token')
+      const response = await fetch(`${API_URL}/tour-guides/availability`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ available })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update availability')
+      }
+
+      set({ isAvailable: available })
+      toast.success(
+        available ? 'You are now available for tours' : 'You are now unavailable for tours'
+      )
     } catch (error) {
-      set({ 
-        availabilityUpdating: false,
-        errors: error.response?.data?.message || "Failed to update availability" 
-      });
-      throw error;
+      console.error('Error updating availability:', error)
+      toast.error('Failed to update availability status')
     }
   }
 }))

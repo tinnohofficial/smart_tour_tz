@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect } from "react"
-import { CalendarCheck, BedDouble, BarChart3, Users } from "lucide-react"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Ticket, CreditCard, Briefcase, Users } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { create } from "zustand"
@@ -11,8 +11,8 @@ import Link from "next/link"
 import { useUserStore } from "@/app/store/userStore"
 import { PendingApprovalAlert } from "@/components/pending-approval-alert"
 
-// Store for hotel dashboard data
-const useHotelDashboardStore = create((set) => ({
+// Store for travel agent dashboard data
+const useTravelAgentDashboardStore = create((set) => ({
   stats: null,
   isLoading: true,
   error: null,
@@ -27,9 +27,9 @@ const useHotelDashboardStore = create((set) => ({
       set({ 
         stats: {
           totalBookings: 0,
-          availableRooms: "-",
-          occupancyRate: "0%",
-          pendingAssignments: 0,
+          pendingBookings: 0,
+          monthlyRevenue: "$0",
+          activeRoutes: 0,
           recentBookings: []
         }, 
         isLoading: false 
@@ -41,8 +41,8 @@ const useHotelDashboardStore = create((set) => ({
   }
 }))
 
-export default function HotelManagerDashboard() {
-  const { stats, isLoading, fetchDashboardData } = useHotelDashboardStore()
+export default function TravelAgentDashboard() {
+  const { stats, isLoading, fetchDashboardData } = useTravelAgentDashboardStore()
   const { isApproved, hasCompletedProfile, userRole, fetchUserStatus } = useUserStore()
 
   useEffect(() => {
@@ -64,9 +64,9 @@ export default function HotelManagerDashboard() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Hotel Dashboard</h1>
+        <h1 className="text-3xl font-bold">Travel Agency Dashboard</h1>
         <Button asChild variant="outline">
-          <Link href="/hotel-manager/profile">Update Hotel Profile</Link>
+          <Link href="/profile/travelAgent">Update Agency Profile</Link>
         </Button>
       </div>
 
@@ -104,7 +104,7 @@ export default function HotelManagerDashboard() {
                     <p className="text-2xl font-bold">{stats.totalBookings}</p>
                   </div>
                   <div className="p-2 bg-blue-100 rounded-full">
-                    <CalendarCheck className="h-6 w-6 text-blue-600" />
+                    <Ticket className="h-6 w-6 text-blue-600" />
                   </div>
                 </div>
               </CardContent>
@@ -114,39 +114,39 @@ export default function HotelManagerDashboard() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Available Rooms</p>
-                    <p className="text-2xl font-bold">{stats.availableRooms}</p>
-                  </div>
-                  <div className="p-2 bg-green-100 rounded-full">
-                    <BedDouble className="h-6 w-6 text-green-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Occupancy Rate</p>
-                    <p className="text-2xl font-bold">{stats.occupancyRate}</p>
-                  </div>
-                  <div className="p-2 bg-purple-100 rounded-full">
-                    <BarChart3 className="h-6 w-6 text-purple-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Pending Assignments</p>
-                    <p className="text-2xl font-bold">{stats.pendingAssignments}</p>
+                    <p className="text-sm font-medium text-gray-500">Pending Bookings</p>
+                    <p className="text-2xl font-bold">{stats.pendingBookings}</p>
                   </div>
                   <div className="p-2 bg-yellow-100 rounded-full">
                     <Users className="h-6 w-6 text-yellow-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Monthly Revenue</p>
+                    <p className="text-2xl font-bold">{stats.monthlyRevenue}</p>
+                  </div>
+                  <div className="p-2 bg-green-100 rounded-full">
+                    <CreditCard className="h-6 w-6 text-green-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Active Routes</p>
+                    <p className="text-2xl font-bold">{stats.activeRoutes}</p>
+                  </div>
+                  <div className="p-2 bg-purple-100 rounded-full">
+                    <Briefcase className="h-6 w-6 text-purple-600" />
                   </div>
                 </div>
               </CardContent>
@@ -156,7 +156,7 @@ export default function HotelManagerDashboard() {
           <Card>
             <CardHeader>
               <CardTitle>Recent Bookings</CardTitle>
-              <CardDescription>Latest hotel bookings that require your attention</CardDescription>
+              <CardDescription>Latest travel bookings that require your attention</CardDescription>
             </CardHeader>
             <CardContent>
               {stats.recentBookings.length === 0 ? (
@@ -168,20 +168,19 @@ export default function HotelManagerDashboard() {
                   {stats.recentBookings.map((booking) => (
                     <div key={booking.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="space-y-1">
-                        <p className="font-medium">{booking.guestName}</p>
+                        <p className="font-medium">{booking.touristName}</p>
                         <div className="flex items-center gap-2 text-sm text-gray-500">
-                          <p>{booking.checkIn} - {booking.checkOut}</p>
+                          <p>{booking.startDate} - {booking.endDate}</p>
                           <span>•</span>
-                          <div className="flex items-center">
-                            <Users className="h-4 w-4 mr-1" />
-                            {booking.guests}
-                          </div>
+                          <p>{booking.destination}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
-                        <Badge variant="outline">{booking.roomType}</Badge>
+                        <Badge variant={booking.status === "pending" ? "outline" : "secondary"}>
+                          {booking.status}
+                        </Badge>
                         <Button variant="outline" size="sm" asChild>
-                          <Link href="/hotel-manager/bookings">View Details</Link>
+                          <Link href="/dashboard/travel-agent/bookings">View Details</Link>
                         </Button>
                       </div>
                     </div>

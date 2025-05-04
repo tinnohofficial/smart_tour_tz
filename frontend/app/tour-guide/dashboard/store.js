@@ -1,48 +1,7 @@
 import { create } from "zustand"
+import { toast } from "sonner"
 
-const mockUserData = {
-  id: "tg123456",
-  name: "Michael Safari",
-  email: "michael.safari@example.com",
-  phone: "+255 987 654 321",
-  profileImage: "/placeholder.svg?height=100&width=100",
-  joinedDate: "March 2022",
-  location: "Arusha, Tanzania",
-  expertise: ["Wildlife", "Photography", "Hiking", "Cultural Tours"],
-  rating: 4.8,
-  reviewCount: 124,
-  isAvailable: true,
-}
-
-const mockTours = [
-  {
-    id: "t1001",
-    destination: "Serengeti National Park",
-    startDate: "2023-08-15",
-    endDate: "2023-08-18",
-    status: "upcoming",
-    touristCount: 4,
-    touristNames: ["John Smith", "Sarah Johnson", "Michael Brown", "Emily Davis"],
-    image: "/placeholder.svg?height=80&width=120",
-  },
-  {
-    id: "t1002",
-    destination: "Mount Kilimanjaro",
-    startDate: "2023-09-05",
-    endDate: "2023-09-12",
-    status: "upcoming",
-    touristCount: 2,
-    touristNames: ["Robert Wilson", "Jennifer Lee"],
-    image: "/placeholder.svg?height=80&width=120",
-  },
-]
-
-const mockEarnings = {
-  currentMonth: 1250,
-  lastMonth: 1800,
-  pending: 750,
-  total: 12500,
-}
+const API_URL = process.env.NEXT_PUBLIC_API_URL
 
 export const useDashboardStore = create((set) => ({
   userData: null,
@@ -50,21 +9,74 @@ export const useDashboardStore = create((set) => ({
   earnings: null,
   isLoading: true,
   isAvailable: false,
-  setUserData: (userData) => set({ userData }),
-  setTours: (tours) => set({ tours }),
-  setEarnings: (earnings) => set({ earnings }),
-  setIsLoading: (isLoading) => set({ isLoading }),
+  profileStatus: null,
+  error: null,
+
   setIsAvailable: (isAvailable) => set({ isAvailable }),
+  
   fetchDashboard: async () => {
     set({ isLoading: true })
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    set({
-      userData: mockUserData,
-      tours: mockTours,
-      earnings: mockEarnings,
-      isAvailable: mockUserData.isAvailable,
-      isLoading: false,
-    })
-  },
+    try {
+      // Fetch profile data
+      const token = localStorage.getItem('token')
+      const response = await fetch(`${API_URL}/tour-guides/profile`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        set({
+          userData: {
+            id: data.user_id,
+            name: data.full_name,
+            email: data.email,
+            phone: data.phone_number,
+            profileImage: data.profile_image || "/placeholder.svg",
+            location: data.location,
+            expertise: typeof data.expertise === 'object' 
+              ? data.expertise 
+              : { general: data.expertise || "", activities: [] },
+            rating: data.rating || 4.5,
+            reviewCount: data.review_count || 0,
+            isAvailable: data.available || false,
+            status: data.status
+          },
+          isAvailable: data.available || false,
+          profileStatus: data.status
+        })
+
+        // Only fetch tours and earnings if profile is approved
+        if (data.status === 'active') {
+          // Fetch assigned tours
+          const toursResponse = await fetch(`${API_URL}/bookings/tour-guide-assigned`, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          })
+          
+          if (toursResponse.ok) {
+            const toursData = await toursResponse.json()
+            set({ tours: toursData })
+          }
+
+          // For now using mock earnings data
+          set({
+            earnings: {
+              total: "$5,200",
+              currentMonth: "$1,200",
+              pendingPayouts: "$800"
+            }
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error)
+      set({ error: 'Failed to load dashboard data' })
+      toast.error('Failed to load dashboard data')
+    } finally {
+      set({ isLoading: false })
+    }
+  }
 }))

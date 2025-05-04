@@ -97,19 +97,19 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
       // Set role in store and redirect based on role
       setRole(selectedRole);
       if (selectedRole === "tourist") {
-        router.push("/dashboard");
+        router.push("/locations");
       } else {
         // For other roles that need profile completion
         const profilePath = {
-          "tour_guide": "/profile/tourGuide",
-          "hotel_manager": "/profile/hotelManager",
-          "travel_agent": "/profile/travelAgent"
+          "tour_guide": "/tour-guide/dashboard",
+          "hotel_manager": "/hotel-manager/dashboard",
+          "travel_agent": "/travel-agent/dashboard",
         }[selectedRole];
         
         if (profilePath) {
           router.push(profilePath);
         } else {
-          router.push("/dashboard?completeProfile=true");
+          router.push("/locations");
         }
       }
     } catch (error) {

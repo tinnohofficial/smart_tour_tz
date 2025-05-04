@@ -57,7 +57,7 @@ export default function HotelManagerProfile() {
 
   return (
     <div className="container max-w-3xl mx-auto py-10">
-      <Button variant="outline" className="mb-6 hover:bg-blue-100" onClick={() => router.push("/dashboard")}>
+      <Button variant="outline" className="mb-6 hover:bg-blue-100" onClick={() => router.push("/hotel-manager/dashboard")}>
         <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
       </Button>
 
