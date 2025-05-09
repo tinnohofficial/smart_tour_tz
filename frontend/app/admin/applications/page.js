@@ -149,7 +149,7 @@ export default function ApplicationsPage() {
                           variant="outline"
                           className="hover:bg-blue-50"
                           size="sm"
-                          onClick={() => rejectApplication(application.user_id)}
+                          onClick={() => rejectApplication(application.id)}
                           disabled={isProcessing} // Read from store
                         >
                           <X className="mr-1 h-4 w-4" /> Reject
@@ -158,7 +158,7 @@ export default function ApplicationsPage() {
                         <Button
                           className="text-white bg-blue-600 hover:bg-blue-700"
                           size="sm"
-                          onClick={() => approveApplication(application.user_id)}
+                          onClick={() => approveApplication(application.id)}
                           disabled={isProcessing} // Read from store
                         >
                           <CheckCircle className="mr-1 h-4 w-4" /> Approve
@@ -254,7 +254,12 @@ export default function ApplicationsPage() {
                              <div className="flex justify-between mb-2"><span className="font-medium">{route.origin} to {route.destination}</span><Badge>{route.transport_type}</Badge></div>
                              <div className="text-sm">
                                <p><span className="text-gray-500">Price:</span> ${route.price}</p>
-                               {route.schedule_details && <p><span className="text-gray-500">Schedule:</span> {route.schedule_details.frequency}, departing at {route.schedule_details.departure_time}</p>}
+                               {route.schedule_details && (
+                                 <p>
+                                   <span className="text-gray-500">Schedule:</span> {route.schedule_details.frequency || 'N/A'}, 
+                                   departing at {route.schedule_details.departure_time || 'N/A'}
+                                 </p>
+                               )}
                              </div>
                           </div>
                         ))}

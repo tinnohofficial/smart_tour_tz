@@ -7,7 +7,7 @@ export function PendingApprovalAlert({ userRole, hasCompletedProfile }) {
   const getProfileLink = () => {
     switch (userRole) {
       case "hotel_manager":
-        return "/hotel-manager/profile"
+        return "/profile/hotelManager"
       case "tour_guide":
         return "/tour-guide/profile"
       case "travel_agent":

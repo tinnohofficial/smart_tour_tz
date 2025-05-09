@@ -1,25 +1,26 @@
+"use client"
+
 import { create } from 'zustand'
 import { toast } from 'sonner'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
-export const useTravelAgentProfileStore = create((set, get) => ({
+export const useProfileStore = create((set, get) => ({
   // State
+  profileData: null,
   name: "",
   routes: [],
   documentUrl: [],
+  isLoading: false,
   isSubmitting: false,
-  isSaved: false,
   isUploading: false,
-  fetchedProfileData: null,
+  error: null,
+  isApproved: false,
 
   // Actions
   setName: (name) => set({ name }),
   setRoutes: (routes) => set({ routes }),
   setDocumentUrl: (documentUrl) => set({ documentUrl }),
-  setIsSubmitting: (isSubmitting) => set({ isSubmitting }),
-  setIsSaved: (isSaved) => set({ isSaved }),
-  setIsUploading: (isUploading) => set({ isUploading }),
   addRoute: (route) => set(state => ({ routes: [...state.routes, route] })),
   updateRoute: (index, updatedRoute) => set(state => ({
     routes: state.routes.map((route, i) => i === index ? updatedRoute : route)
@@ -29,11 +30,11 @@ export const useTravelAgentProfileStore = create((set, get) => ({
   })),
 
   fetchProfile: async () => {
+    set({ isLoading: true, error: null })
     try {
       const token = localStorage.getItem('token')
       if (!token) {
-        toast.error('Authentication Error: You must be logged in.')
-        return
+        throw new Error('Authentication Error: You must be logged in.')
       }
 
       const response = await fetch(`${API_URL}/travel-agents/profile`, {
@@ -43,33 +44,45 @@ export const useTravelAgentProfileStore = create((set, get) => ({
       })
 
       if (response.ok) {
-        const profileData = await response.json()
+        const data = await response.json()
         set({
-          name: profileData.name || "",
-          routes: profileData.routes || [],
-          documentUrl: profileData.document_url ? 
-            (Array.isArray(profileData.document_url) ? profileData.document_url : [profileData.document_url]) : 
+          profileData: data,
+          name: data.name || "",
+          routes: data.routes || [],
+          documentUrl: data.document_url ? 
+            (Array.isArray(data.document_url) ? data.document_url : [data.document_url]) : 
             [],
-          fetchedProfileData: profileData,
-          isSaved: true
+          isApproved: data.status === 'active'
         })
+      } else if (response.status === 404) {
+        // Profile not yet created
+        set({ profileData: null })
+      } else {
+        throw new Error('Failed to load profile data')
       }
     } catch (error) {
       console.error("Failed to fetch profile:", error)
+      set({ error: error.message })
       toast.error("Failed to load profile data")
+    } finally {
+      set({ isLoading: false })
     }
   },
 
-  submitProfile: async () => {
-    set({ isSubmitting: true })
-    const state = get()
-    
+  updateProfile: async (formData = {}) => {
+    set({ isSubmitting: true, error: null })
     try {
-      // Upload any new documents first
+      // Use form data if provided, otherwise use state
+      const data = {
+        name: formData.name || get().name,
+        routes: formData.routes || get().routes
+      }
+
+      // Handle document uploads
       set({ isUploading: true })
       const uploadedDocUrls = []
       
-      for (const docFile of state.documentUrl) {
+      for (const docFile of get().documentUrl) {
         if (docFile instanceof File) {
           try {
             const formData = new FormData()
@@ -89,37 +102,30 @@ export const useTravelAgentProfileStore = create((set, get) => ({
             uploadedDocUrls.push(url)
           } catch (error) {
             console.error('Upload Error:', error)
-            toast.error(`Failed to upload document: ${docFile.name}`)
-            set({ isSubmitting: false, isUploading: false })
-            return
+            throw new Error(`Failed to upload document: ${docFile.name}`)
           }
         } else {
           uploadedDocUrls.push(docFile) // Keep existing URLs
         }
       }
+      set({ isUploading: false })
+
+      data.document_url = uploadedDocUrls
 
       const token = localStorage.getItem('token')
       if (!token) {
-        toast.error('Authentication Error: You must be logged in.')
-        set({ isSubmitting: false })
-        return
+        throw new Error('Authentication Error: You must be logged in.')
       }
 
-      // Prepare data for submission using the correct field names
-      const profileData = {
-        name: state.name,
-        document_url: uploadedDocUrls,
-        routes: state.routes
-      }
-
-      const method = state.isSaved ? 'PUT' : 'POST'
+      // Check if we should create or update
+      const method = get().profileData ? 'PUT' : 'POST'
       const response = await fetch(`${API_URL}/travel-agents/profile`, {
         method,
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(profileData),
+        body: JSON.stringify(data),
       })
 
       if (!response.ok) {
@@ -129,48 +135,24 @@ export const useTravelAgentProfileStore = create((set, get) => ({
 
       const responseData = await response.json()
       set({
-        isSaved: true,
-        fetchedProfileData: responseData,
+        profileData: responseData,
         documentUrl: uploadedDocUrls // Update with new URLs
       })
 
       toast.success('Profile saved successfully!', {
-        description: 'Your profile is now pending approval by the administrator.',
+        description: get().profileData ? 'Your profile has been updated.' : 'Your profile is now pending approval by the administrator.',
       })
+      
+      return true
     } catch (error) {
-      console.error('Error saving profile:', error)
+      console.error('Error updating profile:', error)
+      set({ error: error.message })
       toast.error('Error saving profile', {
         description: error.message || 'There was an error saving your profile. Please try again.',
       })
+      return false
     } finally {
-      set({ isSubmitting: false, isUploading: false })
+      set({ isSubmitting: false })
     }
-  },
-
-  savePartial: () => {
-    const state = get()
-    if (!state.name && state.routes.length === 0 && state.documentUrl.length === 0) {
-      toast.error("Please fill in at least one field to save progress")
-      return
-    }
-    
-    // Save current state to localStorage
-    const draft = {
-      name: state.name,
-      routes: state.routes,
-      documentUrl: state.documentUrl.filter(doc => !(doc instanceof File)) // Only save URLs, not files
-    }
-    
-    localStorage.setItem('travelAgentProfileDraft', JSON.stringify(draft))
-    toast.success("Progress saved locally")
-  },
-
-  resetForm: () => set({
-    name: "",
-    routes: [],
-    documentUrl: [],
-    isSubmitting: false,
-    isSaved: false,
-    isUploading: false
-  })
+  }
 }))

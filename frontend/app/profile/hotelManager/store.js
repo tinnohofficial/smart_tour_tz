@@ -7,6 +7,7 @@ export const useHotelManagerProfileStore = create((set, get) => ({
   // State
   hotelName: "",
   hotelLocation: "",
+  hotelDescription: "", // Added description field
   hotelCapacity: "",
   accommodationCosts: "",
   hotelFacilities: "",
@@ -19,6 +20,7 @@ export const useHotelManagerProfileStore = create((set, get) => ({
   // Actions
   setHotelName: (hotelName) => set({ hotelName }),
   setHotelLocation: (hotelLocation) => set({ hotelLocation }),
+  setHotelDescription: (hotelDescription) => set({ hotelDescription }), // Added setter for description
   setHotelCapacity: (hotelCapacity) => set({ hotelCapacity }),
   setAccommodationCosts: (accommodationCosts) => set({ accommodationCosts }),
   setHotelFacilities: (hotelFacilities) => set({ hotelFacilities }),
@@ -44,10 +46,11 @@ export const useHotelManagerProfileStore = create((set, get) => ({
       if (response.ok) {
         const profileData = await response.json()
         set({
-          hotelName: profileData.hotel_name || "",
+          hotelName: profileData.name || "",
           hotelLocation: profileData.location || "",
+          hotelDescription: profileData.description || "", // Added description mapping
           hotelCapacity: profileData.capacity || "",
-          accommodationCosts: profileData.accommodation_costs || "",
+          accommodationCosts: profileData.base_price_per_night || "", // Updated field name
           hotelFacilities: profileData.facilities || "",
           hotelImages: profileData.images || [],
           fetchedProfileData: profileData,
@@ -105,12 +108,19 @@ export const useHotelManagerProfileStore = create((set, get) => ({
         return
       }
 
-      // Prepare data for submission
+      // Check for required fields
+      if (!state.hotelName || !state.hotelLocation || !state.hotelDescription || 
+          !state.hotelCapacity || !state.accommodationCosts) {
+        throw new Error('Required fields missing: name, location, description, capacity, and base_price_per_night are required')
+      }
+
+      // Prepare data for submission with corrected field names
       const profileData = {
-        hotel_name: state.hotelName,
+        name: state.hotelName,
         location: state.hotelLocation,
+        description: state.hotelDescription,
         capacity: state.hotelCapacity,
-        accommodation_costs: state.accommodationCosts,
+        base_price_per_night: state.accommodationCosts,
         facilities: state.hotelFacilities,
         images: uploadedImageUrls
       }
@@ -162,6 +172,7 @@ export const useHotelManagerProfileStore = create((set, get) => ({
     const draft = {
       hotelName: state.hotelName,
       hotelLocation: state.hotelLocation,
+      hotelDescription: state.hotelDescription, // Added description to draft
       hotelCapacity: state.hotelCapacity,
       accommodationCosts: state.accommodationCosts,
       hotelFacilities: state.hotelFacilities,
@@ -175,6 +186,7 @@ export const useHotelManagerProfileStore = create((set, get) => ({
   resetForm: () => set({
     hotelName: "",
     hotelLocation: "",
+    hotelDescription: "", // Added to reset
     hotelCapacity: "",
     accommodationCosts: "",
     hotelFacilities: "",

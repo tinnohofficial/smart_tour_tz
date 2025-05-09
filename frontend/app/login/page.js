@@ -59,9 +59,42 @@ export default function Login() {
 
       toast.success("Welcome back to Smart Tour System.");
 
+      // Store token and user data
       localStorage.setItem("token", data.token);
+      
+      // Store user data from the correct location in the response
+      const userData = {
+        id: data.user.id,
+        email: data.user.email,
+        role: data.user.role,
+        status: data.user.status
+      };
+      
+      localStorage.setItem("userData", JSON.stringify(userData));
 
-      router.push("/");
+      // Role-based redirection using the correct user role
+      const userRole = data.user.role;
+      
+      console.log("User role:", userRole);  // For debugging
+
+      switch (userRole) {
+        case 'admin':
+          router.push("/admin/dashboard");
+          break;
+        case 'tour_guide':
+          router.push("/tour-guide/dashboard");
+          break;
+        case 'travel_agent':
+          router.push("/travel-agent/dashboard");
+          break;
+        case 'hotel_manager':
+          router.push("/hotel-manager/dashboard");
+          break;
+        default:
+          // Default case for tourists or other roles
+          router.push("/");
+          break;
+      }
     } catch (error) {
       toast.error("Invalid email or password. Please try again.");
     } finally {

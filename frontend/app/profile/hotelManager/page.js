@@ -18,6 +18,7 @@ export default function HotelManagerProfile() {
   const {
     hotelName,
     hotelLocation,
+    hotelDescription,
     hotelCapacity,
     accommodationCosts,
     hotelFacilities,
@@ -27,6 +28,7 @@ export default function HotelManagerProfile() {
     isSaved,
     setHotelName,
     setHotelLocation,
+    setHotelDescription,
     setHotelCapacity,
     setAccommodationCosts,
     setHotelFacilities,
@@ -43,7 +45,7 @@ export default function HotelManagerProfile() {
   const onSubmit = async (event) => {
     event.preventDefault()
 
-    if (!hotelName || !hotelLocation || !hotelCapacity || !accommodationCosts || !hotelFacilities) {
+    if (!hotelName || !hotelLocation || !hotelDescription || !hotelCapacity || !accommodationCosts || !hotelFacilities) {
       toast.error("Please fill in all required fields")
       return
     }
@@ -103,6 +105,17 @@ export default function HotelManagerProfile() {
                   placeholder="City, Country"
                   value={hotelLocation}
                   onChange={(e) => setHotelLocation(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="hotelDescription" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Hotel Description</label>
+                <Textarea
+                  id="hotelDescription"
+                  placeholder="Provide a detailed description of your hotel..."
+                  className="min-h-[100px]"
+                  value={hotelDescription}
+                  onChange={(e) => setHotelDescription(e.target.value)}
                 />
               </div>
 

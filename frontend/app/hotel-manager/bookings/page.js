@@ -1,326 +1,272 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
+import { Search, Calendar, Clock, FileText, CheckCircle2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { toast } from "sonner"
-import { CheckCircle, Clock, Hotel, Search, Users } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { create } from 'zustand'
-
-// Room types available for selection
-const roomTypes = ["Standard", "Deluxe", "Suite", "Family Suite", "Presidential Suite"]
-
-// Single store for hotel bookings management
-const useHotelBookingsStore = create((set, get) => ({
-  bookings: [],
-  searchTerm: "",
-  isLoading: false,
-  selectedRoomType: "",
-  roomNumber: "",
-  
-  setBookings: (bookings) => set({ bookings }),
-  setSearchTerm: (searchTerm) => set({ searchTerm }),
-  setIsLoading: (isLoading) => set({ isLoading }),
-  setSelectedRoomType: (selectedRoomType) => set({ selectedRoomType }),
-  setRoomNumber: (roomNumber) => set({ roomNumber }),
-
-  // Get filtered bookings
-  getFilteredBookings: () => {
-    const { bookings, searchTerm } = get()
-    return bookings.filter(booking => 
-      booking.touristName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.id?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  },
-
-  // Get pending bookings
-  getPendingBookings: () => {
-    return get().getFilteredBookings().filter(booking => booking.status === "pending")
-  },
-
-  // Get confirmed bookings
-  getConfirmedBookings: () => {
-    return get().getFilteredBookings().filter(booking => booking.status === "confirmed")
-  },
-
-  // Fetch bookings from API
-  fetchBookings: async () => {
-    try {
-      set({ isLoading: true })
-      const response = await fetch("/api/hotels/bookings")
-      
-      if (response.ok) {
-        const data = await response.json()
-        set({ bookings: data, isLoading: false })
-      } else {
-        const error = await response.json()
-        toast.error(error.message || "Failed to fetch bookings")
-        set({ isLoading: false })
-      }
-    } catch (error) {
-      console.error("Error fetching bookings:", error)
-      toast.error("Failed to fetch bookings")
-      set({ isLoading: false })
-    }
-  },
-
-  // Confirm booking and assign room
-  handleConfirmBooking: async (bookingId) => {
-    const { selectedRoomType, roomNumber, fetchBookings } = get()
-    
-    if (!selectedRoomType || !roomNumber) {
-      toast.error("Please select a room type and enter a room number")
-      return
-    }
-
-    try {
-      set({ isLoading: true })
-      const response = await fetch(`/api/hotels/bookings/${bookingId}/confirm`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          roomType: selectedRoomType,
-          roomNumber: roomNumber
-        })
-      })
-
-      if (response.ok) {
-        await fetchBookings() // Refresh bookings after confirmation
-        set({ selectedRoomType: "", roomNumber: "" }) // Reset form
-        toast.success("Room assigned successfully")
-      } else {
-        const error = await response.json()
-        toast.error(error.message || "Failed to assign room")
-      }
-    } catch (error) {
-      console.error("Error confirming booking:", error)
-      toast.error("Failed to assign room")
-    } finally {
-      set({ isLoading: false })
-    }
-  }
-}))
+import { format } from "date-fns"
+import { useBookingsStore } from "./store"
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 
 export default function HotelManagerBookings() {
   const {
+    filteredBookings,
     isLoading,
     searchTerm,
-    selectedRoomType,
-    roomNumber,
+    isRoomDialogOpen,
+    selectedBooking,
+    roomDetails,
     setSearchTerm,
-    setSelectedRoomType,
-    setRoomNumber,
-    getPendingBookings,
-    getConfirmedBookings,
-    handleConfirmBooking,
-    fetchBookings
-  } = useHotelBookingsStore()
+    fetchBookings,
+    setSelectedBooking,
+    setIsRoomDialogOpen,
+    updateRoomDetails,
+    toggleAmenity,
+    confirmRoom
+  } = useBookingsStore()
 
-  // Fetch bookings on component mount
   useEffect(() => {
     fetchBookings()
   }, [fetchBookings])
 
-  const pendingBookings = getPendingBookings()
-  const confirmedBookings = getConfirmedBookings()
+  const handleOpenRoomDialog = (booking) => {
+    setSelectedBooking(booking)
+    setIsRoomDialogOpen(true)
+  }
+
+  const amenities = [
+    { id: "wifi", label: "Free WiFi" },
+    { id: "breakfast", label: "Breakfast Included" },
+    { id: "ac", label: "Air Conditioning" },
+    { id: "tv", label: "Flat-screen TV" },
+    { id: "minibar", label: "Mini Bar" },
+    { id: "safe", label: "Safe" },
+    { id: "balcony", label: "Balcony/Terrace" }
+  ]
 
   const formatDate = (dateString) => {
-    const options = { year: "numeric", month: "short", day: "numeric" }
-    return new Date(dateString).toLocaleDateString(undefined, options)
+    if (!dateString) return ""
+    try {
+      return format(new Date(dateString), "MMM dd, yyyy")
+    } catch (error) {
+      return dateString
+    }
   }
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
+      <div className="flex h-[70vh] items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto" />
+          <p className="mt-4 text-gray-600">Loading bookings...</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Bookings Management</h1>
-        <div className="relative w-64">
-          <Input
-            placeholder="Search bookings..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+    <div className="container px-1">
+      {/* Page Header */}
+      <div className="bg-blue-600 p-4 rounded-lg mb-6">
+        <div className="flex flex-col md:flex-row justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold text-white">Bookings Management</h1>
+            <p className="text-blue-100 text-sm">Manage guest bookings and assign rooms</p>
+          </div>
+          
+          {/* Search */}
+          <div className="w-full md:w-1/3">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-white/70" />
+              <Input
+                type="search"
+                placeholder="Search by guest email or booking ID"
+                className="bg-blue-700/40 border-blue-500/50 pl-9 text-white placeholder:text-white/70"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
-      <Tabs defaultValue="pending" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="pending" className="flex items-center">
-            <Clock className="mr-2 h-4 w-4" />
-            Pending Bookings
-            {pendingBookings.length > 0 && (
-              <Badge variant="secondary" className="ml-2">
-                {pendingBookings.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="confirmed" className="flex items-center">
-            <CheckCircle className="mr-2 h-4 w-4" />
-            Confirmed Bookings
-            {confirmedBookings.length > 0 && (
-              <Badge variant="secondary" className="ml-2">
-                {confirmedBookings.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
+      {filteredBookings.length === 0 ? (
+        <div className="text-center py-12">
+          <CheckCircle2 className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+          <h2 className="text-xl font-medium text-gray-700">No pending bookings</h2>
+          <p className="text-gray-500 mt-2">All guest bookings have been processed</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4">
+          {filteredBookings.map((booking) => (
+            <Card key={booking.id} className="overflow-hidden">
+              <CardHeader className="pb-3 bg-gray-50">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                  <div>
+                    <Badge className="mb-1">#{booking.booking_id}</Badge>
+                    <CardTitle className="text-base font-medium">{booking.tourist_email}</CardTitle>
+                  </div>
+                  <Button 
+                    onClick={() => handleOpenRoomDialog(booking)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    Assign Room
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex flex-col sm:flex-row justify-between gap-3">
+                  <div className="flex items-start gap-2">
+                    <Calendar className="h-4 w-4 text-gray-500 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium">Booking Date</p>
+                      <p className="text-sm text-gray-500">
+                        {formatDate(booking.created_at)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Clock className="h-4 w-4 text-gray-500 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium">Status</p>
+                      <p className="text-sm text-gray-500">
+                        {booking.provider_status === 'pending' ? 'Pending Room Assignment' : booking.provider_status}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <FileText className="h-4 w-4 text-gray-500 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium">Booking Cost</p>
+                      <p className="text-sm text-gray-500">
+                        ${Number(booking.cost).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
-        <TabsContent value="pending">
-          <Card>
-            <CardHeader>
-              <CardTitle>Pending Bookings</CardTitle>
-              <CardDescription>Review and process bookings that require room assignment</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {pendingBookings.length === 0 ? (
-                <div className="text-center py-6 text-gray-500">No pending bookings found</div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Booking ID</TableHead>
-                      <TableHead>Tourist</TableHead>
-                      <TableHead>Check-in / Check-out</TableHead>
-                      <TableHead>Guests</TableHead>
-                      <TableHead>Payment</TableHead>
-                      <TableHead>Room Assignment</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pendingBookings.map((booking) => (
-                      <TableRow key={booking.id}>
-                        <TableCell className="font-medium">{booking.id}</TableCell>
-                        <TableCell>{booking.touristName}</TableCell>
-                        <TableCell>
-                          {formatDate(booking.checkIn)} - {formatDate(booking.checkOut)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <Users className="h-4 w-4 mr-1" /> {booking.guests}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={booking.paymentStatus === "paid" ? "success" : "destructive"}>
-                            {booking.paymentStatus}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-2">
-                            <div>
-                              <Label htmlFor={`roomType-${booking.id}`}>Room Type</Label>
-                              <Select
-                                value={selectedRoomType}
-                                onValueChange={setSelectedRoomType}
-                              >
-                                <SelectTrigger id={`roomType-${booking.id}`}>
-                                  <SelectValue placeholder="Select room type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {roomTypes.map((type) => (
-                                    <SelectItem key={type} value={type}>
-                                      {type}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div>
-                              <Label htmlFor={`roomNumber-${booking.id}`}>Room Number</Label>
-                              <Input
-                                id={`roomNumber-${booking.id}`}
-                                value={roomNumber}
-                                onChange={(e) => setRoomNumber(e.target.value)}
-                                placeholder="e.g. 101"
-                              />
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            onClick={() => handleConfirmBooking(booking.id)}
-                            disabled={isLoading || booking.paymentStatus !== "paid"}
-                            className="bg-blue-600 text-white hover:bg-blue-700"
-                          >
-                            <Hotel className="mr-2 h-4 w-4" />
-                            Assign Room
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+      {/* Assign Room Dialog */}
+      <Dialog open={isRoomDialogOpen} onOpenChange={setIsRoomDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assign Room for Booking #{selectedBooking?.booking_id}</DialogTitle>
+          </DialogHeader>
+          
+          {/* Form to assign a room */}
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="roomNumber">Room Number</Label>
+                <Input
+                  id="roomNumber"
+                  type="text"
+                  placeholder="e.g., 101"
+                  value={roomDetails.roomNumber}
+                  onChange={(e) => updateRoomDetails('roomNumber', e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="roomType">Room Type</Label>
+                <Input
+                  id="roomType"
+                  type="text"
+                  placeholder="e.g., Deluxe Double"
+                  value={roomDetails.roomType}
+                  onChange={(e) => updateRoomDetails('roomType', e.target.value)}
+                  required
+                />
+              </div>
+            </div>
 
-        <TabsContent value="confirmed">
-          <Card>
-            <CardHeader>
-              <CardTitle>Confirmed Bookings</CardTitle>
-              <CardDescription>View all bookings with assigned rooms</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {confirmedBookings.length === 0 ? (
-                <div className="text-center py-6 text-gray-500">No confirmed bookings found</div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Booking ID</TableHead>
-                      <TableHead>Tourist</TableHead>
-                      <TableHead>Check-in / Check-out</TableHead>
-                      <TableHead>Guests</TableHead>
-                      <TableHead>Room Type</TableHead>
-                      <TableHead>Room Number</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {confirmedBookings.map((booking) => (
-                      <TableRow key={booking.id}>
-                        <TableCell className="font-medium">{booking.id}</TableCell>
-                        <TableCell>{booking.touristName}</TableCell>
-                        <TableCell>
-                          {formatDate(booking.checkIn)} - {formatDate(booking.checkOut)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <Users className="h-4 w-4 mr-1" /> {booking.guests}
-                          </div>
-                        </TableCell>
-                        <TableCell>{booking.roomType}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="font-mono">
-                            {booking.roomNumber}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="checkIn">Check-In Date</Label>
+                <Input
+                  id="checkIn"
+                  type="date"
+                  value={roomDetails.checkIn}
+                  onChange={(e) => updateRoomDetails('checkIn', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="checkOut">Check-Out Date</Label>
+                <Input
+                  id="checkOut"
+                  type="date"
+                  value={roomDetails.checkOut}
+                  onChange={(e) => updateRoomDetails('checkOut', e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="specialRequests">Special Requests/Notes</Label>
+              <Input
+                id="specialRequests"
+                type="text"
+                placeholder="Any special requests from the guest"
+                value={roomDetails.specialRequests}
+                onChange={(e) => updateRoomDetails('specialRequests', e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Room Amenities</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {amenities.map((amenity) => (
+                  <div key={amenity.id} className="flex items-center space-x-2">
+                    <Checkbox 
+                      id={amenity.id} 
+                      checked={(roomDetails.amenities || []).includes(amenity.id)}
+                      onCheckedChange={() => toggleAmenity(amenity.id)}
+                    />
+                    <label
+                      htmlFor={amenity.id}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      {amenity.label}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <Alert className="bg-yellow-50 text-yellow-800 border-yellow-200">
+            <AlertTitle className="text-yellow-800">Important</AlertTitle>
+            <AlertDescription className="text-yellow-700">
+              Make sure the room is actually available for the specified dates before confirming.
+            </AlertDescription>
+          </Alert>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsRoomDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={() => selectedBooking && confirmRoom(selectedBooking.id)}
+            >
+              Confirm Room
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
