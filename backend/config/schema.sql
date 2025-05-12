@@ -67,6 +67,7 @@ CREATE TABLE destinations (
     description TEXT,
     region VARCHAR(255), -- e.g., Region, Coordinates
     image_url VARCHAR(512),
+    cost DECIMAL(10, 2) DEFAULT 0 CHECK (cost >= 0),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
