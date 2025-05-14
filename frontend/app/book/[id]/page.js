@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useMemo, useCallback } from "react" // Keep useMemo/useCallback for non-state logic
+import React, { useMemo, useCallback, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -24,6 +24,7 @@ import {
   Plane,
   Ship,
   Wallet,
+  Loader2,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -39,87 +40,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 // Import the Zustand store and selectors/actions
-import { useBookingStore, useBookingNights } from "./bookingStore" // Adjust path as needed
+import { useBookingStore, useBookingNights } from "./bookingStore"
+// Import RouteProtection component
+import { RouteProtection } from "@/components/route-protection"
 
-// --- Mock Data (Keep as is) ---
-const locations = [
-  {
-    id: 1,
-    name: "Serengeti National Park",
-    description: "Experience the incredible wildlife of Tanzania in this world-famous national park.",
-    image: "/placeholder.svg?height=600&width=1200",
-    price: 500,
-  },
-  {
-    id: 2,
-    name: "Zanzibar Beaches",
-    description: "Relax on the pristine white sand beaches of Zanzibar with crystal clear waters.",
-    image: "/placeholder.svg?height=600&width=1200",
-    price: 400,
-  },
-  {
-    id: 3,
-    name: "Mount Kilimanjaro",
-    description: 'Climb Africa\'s highest peak and witness breathtaking views from the "Roof of Africa".',
-    image: "/placeholder.svg?height=600&width=1200",
-    price: 600,
-  },
-  {
-    id: 4,
-    name: "Ngorongoro Conservation Area",
-    description: "Explore the unique ecosystem of this UNESCO World Heritage site, home to diverse wildlife.",
-    image: "/placeholder.svg?height=600&width=1200",
-    price: 450,
-  },
-  {
-    id: 5,
-    name: "Stone Town, Zanzibar",
-    description: "Wander through the historic streets of Stone Town and discover its rich cultural heritage.",
-    image: "/placeholder.svg?height=600&width=1200",
-    price: 350,
-  },
-]
-
-
-const transportRoutes = [
-  {
-    id: 1,
-    origin: "Dar es Salaam",
-    destination: "Zanzibar",
-    type: "ferry",
-    agency: "Zanzibar Fast Ferries",
-    price: 50,
-    duration: "2 hours",
-    schedule: "Daily, 7:00 AM and 3:30 PM",
-  },
-  {
-    id: 2,
-    origin: "Arusha",
-    destination: "Serengeti",
-    type: "bus",
-    agency: "Safari Express",
-    price: 80,
-    duration: "5 hours",
-    schedule: "Mon, Wed, Fri - 8:00 AM",
-  },
-  {
-    id: 3,
-    origin: "Nairobi",
-    destination: "Arusha",
-    type: "air",
-    agency: "East African Airways",
-    price: 150,
-    duration: "1 hour",
-    schedule: "Daily, 10:00 AM",
-  },
-]
-
-const hotels = [
-  { id: 1, name: "Serengeti Luxury Lodge", stars: 5, price: 200, amenities: ["Pool", "Spa", "Restaurant"] },
-  { id: 2, name: "Zanzibar Beach Resort", stars: 4, price: 150, amenities: ["Beach Access", "Restaurant", "Bar"] },
-  { id: 3, name: "Kilimanjaro View Hotel", stars: 3, price: 100, amenities: ["Restaurant", "Wi-Fi", "Parking"] },
-]
-
+// Activities mock data - this will be replaced in a future update
 const activities = [
   { id: 1, name: "Game Drive", price: 100, duration: "3 hours", description: "Explore the wildlife in a 4x4 vehicle" },
   {
@@ -138,11 +63,10 @@ const activities = [
   },
   { id: 4, name: "Cultural Village Visit", price: 75, duration: "4 hours", description: "Experience local traditions" },
 ]
-// --- End Mock Data ---
 
-export default function BookLocation({ params }) {
+function BookLocation({ params }) {
   const { id } = React.use(params) // Unwrap the params Promise
-  const locationId = Number.parseInt(id, 10)
+  const destinationId = parseInt(id, 10)
 
   const router = useRouter()
 
@@ -168,73 +92,131 @@ export default function BookLocation({ params }) {
     setPaymentMethod,
     setIsPaymentDialogOpen,
     resetBooking,
-    nextStep, // Use the action from the store which includes validation
+    nextStep,
     prevStep,
-    setErrors, // Get setErrors for handleBooking validation
+    setErrors,
+    
+    // API-related state and actions
+    destination,
+    transportRoutes,
+    hotels,
+    activities: apiActivities,
+    isLoading,
+    error,
+    fetchDestination,
+    fetchTransportRoutes,
+    fetchHotels,
+    fetchActivities,
   } = useBookingStore()
 
-  // Find the location based on the ID parameter (using useMemo for efficiency)
-  const location = useMemo(() => {
-    return locations.find((loc) => loc.id === locationId)
-  }, [locationId])
+  // Fetch destination data when component mounts
+  useEffect(() => {
+    if (destinationId) {
+      fetchDestination(destinationId);
+      console.log("Fetching destination with ID:", destinationId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [destinationId]); 
 
-  // Get selected objects - memoize to prevent unnecessary recalculations
+  // Debug log whenever destination changes
+  useEffect(() => {
+    if (destination) {
+      console.log("Destination data loaded:", destination);
+      console.log("Destination cost:", destination.cost);
+    }
+  }, [destination]);
+
+  // Fetch related data when destination is loaded
+  useEffect(() => {
+    if (destination) {
+      // Fetch transport routes relevant to this destination
+      fetchTransportRoutes(destination.name || destination.region);
+      
+      // Fetch hotels in this location - prioritize using the region
+      fetchHotels(destination.region || destination.name);
+      
+      // Fetch activities for this destination
+      fetchActivities(destinationId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [destination]);
+
+  // For now, still using mock activities data - will be replaced in a future update
+  const selectedActivitiesObj = useMemo(() => {
+    if (!apiActivities || apiActivities.length === 0) {
+      // Fallback to mock data if no API data available
+      return activities.filter((a) => selectedActivities.includes(a.id.toString()));
+    }
+    // Use the actual API data when available
+    return apiActivities.filter((a) => selectedActivities.includes(a.id.toString()));
+  }, [selectedActivities, apiActivities]);
+
+  // Find selected transport and hotel objects
   const selectedRoute = useMemo(() => {
-    return transportRoutes.find((r) => r.id.toString() === selectedTransportRoute)
-  }, [selectedTransportRoute])
+    if (!selectedTransportRoute || !transportRoutes.length) return null;
+    return transportRoutes.find((r) => r.id.toString() === selectedTransportRoute.toString());
+  }, [selectedTransportRoute, transportRoutes])
 
   const selectedHotelObj = useMemo(() => {
-    return hotels.find((h) => h.id.toString() === selectedHotel)
-  }, [selectedHotel])
+    if (!selectedHotel || !hotels.length) return null;
+    return hotels.find((h) => h.id.toString() === selectedHotel.toString());
+  }, [selectedHotel, hotels])
 
-  const selectedActivitiesObj = useMemo(() => {
-    return activities.filter((a) => selectedActivities.includes(a.id.toString()))
-  }, [selectedActivities])
-
-  // Calculate nights using the custom hook or recalculate here
+  // Calculate nights using the custom hook
   const nights = useBookingNights()
-  // Or: const nights = useMemo(() => calculateNights(startDate, endDate), [startDate, endDate]);
 
   // Calculate total price
   const totalPrice = useMemo(() => {
     let total = 0
-    if (location && nights > 0) {
-      total += location.price * nights
+    
+    // Add destination cost if available
+    if (destination && destination.cost) {
+      const destinationCost = parseFloat(destination.cost);
+      if (!isNaN(destinationCost)) {
+        total += destinationCost;
+      }
     }
+    
+    // Add transport cost
     if (selectedRoute) {
-      total += selectedRoute.price
+      total += selectedRoute.cost ? parseFloat(selectedRoute.cost) : 0;
     }
+    
+    // Add hotel cost
     if (selectedHotelObj && nights > 0) {
-      total += selectedHotelObj.price * nights
+      const hotelPrice = selectedHotelObj.base_price_per_night || selectedHotelObj.price || 0;
+      total += parseFloat(hotelPrice) * nights;
     }
+    
+    // Add selected activities cost
     if (selectedActivitiesObj.length > 0) {
       selectedActivitiesObj.forEach((activity) => {
-        total += activity.price
+        total += activity.price ? parseFloat(activity.price) : 0;
       })
     }
+    
     return total
-  }, [location, nights, selectedRoute, selectedHotelObj, selectedActivitiesObj])
+  }, [destination, nights, selectedRoute, selectedHotelObj, selectedActivitiesObj])
 
   // Use useCallback for handlers that don't directly map to simple store actions
   const handleBooking = useCallback((e) => {
       e.preventDefault()
-      // Final validation check before opening payment dialog
       if (!agreedToTerms) {
           setErrors({ terms: "You must agree to the terms and conditions" })
           return
       }
-      setErrors({}) // Clear any previous errors
+      setErrors({})
       setIsPaymentDialogOpen(true)
-    }, [agreedToTerms, setIsPaymentDialogOpen, setErrors] // Include dependencies
+    }, [agreedToTerms, setIsPaymentDialogOpen, setErrors]
   )
 
   const processPayment = useCallback(() => {
     if (!paymentMethod) {
-      return // Should ideally show an error message
+      return
     }
 
     console.log("Booking:", {
-      locationId: location?.id,
+      destinationId,
       startDate,
       endDate,
       transportRouteId: selectedTransportRoute,
@@ -244,13 +226,14 @@ export default function BookLocation({ params }) {
     })
 
     alert(
-      `Booking confirmed for ${location?.name}. Payment processed via ${paymentMethod === "credit" ? "credit card" : "savings account"}.`,
+      `Booking confirmed for ${destination?.name}. Payment processed via ${paymentMethod === "credit" ? "credit card" : paymentMethod === "savings" ? "savings account" : "crypto"}.`
     )
     setIsPaymentDialogOpen(false)
-    resetBooking() // Reset the form/state after successful booking
+    resetBooking()
     router.push("/")
   }, [
-    location,
+    destination,
+    destinationId,
     startDate,
     endDate,
     selectedTransportRoute,
@@ -259,15 +242,13 @@ export default function BookLocation({ params }) {
     paymentMethod,
     router,
     setIsPaymentDialogOpen,
-    resetBooking // Make sure to include store actions used inside
+    resetBooking
   ])
 
-  // Use useCallback for stable function references if passed down or complex
   const formatDate = useCallback((dateString) => {
     if (!dateString) return ""
     try {
       const date = new Date(dateString)
-       // Add check for invalid date
       if (isNaN(date.getTime())) return "Invalid Date";
       return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })
     } catch (error) {
@@ -277,7 +258,7 @@ export default function BookLocation({ params }) {
   }, [])
 
   const getTransportIcon = useCallback((type) => {
-    switch (type) {
+    switch (type?.toLowerCase()) {
       case "bus":
         return <Bus className="h-5 w-5 text-blue-600" />
       case "air":
@@ -285,13 +266,39 @@ export default function BookLocation({ params }) {
       case "ferry":
         return <Ship className="h-5 w-5 text-blue-600" />
       default:
-        return <Bus className="h-5 w-5 text-blue-600" /> // Default icon
+        return <Bus className="h-5 w-5 text-blue-600" />
     }
   }, [])
 
-  // --- Render Logic (Mostly Unchanged, just uses state/actions from store) ---
+  // Show loading state while fetching destination
+  if (isLoading.destination) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading Smart Tour Destinations</p>
+        </div>
+      </div>
+    )
+  }
 
-  if (!location) {
+  // Show error state if destination fetch failed
+  if (error.destination) {
+    return (
+      <div className="max-w-6xl mx-auto p-6">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>Error loading destination: {error.destination}</AlertDescription>
+        </Alert>
+        <Button className="mt-4" variant="outline" onClick={() => router.push("/locations")}>
+          Back to Locations
+        </Button>
+      </div>
+    );
+  }
+
+  // Show not found state if no destination data
+  if (!destination) {
     return (
       <div className="max-w-6xl mx-auto p-6">
         <Alert variant="destructive">
@@ -302,32 +309,45 @@ export default function BookLocation({ params }) {
           Back to Locations
         </Button>
       </div>
-    )
+    );
   }
 
   return (
     <div className="w-full">
       {/* Hero Image Section */}
       <div className="relative w-full h-[50vh] md:h-[60vh]">
-        <Image src={location.image || "/placeholder.svg"} alt={location.name} fill className="object-cover" priority />
+        <Image 
+          src={destination.image_url || "/placeholder.svg"} 
+          alt={destination.name} 
+          fill 
+          className="object-cover" 
+          priority 
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-6 md:p-12">
           <div className="max-w-6xl mx-auto w-full">
             <Badge
               variant="outline"
               className="bg-white/10 backdrop-blur-sm text-white mb-4 px-3 py-1 flex items-center gap-1 w-fit"
             >
-              <MapPin className="h-4 w-4" /> {location.name.split(",")[0]}
+              <MapPin className="h-4 w-4" /> {destination.region || 'Tanzania'}
             </Badge>
-            <h1 className="text-3xl md:text-5xl font-bold text-white mb-2">{location.name}</h1>
-            <p className="text-lg md:text-xl text-white/90 max-w-3xl">{location.description}</p>
+            <h1 className="text-3xl md:text-5xl font-bold text-white mb-2">{destination.name}</h1>
+            <p className="text-lg md:text-xl text-white/90 max-w-3xl">{destination.description}</p>
             <div className="flex items-center gap-4 mt-4">
               <Badge variant="secondary" className="text-lg bg-blue-600 text-white">
-                ${location.price} / night
+                ${(() => {
+                  // Handle the cost display with proper parsing
+                  if (destination.cost) {
+                    const cost = parseFloat(destination.cost);
+                    return !isNaN(cost) ? cost.toFixed(2) : 'Price varies';
+                  }
+                  return 'Price varies';
+                })()} / visit
               </Badge>
               <div className="flex items-center gap-1 text-white">
                 <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                <span className="font-medium">4.9</span>
-                <span className="text-white/70">(128 reviews)</span>
+                <span className="font-medium">{destination.rating || '4.5'}</span>
+                <span className="text-white/70">({destination.reviews_count || '100+'})</span>
               </div>
             </div>
           </div>
@@ -343,7 +363,6 @@ export default function BookLocation({ params }) {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  {/* Use resetBooking from store */}
                   <Button variant="outline" size="icon" onClick={resetBooking}>
                     <RefreshCw className="h-4 w-4" />
                   </Button>
@@ -375,13 +394,12 @@ export default function BookLocation({ params }) {
               </div>
               <div className="text-center w-full md:w-1/4">
                 <span className={`text-sm ${step >= 4 ? "text-blue-600 font-medium" : "text-gray-500"}`}>
-                  Review
+                  Activities
                 </span>
               </div>
             </div>
 
             <div className="flex items-center">
-               {/* Progress Steps Logic (remains the same, depends on 'step' from store) */}
               <div
                 className={`rounded-full h-10 w-10 flex items-center justify-center ${
                   step >= 1 ? "bg-blue-600 text-white" : "bg-blue-100 text-gray-500"
@@ -435,10 +453,9 @@ export default function BookLocation({ params }) {
                       id="startDate"
                       type="date"
                       value={startDate}
-                      // Use setStartDate from store
                       onChange={(e) => setStartDate(e.target.value)}
                       className={`h-12 text-base ${errors.startDate ? "border-red-500" : ""}`}
-                       min={new Date().toISOString().split("T")[0]} // Prevent past dates
+                      min={new Date().toISOString().split("T")[0]} // Prevent past dates
                     />
                     {errors.startDate && <p className="text-red-500 text-sm mt-1">{errors.startDate}</p>}
                   </div>
@@ -450,7 +467,6 @@ export default function BookLocation({ params }) {
                       id="endDate"
                       type="date"
                       value={endDate}
-                       // Use setEndDate from store
                       onChange={(e) => setEndDate(e.target.value)}
                       className={`h-12 text-base ${errors.endDate ? "border-red-500" : ""}`}
                       min={startDate || new Date().toISOString().split("T")[0]} // Prevent dates before start date
@@ -469,9 +485,16 @@ export default function BookLocation({ params }) {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium">Base price:</p>
-                        {/* Calculate location base price */}
-                        <p className="text-lg font-semibold">${location.price * nights}</p>
+                        <p className="font-medium">Base cost:</p>
+                        <p className="text-lg font-semibold">
+                          ${(() => {
+                            if (destination.cost) {
+                              const cost = parseFloat(destination.cost);
+                              return !isNaN(cost) ? cost.toFixed(2) : '0.00';
+                            }
+                            return '0.00';
+                          })()}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -481,12 +504,7 @@ export default function BookLocation({ params }) {
               <div className="flex justify-end">
                 <Button 
                   type="button" 
-                  onClick={() => {
-                    const success = nextStep()
-                    if (!success) {
-                      toast.error("Please fill in all required fields")
-                    }
-                  }} 
+                  onClick={nextStep} 
                   className="w-full md:w-auto text-white bg-blue-600 hover:bg-blue-700 h-12"
                 >
                   Continue <ArrowRight className="ml-2 h-4 w-4" />
@@ -507,54 +525,80 @@ export default function BookLocation({ params }) {
                     <Label htmlFor="transportRoute" className="text-base mb-2 block">
                       Transport Route
                     </Label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {transportRoutes.map((route) => (
-                        <div
-                          key={route.id}
-                          className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                            selectedTransportRoute === route.id.toString()
-                              ? "border-blue-600 bg-blue-50"
-                              : "hover:border-blue-300"
-                          }`}
-                          // Use setSelectedTransportRoute from store
-                          onClick={() => setSelectedTransportRoute(route.id.toString())}
-                        >
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                              {getTransportIcon(route.type)}
+                    
+                    {/* Show loading state */}
+                    {isLoading.transports ? (
+                      <div className="flex justify-center items-center py-8">
+                        <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+                        <span className="ml-3 text-blue-600">Loading transport options...</span>
+                      </div>
+                    ) : error.transports ? (
+                      <Alert variant="destructive" className="mb-4">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          {error.transports}. Please try refreshing the page.
+                        </AlertDescription>
+                      </Alert>
+                    ) : transportRoutes.length === 0 ? (
+                      <Alert className="mb-4">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          No transport options available for {destination.name}. Please check back later.
+                        </AlertDescription>
+                      </Alert>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {transportRoutes.map((route) => (
+                          <div
+                            key={route.id}
+                            className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                              selectedTransportRoute === route.id.toString()
+                                ? "border-blue-600 bg-blue-50"
+                                : "hover:border-blue-300"
+                            }`}
+                            onClick={() => setSelectedTransportRoute(route.id.toString())}
+                          >
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                {getTransportIcon(route.transportation_type)}
+                              </div>
+                              <div>
+                                {/* Use the travel agency name if available */}
+                                <p className="font-medium">{route.agency_name || "Transport Provider"}</p>
+                                <p className="text-sm text-gray-500 capitalize">{route.transportation_type || "Transport"}</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-medium">{route.agency}</p>
-                              <p className="text-sm text-gray-500 capitalize">{route.type}</p>
+                            <div className="mt-2">
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="text-sm">{route.origin}</span>
+                                <ArrowRight className="h-4 w-4 mx-1" />
+                                <span className="text-sm">{route.destination}</span>
+                              </div>
+                              <div className="flex justify-between items-center text-sm text-gray-500">
+                                {/* Use duration if available, otherwise just show the route */}
+                                <span>{route.duration || `${route.origin} to ${route.destination}`}</span>
+                                <Badge className="border border-blue-200">${route.cost}</Badge>
+                              </div>
+                              {/* Show schedule if available */}
+                              {route.schedule && <p className="text-xs text-gray-500 mt-2">{route.schedule}</p>}
+                              {/* Show description if available */}
+                              {route.description && (
+                                <p className="text-xs text-gray-500 mt-2">{route.description}</p>
+                              )}
                             </div>
                           </div>
-                          <div className="mt-2">
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="text-sm">{route.origin}</span>
-                              <ArrowRight className="h-4 w-4 mx-1" />
-                              <span className="text-sm">{route.destination}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-sm text-gray-500">
-                              <span>{route.duration}</span>
-                              <Badge className="border border-blue-200">${route.price}</Badge>
-                            </div>
-                            <p className="text-xs text-gray-500 mt-2">{route.schedule}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                     {/* Display errors from store */}
+                        ))}
+                      </div>
+                    )}
                     {errors.transportRoute && <p className="text-red-500 text-sm mt-1">{errors.transportRoute}</p>}
                   </div>
                 </div>
               </div>
 
               <div className="flex justify-between">
-                 {/* Use prevStep from store */}
                 <Button type="button" onClick={prevStep} variant="outline" className="h-12 px-8 border border-blue-200 hover:bg-blue-50">
                   Back
                 </Button>
-                 {/* Use nextStep from store */}
                 <Button type="button" onClick={nextStep} className="h-12 px-8 text-white bg-blue-600 hover:bg-blue-700">
                   Continue <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -562,496 +606,678 @@ export default function BookLocation({ params }) {
             </div>
           )}
 
-          {/* Step 3: Hotel & Activities */}
-          {step === 3 && (
+          {step === 3 && (  /* Step 3 Content */
             <div className="space-y-8">
               <div>
                 <h3 className="text-xl font-semibold flex items-center gap-2 mb-6">
-                  <Hotel className="h-5 w-5 text-blue-600" /> Select Hotel & Activities
+                  <Hotel className="h-5 w-5 text-blue-600" /> Select Hotel
                 </h3>
-
-                <div className="space-y-8">
-                  {/* Hotel Selection */}
+                <div className="space-y-4">
                   <div>
                     <Label htmlFor="hotel" className="text-base mb-2 block">
-                      Hotel
+                      Hotel Choice
                     </Label>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {hotels.map((hotel) => (
-                        <div
-                          key={hotel.id}
-                          className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                            selectedHotel === hotel.id.toString()
-                              ? "border-blue-600 bg-blue-50"
-                              : "hover:border-blue-300"
-                          }`}
-                           // Use setSelectedHotel from store
-                          onClick={() => setSelectedHotel(hotel.id.toString())}
-                        >
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                              <Hotel className="h-5 w-5 text-blue-600" />
-                            </div>
-                            <div>
-                              <p className="font-medium">{hotel.name}</p>
-                              <p className="text-sm text-yellow-500">{Array(hotel.stars).fill("★").join("")}</p>
-                            </div>
-                          </div>
-                          <div className="mt-2">
-                            <div className="flex flex-wrap gap-2 mb-2">
-                              {hotel.amenities.map((amenity, index) => (
-                                <Badge key={index} variant="outline" className="text-xs">
-                                  {amenity}
-                                </Badge>
-                              ))}
-                            </div>
-                            <div className="flex justify-end">
-                              <Badge variant="outline">${hotel.price}/night</Badge>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                     {/* Display errors from store */}
-                    {errors.hotel && <p className="text-red-500 text-sm mt-1">{errors.hotel}</p>}
-                  </div>
-
-                  {/* Activity Selection */}
-                  <div>
-                    <Label className="text-base mb-2 block">Activities</Label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {activities.map((activity) => {
-                        // Check if selected from store state
-                        const isSelected = selectedActivities.includes(activity.id.toString())
-                        return (
-                          <div
-                            key={activity.id}
-                            className={`p-4 border rounded-lg transition-all ${ 
-                              isSelected ? "border-blue-600 bg-blue-50" : "hover:border-blue-100"
+                    
+                    {/* Show loading state for hotels */}
+                    {isLoading.hotels ? (
+                      <div className="flex justify-center items-center py-8">
+                        <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+                        <span className="ml-3 text-blue-600">Loading hotels...</span>
+                      </div>
+                    ) : error.hotels ? (
+                      <Alert variant="destructive" className="mb-4">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          {error.hotels}. Please try refreshing the page.
+                        </AlertDescription>
+                      </Alert>
+                    ) : hotels.length === 0 ? (
+                      <Alert className="mb-4">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          No hotels available at {destination.name}. Please check back later or contact customer service.
+                        </AlertDescription>
+                      </Alert>
+                    ) : (
+                      <div className="grid grid-cols-1 gap-4">
+                        {hotels.map((hotel) => (
+                          <Card
+                            key={hotel.id}
+                            className={`cursor-pointer overflow-hidden transition-all duration-200 ${
+                              selectedHotel === hotel.id.toString()
+                                ? "border-blue-600 ring-2 ring-blue-200"
+                                : "hover:border-blue-300"
                             }`}
+                            onClick={() => setSelectedHotel(hotel.id.toString())}
                           >
-                            <div className="flex items-start">
-                              <Checkbox
-                                id={`activity-${activity.id}`}
-                                checked={isSelected}
-                                className="mt-1"
-                                // Use toggleActivity from store
-                                onCheckedChange={() => toggleActivity(activity.id.toString())}
-                              />
-                              <div className="ml-3 flex-1">
-                                <div className="flex justify-between">
-                                  {/* Label click toggles the checkbox */}
-                                  <label
-                                    htmlFor={`activity-${activity.id}`}
-                                    className="font-medium cursor-pointer"
-                                  >
-                                    {activity.name}
-                                  </label>
-                                  <Badge variant="outline">${activity.price}</Badge>
+                            <CardContent className="p-0">
+                              <div className="flex flex-col md:flex-row">
+                                <div className="relative w-full md:w-1/3 h-48">
+                                  {/* Adding console log to debug hotel image data format */}
+                                  {console.log("Hotel image data:", hotel.images)}
+                                  <Image
+                                    src={(() => {
+                                      try {
+                                        // If images is a string (likely JSON), try to parse it
+                                        if (hotel.images && typeof hotel.images === 'string') {
+                                          const parsedImages = JSON.parse(hotel.images);
+                                          if (Array.isArray(parsedImages) && parsedImages.length > 0) {
+                                            return parsedImages[0]; // Return first image URL
+                                          }
+                                        } 
+                                        // If images is already parsed as an array
+                                        else if (hotel.images && Array.isArray(hotel.images) && hotel.images.length > 0) {
+                                          return hotel.images[0]; // Return first image URL
+                                        }
+                                      } catch (e) {
+                                        console.error("Error parsing hotel images:", e);
+                                      }
+                                      
+                                      // Fallback to placeholder if no valid image found
+                                      return "/placeholder.svg";
+                                    })()}
+                                    alt={hotel.name}
+                                    fill
+                                    className="object-cover"
+                                  />
                                 </div>
-                                <p className="text-sm text-gray-500 mt-1">{activity.description}</p>
-                                <div className="flex items-center mt-2 text-sm text-gray-500">
-                                  <Clock className="h-3 w-3 mr-1" />
-                                  {activity.duration}
+                                <div className="p-6 md:w-2/3">
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <h4 className="text-xl font-semibold mb-1">{hotel.name}</h4>
+                                      <div className="flex items-center text-gray-500 gap-1 mb-2">
+                                        <MapPin className="h-4 w-4" />
+                                        <span>{hotel.location}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2 mb-3 text-sm">
+                                        <Badge variant="outline" className="bg-blue-50 border-blue-200">
+                                          <Star className="h-3 w-3 mr-1 fill-yellow-400 text-yellow-400" />
+                                          {hotel.rating || "4.8"}
+                                        </Badge>
+                                        <Badge variant="outline" className="bg-green-50 border-green-200">
+                                          Capacity: {hotel.capacity}
+                                        </Badge>
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      <div className="text-lg font-bold">${hotel.base_price_per_night} <span className="text-sm text-gray-500 font-normal">/ night</span></div>
+                                      <div className="text-sm text-gray-500">${hotel.base_price_per_night * nights} total for {nights} {nights === 1 ? "night" : "nights"}</div>
+                                    </div>
+                                  </div>
+                                  <p className="text-gray-600 line-clamp-2 mt-2">{hotel.description}</p>
+                                  <div className="mt-4 flex items-center justify-between">
+                                    <div className="flex items-center text-sm text-gray-500 gap-4">
+                                      <div className="flex items-center">
+                                        <Check className="h-4 w-4 text-green-500 mr-1" />
+                                        Free WiFi
+                                      </div>
+                                      <div className="flex items-center">
+                                        <Check className="h-4 w-4 text-green-500 mr-1" />
+                                        Breakfast included
+                                      </div>
+                                    </div>
+                                    {selectedHotel === hotel.id.toString() && (
+                                      <div className="flex items-center gap-2 text-blue-600">
+                                        <Check className="h-5 w-5" /> Selected
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {errors.hotel && <p className="text-red-500 text-sm mt-1">{errors.hotel}</p>}
                   </div>
                 </div>
               </div>
-
               <div className="flex justify-between">
-                {/* Use prevStep from store */}
-                <Button type="button" onClick={prevStep} variant="outline" className="h-12 px-8 border border-blue-100 hover:bg-blue-50">
+                <Button
+                  type="button"
+                  onClick={prevStep}
+                  variant="outline"
+                  className="h-12 px-8 border border-blue-200 hover:bg-blue-50"
+                >
                   Back
                 </Button>
-                {/* Use nextStep from store */}
-                <Button type="button" onClick={nextStep} className="h-12 px-8 text-white bg-blue-600 hover:bg-blue-700">
-                  Review Booking <ArrowRight className="ml-2 h-4 w-4" />
+                <Button
+                  type="button"
+                  onClick={nextStep}
+                  className="h-12 px-8 text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  Continue <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             </div>
           )}
 
-          {/* Step 4: Review */}
-          {step === 4 && (
+          {step === 4 && (  /* Step 4 - Activities Content */
             <div className="space-y-8">
               <div>
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-semibold flex items-center gap-2">
-                    <Check className="h-5 w-5 text-blue-600" /> Review Your Booking
-                  </h3>
-                  <Badge variant="outline" className="text-base px-3 py-1">
-                    Booking #
-                    {Math.floor(Math.random() * 10000)
-                      .toString()
-                      .padStart(4, "0")}
-                  </Badge>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Left column - Booking details */}
-                  <div className="lg:col-span-2 space-y-6">
-                    {/* Booking Details Card */}
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-lg">Booking Details</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <h4 className="text-sm font-medium text-gray-500">Destination</h4>
-                            <p className="font-medium">{location.name}</p>
-                          </div>
-                          <div>
-                            <h4 className="text-sm font-medium text-gray-500">Duration</h4>
-                            <p className="font-medium">
-                              {nights} {nights === 1 ? "night" : "nights"}
-                            </p>
-                          </div>
-                          <div>
-                            <h4 className="text-sm font-medium text-gray-500">Check-in</h4>
-                            {/* Use formatDate helper */}
-                            <p className="font-medium">{formatDate(startDate)}</p>
-                          </div>
-                          <div>
-                            <h4 className="text-sm font-medium text-gray-500">Check-out</h4>
-                            {/* Use formatDate helper */}
-                            <p className="font-medium">{formatDate(endDate)}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Transport Card */}
-                    {selectedRoute && (
-                      <Card>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-lg">Transport</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                              {getTransportIcon(selectedRoute.type)}
-                            </div>
-                            <div>
-                              <p className="font-medium">{selectedRoute.agency}</p>
-                              <p className="text-sm text-gray-500 capitalize">{selectedRoute.type}</p>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <h4 className="text-sm font-medium text-gray-500">Route</h4>
-                              <p className="font-medium">
-                                {selectedRoute.origin} → {selectedRoute.destination}
-                              </p>
-                            </div>
-                            <div>
-                              <h4 className="text-sm font-medium text-gray-500">Duration</h4>
-                              <p className="font-medium">{selectedRoute.duration}</p>
-                            </div>
-                            <div className="col-span-2">
-                              <h4 className="text-sm font-medium text-gray-500">Schedule</h4>
-                              <p className="font-medium">{selectedRoute.schedule}</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {/* Accommodation Card */}
-                    {selectedHotelObj && (
-                      <Card>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-lg">Accommodation</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                              <Hotel className="h-5 w-5 text-blue-600" />
-                            </div>
-                            <div>
-                              <p className="font-medium">{selectedHotelObj.name}</p>
-                              <p className="text-sm text-yellow-500">
-                                {Array(selectedHotelObj.stars).fill("★").join("")}
-                              </p>
-                            </div>
-                          </div>
-                          <div>
-                            <h4 className="text-sm font-medium text-gray-500 mb-2">Amenities</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {selectedHotelObj.amenities.map((amenity, index) => (
-                                <Badge key={index} variant="outline" className="text-xs">
-                                  {amenity}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {/* Activities Card */}
-                    {selectedActivitiesObj.length > 0 && (
-                      <Card>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-lg">Activities</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-4">
-                            {selectedActivitiesObj.map((activity) => (
-                              <div
-                                key={activity.id}
-                                className="flex justify-between items-start pb-2 border-b last:border-0 last:pb-0"
-                              >
-                                <div>
-                                  <p className="font-medium">{activity.name}</p>
-                                  <p className="text-sm text-gray-500">{activity.description}</p>
-                                  <div className="flex items-center mt-1 text-sm text-gray-500">
-                                    <Clock className="h-3 w-3 mr-1" />
-                                    {activity.duration}
-                                  </div>
-                                </div>
-                                <Badge variant="outline">${activity.price}</Badge>
-                              </div>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </div>
-
-                  {/* Right column - Price summary */}
+                <h3 className="text-xl font-semibold flex items-center gap-2 mb-6">
+                  <MapPin className="h-5 w-5 text-blue-600" /> Add Activities
+                </h3>
+                <div className="space-y-4">
                   <div>
-                    <Card className="sticky top-4">
-                      <CardHeader>
-                        <CardTitle>Price Summary</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                          {/* Location Price */}
-                          <div className="flex justify-between">
-                            <span className="text-gray-500">
-                              {location.name} ({nights} {nights === 1 ? "night" : "nights"})
-                            </span>
-                            <span>${location.price * nights}</span>
-                          </div>
-
-                          {/* Hotel Price */}
-                          {selectedHotelObj && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">
-                                {selectedHotelObj.name} ({nights} {nights === 1 ? "night" : "nights"})
-                              </span>
-                              <span>${selectedHotelObj.price * nights}</span>
-                            </div>
-                          )}
-
-                          {/* Transport Price */}
-                          {selectedRoute && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">
-                                Transport: {selectedRoute.origin} to {selectedRoute.destination}
-                              </span>
-                              <span>${selectedRoute.price}</span>
-                            </div>
-                          )}
-
-                           {/* Activities Price */}
-                          {selectedActivitiesObj.length > 0 && (
-                            <>
-                              <div className="flex justify-between font-medium pt-2">
-                                <span>Activities</span>
-                                <span></span> {/* Placeholder for alignment */}
-                              </div>
-                              {selectedActivitiesObj.map((activity) => (
-                                <div key={activity.id} className="flex justify-between pl-4">
-                                  <span className="text-gray-500">{activity.name}</span>
-                                  <span>${activity.price}</span>
+                    <Label htmlFor="activities" className="text-base mb-2 block">
+                      Choose Activities for Your Trip
+                    </Label>
+                    
+                    {/* Show loading state for activities */}
+                    {isLoading.activities ? (
+                      <div className="flex justify-center items-center py-8">
+                        <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+                        <span className="ml-3 text-blue-600">Loading activities...</span>
+                      </div>
+                    ) : error.activities ? (
+                      <Alert variant="destructive" className="mb-4">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          {error.activities}. Please try refreshing the page.
+                        </AlertDescription>
+                      </Alert>
+                    ) : apiActivities && apiActivities.length > 0 ? (
+                      <>
+                        <p className="text-sm text-gray-500 mb-4">
+                          Enhance your stay in {destination.name} with these exciting activities. Select as many as you'd like.
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {apiActivities.map((activity) => (
+                            <div
+                              key={activity.id}
+                              className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                                selectedActivities.includes(activity.id.toString())
+                                  ? "border-blue-600 bg-blue-50"
+                                  : "hover:border-blue-300"
+                              }`}
+                              onClick={() => toggleActivity(activity.id.toString())}
+                            >
+                              <div className="flex justify-between">
+                                <div>
+                                  <h4 className="font-medium text-lg">{activity.name}</h4>
+                                  {activity.duration && (
+                                    <div className="flex items-center text-gray-500 text-sm mt-1">
+                                      <Clock className="h-3 w-3 mr-1" /> {activity.duration}
+                                    </div>
+                                  )}
                                 </div>
-                              ))}
-                            </>
-                          )}
+                                <Badge className="border border-blue-200 bg-blue-50 text-blue-700">
+                                  ${activity.price}
+                                </Badge>
+                              </div>
+                              <p className="text-gray-600 text-sm mt-2 line-clamp-2">{activity.description}</p>
+                              {selectedActivities.includes(activity.id.toString()) && (
+                                <div className="flex items-center gap-1 text-blue-600 mt-2">
+                                  <Check className="h-4 w-4" /> Selected
+                                </div>
+                              )}
+                            </div>
+                          ))}
                         </div>
-
-                        <Separator />
-
-                         {/* Total Price */}
-                        <div className="flex justify-between font-bold text-lg pt-2">
-                          <span>Total</span>
-                           {/* Use calculated totalPrice */}
-                          <span className="text-blue-600">${totalPrice}</span>
+                      </>
+                    ) : (
+                      <Alert className="mb-4">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          No activities available for {destination.name}. You can still proceed with your booking.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    
+                    {selectedActivities.length > 0 && (
+                      <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="flex justify-between items-center">
+                          <p className="font-medium">Selected activities:</p>
+                          <p className="text-lg font-semibold">
+                            {selectedActivities.length} {selectedActivities.length === 1 ? "activity" : "activities"}
+                          </p>
                         </div>
-
-                        <div className="text-sm text-gray-500">
-                          * Tour guide will be assigned by the administrator after booking confirmation
-                        </div>
-                      </CardContent>
-                      <CardFooter className="flex flex-col space-y-2">
-                        <Button type="submit" className="w-full text-white bg-blue-600 hover:bg-blue-700" disabled={!agreedToTerms}>
-                          Confirm and Pay
-                        </Button>
-                      </CardFooter>
-                    </Card>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-
-              {/* Terms Agreement Card */}
-              <Card className="border-blue-100">
-                <CardContent className="pt-6">
-                  <div className="flex items-start space-x-3 mb-6">
-                    <Checkbox
-                      id="terms"
-                      checked={agreedToTerms}
-                       // Use setAgreedToTerms from store
-                      onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
-                      className="mt-1"
-                    />
-                    <div className="grid gap-1.5 leading-none">
-                      <label
-                        htmlFor="terms"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        I agree to the terms and conditions
-                      </label>
-                      <p className="text-sm text-muted-foreground">
-                        By checking this box, you agree to our{" "}
-                        <a href="#" className="text-primary hover:underline">
-                          Terms of Service
-                        </a>{" "}
-                        and{" "}
-                        <a href="#" className="text-primary hover:underline">
-                          Privacy Policy
-                        </a>
-                        .
-                      </p>
-                      {/* Display errors from store */}
-                      {errors.terms && <p className="text-red-500 text-sm">{errors.terms}</p>}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="flex flex-col sm:flex-row gap-4 justify-between">
-                 {/* Use prevStep from store */}
-                <Button type="button" onClick={prevStep} variant="outline" className="h-12 px-8">
+              <div className="flex justify-between">
+                <Button
+                  type="button"
+                  onClick={prevStep}
+                  variant="outline"
+                  className="h-12 px-8 border border-blue-200 hover:bg-blue-50"
+                >
                   Back
                 </Button>
-                 {/* The "Confirm and Pay" button is now part of the Price Summary card and triggers form submission */}
+                <Button
+                  type="button"
+                  onClick={nextStep}
+                  className="h-12 px-8 text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  Continue to Review <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {step === 5 && (  /* Step 5 Content - Review and Payment Page */
+            <div className="space-y-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                  <Check className="h-5 w-5 text-blue-600" />
+                </div>
+                <h3 className="text-2xl font-bold">Review and Confirm Your Booking</h3>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left Column - Main Booking Details */}
+                <div className="lg:col-span-2 space-y-6">
+                  {/* Destination Card */}
+                  <Card className="border-0 shadow-md rounded-xl">
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-2 mb-6">
+                        <div className="h-9 w-9 rounded-full bg-blue-50 flex-shrink-0 flex items-center justify-center">
+                          <MapPin className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-lg">{destination.name}</h4>
+                          <p className="text-sm text-gray-600">{destination.region || 'Tanzania'}</p>
+                        </div>
+                        <Badge className="ml-auto bg-blue-100 text-blue-800 border border-blue-200">
+                          ${parseFloat(destination.cost || 0).toFixed(2)}
+                        </Badge>
+                      </div>
+
+                      <div className="flex justify-between items-center mb-4 pt-4 border-t">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-5 w-5 text-blue-600" />
+                          <div>
+                            <h4 className="font-medium">Travel Dates</h4>
+                            <p className="text-gray-600 text-sm">
+                              {formatDate(startDate)} - {formatDate(endDate)}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-700">
+                          {nights} {nights === 1 ? "night" : "nights"}
+                        </Badge>
+                      </div>
+                      
+                      {selectedHotelObj && (
+                        <div className="flex items-start gap-3 mb-4 pt-4 border-t">
+                          <div className="h-9 w-9 rounded-full bg-blue-50 flex-shrink-0 flex items-center justify-center">
+                            <Hotel className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <div className="flex-grow">
+                            <div className="flex justify-between">
+                              <div>
+                                <h4 className="font-medium">{selectedHotelObj.name}</h4>
+                                <p className="text-sm text-gray-500">
+                                  <MapPin className="h-3 w-3 inline mr-1" /> {selectedHotelObj.location}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-sm font-medium">${selectedHotelObj.base_price_per_night} <span className="text-xs text-gray-500">/ night</span></div>
+                                <div className="text-sm text-blue-600 font-medium">${selectedHotelObj.base_price_per_night * nights} total</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {selectedRoute && (
+                        <div className="flex items-start gap-3 mb-4 pt-4 border-t">
+                          <div className="h-9 w-9 rounded-full bg-blue-50 flex-shrink-0 flex items-center justify-center">
+                            {getTransportIcon(selectedRoute.transportation_type)}
+                          </div>
+                          <div className="flex-grow">
+                            <div className="flex justify-between">
+                              <div>
+                                <h4 className="font-medium">{selectedRoute.transportation_type || "Transport"}</h4>
+                                <p className="text-sm text-gray-500">
+                                  {selectedRoute.origin} to {selectedRoute.destination}
+                                </p>
+                                {selectedRoute.agency_name && (
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Provider: {selectedRoute.agency_name}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="text-right">
+                                <div className="text-sm font-medium text-blue-600">${selectedRoute.cost}</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Activities Section */}
+                  {selectedActivitiesObj.length > 0 && (
+                    <Card className="border-0 shadow-md rounded-xl">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <MapPin className="h-5 w-5 text-blue-600" /> 
+                          Selected Activities
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <div className="grid gap-4">
+                          {selectedActivitiesObj.map((activity) => (
+                            <div key={activity.id} className="flex items-start gap-3 pb-4 border-b last:border-0 last:pb-0">
+                              <div className="h-9 w-9 rounded-full bg-green-50 flex-shrink-0 flex items-center justify-center">
+                                <Clock className="h-4 w-4 text-green-600" />
+                              </div>
+                              <div className="flex-grow">
+                                <div className="flex justify-between">
+                                  <div>
+                                    <h4 className="font-medium">{activity.name}</h4>
+                                    {activity.duration && (
+                                      <p className="text-xs text-gray-500">Duration: {activity.duration}</p>
+                                    )}
+                                    {activity.description && (
+                                      <p className="text-sm text-gray-600 mt-1 line-clamp-2">{activity.description}</p>
+                                    )}
+                                  </div>
+                                  <div className="text-right">
+                                    <Badge className="bg-green-50 text-green-700 border border-green-200">
+                                      ${activity.price}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+
+                {/* Right Column - Payment Summary */}
+                <div className="lg:col-span-1">
+                  <div className="sticky top-4">
+                    <Card className="border-0 shadow-md rounded-xl">
+                      <CardHeader className="pb-3 border-b">
+                        <CardTitle>Price Details</CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-4">
+                        <div className="space-y-3">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Destination Fee</span>
+                            <span className="font-medium">
+                              ${parseFloat(destination.cost || 0).toFixed(2)}
+                            </span>
+                          </div>
+
+                          {selectedHotelObj && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Accommodation ({nights} {nights === 1 ? "night" : "nights"})</span>
+                              <span className="font-medium">
+                                ${(selectedHotelObj.base_price_per_night * nights).toFixed(2)}
+                              </span>
+                            </div>
+                          )}
+
+                          {selectedRoute && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Transport</span>
+                              <span className="font-medium">
+                                ${parseFloat(selectedRoute.cost).toFixed(2)}
+                              </span>
+                            </div>
+                          )}
+
+                          {selectedActivitiesObj.length > 0 && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Activities ({selectedActivitiesObj.length})</span>
+                              <span className="font-medium">
+                                ${selectedActivitiesObj.reduce((sum, act) => sum + parseFloat(act.price || 0), 0).toFixed(2)}
+                              </span>
+                            </div>
+                          )}
+
+                          <Separator className="my-3" />
+                          
+                          <div className="flex justify-between text-base font-bold">
+                            <span>Total</span>
+                            <span className="text-blue-700">${totalPrice.toFixed(2)}</span>
+                          </div>
+                        </div>
+
+                        <div className="mt-6 space-y-4">
+                          <div className="flex items-center space-x-2 p-3 bg-blue-50 rounded-lg">
+                            <Checkbox
+                              id="terms"
+                              checked={agreedToTerms}
+                              onCheckedChange={setAgreedToTerms}
+                              className={`${errors.terms ? "border-red-500" : ""} h-5 w-5`}
+                            />
+                            <Label htmlFor="terms" className="text-sm">
+                              I agree to the terms and conditions and cancellation policy
+                            </Label>
+                          </div>
+                          {errors.terms && (
+                            <p className="text-red-500 text-xs -mt-2 ml-2">{errors.terms}</p>
+                          )}
+
+                          <Button
+                            type="submit"
+                            className="w-full h-12 text-white bg-blue-600 hover:bg-blue-700 font-medium"
+                            disabled={!agreedToTerms}
+                          >
+                            <CreditCard className="mr-2 h-4 w-4" />
+                            Pay ${totalPrice.toFixed(2)}
+                          </Button>
+                          
+                          <Button
+                            type="button"
+                            onClick={prevStep}
+                            variant="outline"
+                            className="w-full h-12 border-blue-200 hover:bg-blue-50 mt-2"
+                          >
+                            Go Back
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
               </div>
             </div>
           )}
         </form>
       </div>
 
-      {/* Payment Method Dialog */}
+      {/* Payment Dialog */}
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Select Payment Method</DialogTitle>
-            <DialogDescription>Choose how you would like to pay for your booking.</DialogDescription>
+            <DialogDescription>Choose how you want to pay for your booking.</DialogDescription>
           </DialogHeader>
 
-          {/* Payment Tabs */}
-          <Tabs defaultValue="credit" className="w-full mt-4">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="credit">
-                <CreditCard className="h-4 w-4 mr-2" />
-                Credit Card
+          <Tabs defaultValue="credit" onValueChange={setPaymentMethod}>
+            <TabsList className="w-full mb-4 grid grid-cols-3">
+              <TabsTrigger value="credit" className="flex-1">
+                <CreditCard className="h-4 w-4 mr-2" /> Credit Card
               </TabsTrigger>
-              <TabsTrigger value="savings">
-                <Wallet className="h-4 w-4 mr-2" />
-                Savings
+              <TabsTrigger value="savings" className="flex-1">
+                <Wallet className="h-4 w-4 mr-2" /> Savings
+              </TabsTrigger>
+              <TabsTrigger value="crypto" className="flex-1">
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  className="h-4 w-4 mr-2 lucide lucide-bitcoin"
+                >
+                  <path d="M11.767 19.089c4.924.868 6.14-6.025 1.216-6.894m-1.216 6.894L5.86 18.047m5.908 1.042-.347 1.97m1.563-8.864c4.924.869 6.14-6.025 1.215-6.893m-1.215 6.893-3.94-.694m3.94.694-.347 1.97M7.116 5.137l-1.257-.221 1.437 8.148" />
+                </svg>
+                Crypto
               </TabsTrigger>
             </TabsList>
-
-            {/* Credit Card Tab */}
-            <TabsContent value="credit" className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="cardNumber">Card Number</Label>
-                <Input id="cardNumber" placeholder="1234 5678 9012 3456" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="expiry">Expiry Date</Label>
-                  <Input id="expiry" placeholder="MM/YY" />
+            
+            <TabsContent value="credit" className="space-y-4">
+              {/* Credit Card Form */}
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="cardNumber">Card Number</Label>
+                  <Input id="cardNumber" type="text" placeholder="1234 5678 9012 3456" />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cvc">CVC</Label>
-                  <Input id="cvc" placeholder="123" />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="expiry">Expiry Date</Label>
+                    <Input id="expiry" type="text" placeholder="MM/YY" />
+                  </div>
+                  <div>
+                    <Label htmlFor="cvv">CVV</Label>
+                    <Input id="cvv" type="text" placeholder="123" />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="nameOnCard">Name on Card</Label>
+                  <Input id="nameOnCard" type="text" placeholder="John Doe" />
                 </div>
               </div>
-              <Button
-                className="w-full text-white bg-blue-600 hover:bg-blue-700"
-                onClick={() => {
-                  // Set payment method in store and process
-                  setPaymentMethod("credit")
-                  processPayment()
-                }}
-              >
-                 {/* Display total price */}
-                Pay ${totalPrice}
-              </Button>
             </TabsContent>
-
-            {/* Savings Tab */}
-            <TabsContent value="savings" className="space-y-4 py-4">
-              <div className="p-4 bg-muted rounded-lg">
+            
+            <TabsContent value="savings" className="space-y-4">
+              <div className="p-4 bg-blue-50 rounded-lg">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="font-medium">Available Balance:</span>
-                   {/* Display savings balance from store */}
-                  <span className="font-bold">${savingsBalance.toFixed(2)}</span>
+                  <span>Available Balance:</span>
+                  <span className="font-semibold">${savingsBalance.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="font-medium">Total Cost:</span>
-                   {/* Display total price */}
-                  <span className="font-bold">${totalPrice.toFixed(2)}</span>
+                  <span>Required:</span>
+                  <span className="font-semibold">${totalPrice.toFixed(2)}</span>
                 </div>
-
-                {/* Balance Check */}
-                {savingsBalance < totalPrice ? (
-                  <Alert className="mt-4" variant="destructive">
+                <Separator className="my-2" />
+                <div className="flex justify-between items-center font-medium">
+                  <span>Remaining Balance:</span>
+                  <span
+                    className={savingsBalance >= totalPrice ? "text-green-600" : "text-red-600"}
+                  >
+                    ${(savingsBalance - totalPrice).toFixed(2)}
+                  </span>
+                </div>
+                {savingsBalance < totalPrice && (
+                  <Alert variant="destructive" className="mt-2">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      Insufficient funds in your savings account. Please add more funds or use a credit card.
+                      Insufficient funds in your savings account. Please choose another payment method or top up your
+                      balance.
                     </AlertDescription>
-                  </Alert>
-                ) : (
-                  <Alert className="mt-4" variant="default">
-                    <Check className="h-4 w-4" />
-                    <AlertDescription>You have sufficient funds to complete this booking.</AlertDescription>
                   </Alert>
                 )}
               </div>
-
-              <Button
-                className="w-full text-white bg-blue-600 hover:bg-blue-700"
-                disabled={savingsBalance < totalPrice}
-                onClick={() => {
-                  // Set payment method in store and process
-                  setPaymentMethod("savings")
-                  processPayment()
-                }}
-              >
-                Pay with Savings
-              </Button>
+            </TabsContent>
+            
+            <TabsContent value="crypto" className="space-y-4">
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <div className="flex justify-between items-center mb-2">
+                  <span>Equivalent in ETH:</span>
+                  <span className="font-semibold">{(totalPrice / 3500).toFixed(6)} ETH</span>
+                </div>
+                
+                <div className="mt-4">
+                  <Label htmlFor="cryptoWallet">Your Wallet Address</Label>
+                  <div className="mt-1 relative">
+                    <Input 
+                      id="cryptoWallet" 
+                      type="text" 
+                      placeholder="0x..." 
+                      className="pr-20" 
+                    />
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="sm" 
+                      className="absolute right-1 top-1 h-7 text-xs text-blue-600"
+                      onClick={() => {
+                        if (window.ethereum) {
+                          window.ethereum.request({ method: 'eth_requestAccounts' })
+                            .then(accounts => {
+                              document.getElementById('cryptoWallet').value = accounts[0];
+                            })
+                            .catch(error => {
+                              console.error(error);
+                            });
+                        } else {
+                          alert("MetaMask or another web3 wallet is required for crypto payments");
+                        }
+                      }}
+                    >
+                      Connect wallet
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="mt-4">
+                  <Label className="mb-2 block">Select Cryptocurrency</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex items-center space-x-2 border rounded-md p-2 cursor-pointer bg-white hover:bg-blue-50 hover:border-blue-300">
+                      <svg className="h-5 w-5 text-blue-600" viewBox="0 0 24 24" fill="none">
+                        <path d="M11.767 19.089c4.924.868 6.14-6.025 1.216-6.894m-1.216 6.894L5.86 18.047m5.908 1.042-.347 1.97m1.563-8.864c4.924.869 6.14-6.025 1.215-6.893m-1.215 6.893-3.94-.694m3.94.694-.347 1.97M7.116 5.137l-1.257-.221 1.437 8.148" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <div>
+                        <p className="font-medium">Bitcoin</p>
+                        <p className="text-xs text-gray-500">BTC</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2 border rounded-md p-2 cursor-pointer bg-white hover:bg-blue-50 hover:border-blue-300">
+                      <svg className="h-5 w-5 text-blue-600" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 2L5.25 12.05L12 15.85V2ZM12 15.85L18.75 12.05L12 2V15.85Z" fill="currentColor" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M12 22L5.25 12.5L12 16.3V22ZM12 16.3L18.75 12.5L12 22V16.3Z" fill="currentColor" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <div>
+                        <p className="font-medium">Ethereum</p>
+                        <p className="text-xs text-gray-500">ETH</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <Alert className="mt-4 bg-yellow-50 border border-yellow-200 text-yellow-800">
+                  <AlertCircle className="h-4 w-4 text-yellow-600" />
+                  <AlertDescription className="text-sm">
+                    Crypto payment will connect to Smart Tour TZ blockchain vault. Current exchange rate applies at time of payment.
+                  </AlertDescription>
+                </Alert>
+              </div>
             </TabsContent>
           </Tabs>
 
-          {/* Dialog Footer */}
-          <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
-            {/* Close dialog using store action */}
-            <Button type="button" variant="outline" onClick={() => setIsPaymentDialogOpen(false)}>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPaymentDialogOpen(false)}>
               Cancel
+            </Button>
+            <Button
+              onClick={processPayment}
+              disabled={
+                (paymentMethod === "savings" && savingsBalance < totalPrice) ||
+                !paymentMethod
+              }
+            >
+              Pay ${totalPrice.toFixed(2)}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+// Wrap the component with RouteProtection to ensure only logged-in tourists can access
+export default function ProtectedBookingPage({ params }) {
+  return (
+    <RouteProtection allowedRoles={["tourist"]}>
+      <BookLocation params={params} />
+    </RouteProtection>
   )
 }

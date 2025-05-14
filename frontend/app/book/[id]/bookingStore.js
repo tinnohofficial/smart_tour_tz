@@ -14,6 +14,9 @@ const calculateNights = (startDate, endDate) => {
   return 0
 }
 
+// API base URL - can be configured from environment variables if needed
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export const useBookingStore = create((set, get) => ({
   // State
   step: 1,
@@ -27,11 +30,158 @@ export const useBookingStore = create((set, get) => ({
   paymentMethod: "",
   isPaymentDialogOpen: false,
   savingsBalance: 2000, // Mock savings balance
+  
+  // API data
+  destination: null,
+  transportRoutes: [],
+  hotels: [],
+  activities: [],
+  isLoading: {
+    destination: false,
+    transports: false,
+    hotels: false,
+    activities: false
+  },
+  error: {
+    destination: null,
+    transports: null,
+    hotels: null,
+    activities: null
+  },
+
+  // Data fetching actions
+  fetchDestination: async (destinationId) => {
+    if (!destinationId) return;
+    
+    set(state => ({
+      isLoading: { ...state.isLoading, destination: true },
+      error: { ...state.error, destination: null }
+    }));
+    
+    try {
+      const response = await fetch(`${API_URL}/destinations/${destinationId}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch destination: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      set({ 
+        destination: data,
+        isLoading: { ...get().isLoading, destination: false }
+      });
+    } catch (error) {
+      console.error('Error fetching destination:', error);
+      set({ 
+        error: { ...get().error, destination: error.message },
+        isLoading: { ...get().isLoading, destination: false }
+      });
+    }
+  },
+
+  fetchTransportRoutes: async (originOrDestination) => {
+    set(state => ({
+      isLoading: { ...state.isLoading, transports: true },
+      error: { ...state.error, transports: null }
+    }));
+    
+    try {
+      // If we have origin or destination info, we can filter by it
+      let url = `${API_URL}/transports`;
+      if (originOrDestination) {
+        url += `?filter=${encodeURIComponent(originOrDestination)}`;
+      }
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch transport routes: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      set({ 
+        transportRoutes: data,
+        isLoading: { ...get().isLoading, transports: false }
+      });
+    } catch (error) {
+      console.error('Error fetching transport routes:', error);
+      set({ 
+        error: { ...get().error, transports: error.message },
+        isLoading: { ...get().isLoading, transports: false }
+      });
+    }
+  },
+
+  fetchHotels: async (location) => {
+    set(state => ({
+      isLoading: { ...state.isLoading, hotels: true },
+      error: { ...state.error, hotels: null }
+    }));
+    
+    try {
+      // Update query parameter to match backend implementation
+      let url = `${API_URL}/hotels`;
+      if (location) {
+        url += `?location=${encodeURIComponent(location)}`;
+      }
+      
+      console.log("Fetching hotels from URL:", url); // Add logging for debugging
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch hotels: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log("Hotels fetched:", data); // Log fetched data
+      
+      set({ 
+        hotels: data,
+        isLoading: { ...get().isLoading, hotels: false }
+      });
+    } catch (error) {
+      console.error('Error fetching hotels:', error);
+      set({ 
+        error: { ...get().error, hotels: error.message },
+        isLoading: { ...get().isLoading, hotels: false }
+      });
+    }
+  },
+
+  fetchActivities: async (destinationId) => {
+    if (!destinationId) return;
+    
+    set(state => ({
+      isLoading: { ...state.isLoading, activities: true },
+      error: { ...state.error, activities: null }
+    }));
+    
+    try {
+      const response = await fetch(`${API_URL}/activities?destination=${destinationId}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch activities: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      set({ 
+        activities: data,
+        isLoading: { ...get().isLoading, activities: false }
+      });
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+      set({ 
+        error: { ...get().error, activities: error.message },
+        isLoading: { ...get().isLoading, activities: false }
+      });
+    }
+  },
 
   // Actions
   setStep: (step) => set({ step }),
-  setStartDate: (date) => set({ startDate: date, errors: {} }), // Clear errors on change
-  setEndDate: (date) => set({ endDate: date, errors: {} }),     // Clear errors on change
+  setStartDate: (date) => set({ startDate: date, errors: {} }),
+  setEndDate: (date) => set({ endDate: date, errors: {} }),
   setSelectedTransportRoute: (routeId) => set({ selectedTransportRoute: routeId, errors: {} }),
   setSelectedHotel: (hotelId) => set({ selectedHotel: hotelId, errors: {} }),
   toggleActivity: (activityId) => set((state) => ({
@@ -55,7 +205,7 @@ export const useBookingStore = create((set, get) => ({
     agreedToTerms: false,
     paymentMethod: "",
     isPaymentDialogOpen: false,
-    // savingsBalance: 2000, // Keep existing balance or reset if needed
+    // Keep destination and other API data
   }),
 
   // Action incorporating validation before proceeding
@@ -74,22 +224,18 @@ export const useBookingStore = create((set, get) => ({
     } else if (step === 3) {
       if (!selectedHotel) newErrors.hotel = "Please select a hotel";
     } else if (step === 4) {
-       // Validation for step 4 is handled within the handleBooking function now
-       // But we still check terms agreement for the button state later
+       // Activities are optional, so no validation needed
     }
 
     setErrors(newErrors);
-    if (Object.keys(newErrors).length === 0 && step < 4) {
+    if (Object.keys(newErrors).length === 0 && step < 5) {
       set({ step: step + 1 });
+      return true;
     }
+    return false;
   },
 
   prevStep: () => set((state) => ({ step: Math.max(1, state.step - 1) })),
-
-  // Computed values (can also be calculated in the component)
-  // Note: Zustand selectors are generally preferred over putting computed values directly in the store
-  // unless the calculation is complex and reused heavily across different components.
-  // We will calculate these in the component using useMemo for simplicity here.
 }))
 
 // Selector hooks (optional but can simplify component code)

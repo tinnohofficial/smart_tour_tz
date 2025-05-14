@@ -159,6 +159,21 @@ export default function DestinationsPage() {
                    <Label htmlFor="region" className="text-right"> Region </Label>
                    <Input id="region" name="region" value={formData.region} onChange={onInputChange} className="col-span-3" required />
                  </div>
+                 {/* Cost Input */}
+                 <div className="grid grid-cols-4 items-center gap-4">
+                   <Label htmlFor="cost" className="text-right"> Cost (USD) </Label>
+                   <Input 
+                     id="cost" 
+                     name="cost" 
+                     type="number" 
+                     min="0"
+                     step="0.01"
+                     placeholder="0.00"
+                     value={formData.cost} 
+                     onChange={onInputChange} 
+                     className="col-span-3" 
+                   />
+                 </div>
                  {/* Description Textarea */}
                 <div className="grid grid-cols-4 items-start gap-4">
                   <Label htmlFor="description" className="text-right pt-2"> Description </Label>
@@ -223,6 +238,7 @@ export default function DestinationsPage() {
                   <TableHead>Name</TableHead>
                   {/* <TableHead>Region</TableHead> */}
                   <TableHead>Description</TableHead>
+                  <TableHead>Cost (USD)</TableHead>
                   {/* <TableHead>Created</TableHead> */}
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -242,6 +258,7 @@ export default function DestinationsPage() {
                     <TableCell className="font-medium">{destination.name}</TableCell>
                     {/* <TableCell>{destination.region}</TableCell> */}
                     <TableCell className="max-w-xs truncate">{destination.description}</TableCell>
+                    <TableCell>${destination.cost ? parseFloat(destination.cost).toFixed(2) : '0.00'}</TableCell>
                     {/* <TableCell>{formatDate(destination.created_at)}</TableCell> */}
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
@@ -281,6 +298,21 @@ export default function DestinationsPage() {
                <div className="grid grid-cols-4 items-center gap-4">
                  <Label htmlFor="edit-region" className="text-right"> Region </Label>
                  <Input id="edit-region" name="region" value={formData.region} onChange={onInputChange} className="col-span-3" required />
+               </div>
+               {/* Cost Input */}
+               <div className="grid grid-cols-4 items-center gap-4">
+                 <Label htmlFor="edit-cost" className="text-right"> Cost (USD) </Label>
+                 <Input 
+                   id="edit-cost" 
+                   name="cost" 
+                   type="number" 
+                   min="0"
+                   step="0.01"
+                   placeholder="0.00"
+                   value={formData.cost} 
+                   onChange={onInputChange} 
+                   className="col-span-3" 
+                 />
                </div>
                {/* Description Textarea */}
                <div className="grid grid-cols-4 items-start gap-4">

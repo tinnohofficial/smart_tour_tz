@@ -1,16 +1,18 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
 import { LogIn } from "lucide-react"
 import { useLoginStore } from "./loginStore"
-
+import { publishAuthChange } from "@/components/Navbar" // Import the publishAuthChange function
 
 export default function Login() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const returnUrl = searchParams.get('returnUrl') || "/"
   const { email, password, isLoading, setEmail, setPassword, setIsLoading } = useLoginStore(); 
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL
@@ -71,8 +73,20 @@ export default function Login() {
       };
       
       localStorage.setItem("userData", JSON.stringify(userData));
+      
+      // Set login timestamp to prevent immediate token verification
+      localStorage.setItem("loginTimestamp", new Date().getTime().toString());
 
-      // Role-based redirection using the correct user role
+      // Notify about authentication change
+      publishAuthChange();
+
+      // Check if there's a return URL from a previous redirect
+      if (returnUrl && returnUrl !== '/') {
+        router.push(returnUrl);
+        return;
+      }
+
+      // Default role-based redirection using the correct user role
       const userRole = data.user.role;
       
       console.log("User role:", userRole);  // For debugging
@@ -91,7 +105,7 @@ export default function Login() {
           router.push("/hotel-manager/dashboard");
           break;
         default:
-          // Default case for tourists or other roles
+          // Default case for tourists
           router.push("/");
           break;
       }

@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { useLayoutStore } from "./layoutStore"
 import { PendingApprovalAlert } from "@/components/pending-approval-alert"
+import { RouteProtection } from "@/components/route-protection"
 import { useEffect, useState } from "react"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
@@ -59,6 +60,7 @@ export default function TourGuideLayout({ children }) {
         } else if (response.status === 401) {
           // Unauthorized, redirect to login
           localStorage.removeItem('token')
+          localStorage.removeItem('userData')
           router.push('/login')
           return
         }
@@ -124,8 +126,22 @@ export default function TourGuideLayout({ children }) {
   }
 
   const handleLogout = () => {
-    localStorage.removeItem('token')
-    router.push('/login')
+    try {
+      // Clear all auth-related data from localStorage
+      localStorage.removeItem('token')
+      localStorage.removeItem('userData')
+      localStorage.removeItem('role')
+      
+      // Add a small delay before redirecting to ensure storage is cleared
+      setTimeout(() => {
+        // Redirect to login page
+        router.push('/login?message=You have been logged out successfully')
+      }, 100)
+    } catch (error) {
+      console.error('Logout error:', error)
+      // Ensure navigation to login even if there was an error
+      router.push('/login')
+    }
   }
 
   // Show loading state while checking profile
@@ -141,128 +157,130 @@ export default function TourGuideLayout({ children }) {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Mobile sidebar backdrop */}
-      {isSidebarOpen && (
-        <div className="fixed inset-0 z-20 bg-black/50 md:hidden" onClick={() => setIsSidebarOpen(false)} />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-30 w-64 transform bg-gray-900 transition-transform duration-200 ease-in-out md:translate-x-0",
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full",
+    <RouteProtection allowedRoles={['tour_guide']}>
+      <div className="flex h-screen bg-gray-50">
+        {/* Mobile sidebar backdrop */}
+        {isSidebarOpen && (
+          <div className="fixed inset-0 z-20 bg-black/50 md:hidden" onClick={() => setIsSidebarOpen(false)} />
         )}
-      >
-        <div className="flex h-full flex-col">
-          <div className="flex h-16 items-center justify-between border-b border-gray-800 px-4">
-            <h1 className="text-xl font-semibold text-white">Tour Guide Portal</h1>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden text-gray-400 hover:text-white"
-              onClick={() => setIsSidebarOpen(false)}
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
 
-          <nav className="flex-1 space-y-4 px-2 py-4">
-            {navItems.filter(item => item.show).map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center px-2 py-2 text-sm font-medium rounded-md",
-                  item.active ? "bg-gray-800 text-white" : "text-gray-300 hover:bg-gray-700 hover:text-white",
-                )}
+        {/* Sidebar */}
+        <aside
+          className={cn(
+            "fixed inset-y-0 left-0 z-30 w-64 transform bg-gray-900 transition-transform duration-200 ease-in-out md:translate-x-0",
+            isSidebarOpen ? "translate-x-0" : "-translate-x-full",
+          )}
+        >
+          <div className="flex h-full flex-col">
+            <div className="flex h-16 items-center justify-between border-b border-gray-800 px-4">
+              <h1 className="text-xl font-semibold text-white">Tour Guide Portal</h1>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden text-gray-400 hover:text-white"
+                onClick={() => setIsSidebarOpen(false)}
               >
-                <span className="mr-3">{item.icon}</span>
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
 
-          <div className="border-t border-gray-800 p-4">
-            <button 
-              className="flex w-full items-center rounded-md px-2 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
-              onClick={handleLogout}
-            >
-              <LogOut className="mr-3 h-5 w-5" />
-              Logout
-            </button>
-          </div>
-        </div>
-      </aside>
+            <nav className="flex-1 space-y-4 px-2 py-4">
+              {navItems.filter(item => item.show).map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center px-2 py-2 text-sm font-medium rounded-md",
+                    item.active ? "bg-gray-800 text-white" : "text-gray-300 hover:bg-gray-700 hover:text-white",
+                  )}
+                >
+                  <span className="mr-3">{item.icon}</span>
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
 
-      {/* Main content */}
-      <div className="flex flex-1 flex-col bg-white md:pl-64">
-        {/* Top navigation */}
-        <header className="sticky top-0 left-0 z-10 bg-transparent shadow-sm md:hidden">
-          <div className="flex h-16 items-center justify-between px-4">
-            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSidebarOpen(true)}>
-              <Menu className="h-6 w-6" />
-            </Button>
-
-            <div className="ml-auto flex items-center">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src="/placeholder.svg" alt="User" />
-                <AvatarFallback>TG</AvatarFallback>
-              </Avatar>
+            <div className="border-t border-gray-800 p-4">
+              <button 
+                className="flex w-full items-center rounded-md px-2 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+                onClick={handleLogout}
+              >
+                <LogOut className="mr-3 h-5 w-5" />
+                Logout
+              </button>
             </div>
           </div>
-        </header>
+        </aside>
 
-        {/* Page content */}
-        <main className="flex-1 px-6 py-6">
-          {/* Show pending approval alert if needed */}
-          {userStatus !== 'active' && (
-            <PendingApprovalAlert 
-              userRole="tour_guide" 
-              hasCompletedProfile={hasProfile && userStatus !== 'pending_profile'} 
-            />
-          )}
+        {/* Main content */}
+        <div className="flex flex-1 flex-col bg-white md:pl-64">
+          {/* Top navigation */}
+          <header className="sticky top-0 left-0 z-10 bg-transparent shadow-sm md:hidden">
+            <div className="flex h-16 items-center justify-between px-4">
+              <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSidebarOpen(true)}>
+                <Menu className="h-6 w-6" />
+              </Button>
 
-          {/* Show content based on access restrictions */}
-          {shouldRestrictAccess() ? (
-            pathname !== '/tour-guide/dashboard' && pathname !== '/tour-guide/password' && (
-              <div className="text-center py-10">
-                {userStatus === 'pending_approval' && pathname === '/tour-guide/profile' ? (
-                  // Show message specific to pending approval users trying to access profile
-                  <div>
-                    <User className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-                    <h2 className="text-xl font-semibold text-gray-700">Profile Under Review</h2>
-                    <p className="text-gray-500 mb-6">Your profile is currently under review and cannot be modified. You will be able to access your profile again once it's approved.</p>
-                    <Button 
-                      onClick={() => router.push('/tour-guide/dashboard')}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      Go to Dashboard
-                    </Button>
-                  </div>
-                ) : (
-                  // Standard message for other restricted access
-                  <div>
-                    <User className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-                    <h2 className="text-xl font-semibold text-gray-700">Please complete your profile</h2>
-                    <p className="text-gray-500 mb-6">You need to complete your tour guide profile before accessing this page.</p>
-                    {userStatus !== 'pending_approval' && (
+              <div className="ml-auto flex items-center">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src="/placeholder.svg" alt="User" />
+                  <AvatarFallback>TG</AvatarFallback>
+                </Avatar>
+              </div>
+            </div>
+          </header>
+
+          {/* Page content */}
+          <main className="flex-1 px-6 py-6">
+            {/* Show pending approval alert if needed */}
+            {userStatus !== 'active' && (
+              <PendingApprovalAlert 
+                userRole="tour_guide" 
+                hasCompletedProfile={hasProfile && userStatus !== 'pending_profile'} 
+              />
+            )}
+
+            {/* Show content based on access restrictions */}
+            {shouldRestrictAccess() ? (
+              pathname !== '/tour-guide/dashboard' && pathname !== '/tour-guide/password' && (
+                <div className="text-center py-10">
+                  {userStatus === 'pending_approval' && pathname === '/tour-guide/profile' ? (
+                    // Show message specific to pending approval users trying to access profile
+                    <div>
+                      <User className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+                      <h2 className="text-xl font-semibold text-gray-700">Profile Under Review</h2>
+                      <p className="text-gray-500 mb-6">Your profile is currently under review and cannot be modified. You will be able to access your profile again once it's approved.</p>
                       <Button 
-                        onClick={() => router.push('/tour-guide/profile')}
+                        onClick={() => router.push('/tour-guide/dashboard')}
                         className="bg-blue-600 hover:bg-blue-700"
                       >
-                        Complete Profile
+                        Go to Dashboard
                       </Button>
-                    )}
-                  </div>
-                )}
-              </div>
-            )
-          ) : (
-            children
-          )}
-        </main>
+                    </div>
+                  ) : (
+                    // Standard message for other restricted access
+                    <div>
+                      <User className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+                      <h2 className="text-xl font-semibold text-gray-700">Please complete your profile</h2>
+                      <p className="text-gray-500 mb-6">You need to complete your tour guide profile before accessing this page.</p>
+                      {userStatus !== 'pending_approval' && (
+                        <Button 
+                          onClick={() => router.push('/tour-guide/profile')}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          Complete Profile
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            ) : (
+              children
+            )}
+          </main>
+        </div>
       </div>
-    </div>
+    </RouteProtection>
   )
 }

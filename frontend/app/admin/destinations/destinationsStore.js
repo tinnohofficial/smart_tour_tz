@@ -33,6 +33,7 @@ export const useDestinationsStore = create((set, get) => ({
     description: "",
     region: "",
     image_url: "", // Store the final URL here
+    cost: "", // Added cost field
   },
 
   // --- Actions ---
@@ -72,7 +73,7 @@ export const useDestinationsStore = create((set, get) => ({
 
   // Reset Form and File State
   resetFormAndFile: () => set({
-    formData: { name: "", description: "", region: "", image_url: "" },
+    formData: { name: "", description: "", region: "", image_url: "", cost: "" },
     selectedFile: null,
     previewUrl: null,
     error: null // Also clear errors on reset
@@ -204,6 +205,7 @@ export const useDestinationsStore = create((set, get) => ({
         description: destination.description,
         region: destination.region,
         image_url: destination.image_url || "", // Ensure empty string if null/undefined
+        cost: destination.cost || "", // Added cost field
       },
       previewUrl: destination.image_url || null, // Set initial preview
       selectedFile: null, // Clear any previously selected file
