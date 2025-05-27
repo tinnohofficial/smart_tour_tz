@@ -131,13 +131,13 @@ export default function ApplicationsPage() {
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         {/* Use store action to open details */}
-                        <Button variant="outline" className="hover:bg-blue-50" size="sm" onClick={() => viewApplicationDetails(application)}>
+                        <Button variant="outline" className="hover:bg-amber-50" size="sm" onClick={() => viewApplicationDetails(application)}>
                           View Details
                         </Button>
                         {/* Use store action for reject */}
                         <Button
                           variant="outline"
-                          className="hover:bg-blue-50"
+                          className="hover:bg-amber-50"
                           size="sm"
                           onClick={() => rejectApplication(application.id)}
                           disabled={isProcessing} // Read from store
@@ -146,7 +146,7 @@ export default function ApplicationsPage() {
                         </Button>
                         {/* Use store action for approve */}
                         <Button
-                          className="text-white bg-blue-600 hover:bg-blue-700"
+                          className="text-white bg-amber-700 hover:bg-amber-800"
                           size="sm"
                           onClick={() => approveApplication(application.id)}
                           disabled={isProcessing} // Read from store
@@ -276,7 +276,7 @@ export default function ApplicationsPage() {
                  <X className="mr-2 h-4 w-4" /> Reject Application
                </Button>
              </div>
-             <Button className="text-white bg-blue-600 hover:bg-blue-700" onClick={() => selectedApplication && approveApplication(selectedApplication.user_id)} disabled={isProcessing}>
+             <Button className="text-white bg-amber-700 hover:bg-amber-800" onClick={() => selectedApplication && approveApplication(selectedApplication.user_id)} disabled={isProcessing}>
                <CheckCircle className="mr-2 h-4 w-4" /> Approve Application
              </Button>
           </DialogFooter>

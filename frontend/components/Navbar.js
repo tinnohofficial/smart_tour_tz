@@ -112,7 +112,7 @@ export function Navbar() {
     <nav className="bg-background border-b">
       <div className="container mx-auto px-4 md:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <Link href="/" className="text-2xl font-bold text-blue-600">
+          <Link href="/" className="text-2xl font-bold text-amber-700">
             Smart Tour
           </Link>
           <div className="hidden md:flex space-x-4 items-center">
@@ -132,10 +132,10 @@ export function Navbar() {
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="flex items-center space-x-2 hover:bg-blue-50">
-                      <span className="text-blue-600 font-medium">{getUserName()}</span>
+                    <Button variant="ghost" className="flex items-center space-x-2 hover:bg-amber-50">
+                      <span className="text-amber-700 font-medium">{getUserName()}</span>
                       <Avatar className="h-7 w-7">
-                        <AvatarFallback className="bg-blue-600 text-white">{user.email.charAt(0).toUpperCase()}</AvatarFallback>
+                        <AvatarFallback className="bg-amber-700 text-white">{user.email.charAt(0).toUpperCase()}</AvatarFallback>
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
@@ -156,10 +156,10 @@ export function Navbar() {
               // Non-logged-in view
               <>
                 <Link href="/login">
-                  <Button variant="outline" className="hover:bg-blue-100">Login</Button>
+                  <Button variant="outline" className="hover:bg-amber-50 border-amber-200">Login</Button>
                 </Link>
                 <Link href="/register">
-                  <Button className="bg-blue-600 text-white hover:bg-blue-700">Register</Button>
+                  <Button className="bg-amber-700 text-white hover:bg-amber-800">Register</Button>
                 </Link>
               </>
             )}
@@ -175,9 +175,9 @@ export function Navbar() {
             <SheetContent>
               <div className="flex flex-col space-y-4 mt-4">
                 {user && (
-                  <div className="flex items-center space-x-2 px-2 py-3 bg-blue-50 rounded-md mb-2">
+                  <div className="flex items-center space-x-2 px-2 py-3 bg-amber-50 rounded-md mb-2">
                     <Avatar className="h-7 w-7">
-                      <AvatarFallback className="bg-blue-600 text-white">{user.email.charAt(0).toUpperCase()}</AvatarFallback>
+                      <AvatarFallback className="bg-amber-700 text-white">{user.email.charAt(0).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <span className="font-medium">{getUserName()}</span>
                   </div>
@@ -221,12 +221,12 @@ export function Navbar() {
                   // Non-logged-in mobile view
                   <>
                     <Link href="/login">
-                      <Button variant="outline" className="w-full justify-start">
+                      <Button variant="outline" className="w-full justify-start border-amber-200 hover:bg-amber-50">
                         Login
                       </Button>
                     </Link>
                     <Link href="/register">
-                      <Button className="w-full justify-start bg-blue-600 hover:bg-blue-700 text-white">
+                      <Button className="w-full justify-start bg-amber-700 hover:bg-amber-800 text-white">
                         Register
                       </Button>
                     </Link>

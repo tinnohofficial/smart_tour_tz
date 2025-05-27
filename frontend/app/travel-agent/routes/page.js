@@ -162,7 +162,7 @@ export default function TravelAgentRoutes() {
 
   const getTransportTypeBadge = (type) => {
     const types = {
-      'air': { bg: 'bg-blue-100', text: 'text-blue-800' },
+      'air': { bg: 'bg-amber-100', text: 'text-amber-800' },
       'ferry': { bg: 'bg-cyan-100', text: 'text-cyan-800' },
       'train': { bg: 'bg-purple-100', text: 'text-purple-800' },
       'bus': { bg: 'bg-green-100', text: 'text-green-800' },
@@ -184,14 +184,14 @@ export default function TravelAgentRoutes() {
         <h1 className="text-3xl font-bold">Transport Routes</h1>
         <Button 
           onClick={handleOpenCreateDialog}
-          className="bg-blue-600 hover:bg-blue-700">
+          className="bg-amber-700 hover:bg-amber-800">
           <Plus className="h-4 w-4 mr-2" /> Add New Route
         </Button>
       </div>
 
       {isLoading ? (
         <div className="text-center py-10">
-          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-amber-700 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading transport routes...</p>
         </div>
       ) : routes.length > 0 ? (
@@ -201,7 +201,7 @@ export default function TravelAgentRoutes() {
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
                   <div className="flex items-center">
-                    <div className="p-2 bg-blue-50 rounded-md mr-3">
+                    <div className="p-2 bg-amber-50 rounded-md mr-3">
                       {getTransportIcon(route.transportation_type)}
                     </div>
                     <div>
@@ -255,7 +255,7 @@ export default function TravelAgentRoutes() {
             <Car className="h-12 w-12 text-gray-300 mb-4" />
             <p className="text-gray-500">No transport routes available</p>
             <p className="text-gray-400 text-sm mt-1 mb-4">Create your first transport route to start accepting bookings</p>
-            <Button onClick={handleOpenCreateDialog} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={handleOpenCreateDialog} className="bg-amber-700 hover:bg-amber-800">
               <Plus className="h-4 w-4 mr-2" /> Create Route
             </Button>
           </CardContent>
@@ -348,7 +348,7 @@ export default function TravelAgentRoutes() {
             </Button>
             <Button 
               onClick={handleCreateRoute} 
-              className="bg-blue-600 hover:bg-blue-700">
+              className="bg-amber-700 hover:bg-amber-800">
               Create Route
             </Button>
           </DialogFooter>
@@ -437,7 +437,7 @@ export default function TravelAgentRoutes() {
             </Button>
             <Button 
               onClick={handleUpdateRoute} 
-              className="bg-blue-600 hover:bg-blue-700">
+              className="bg-amber-700 hover:bg-amber-800">
               Update Route
             </Button>
           </DialogFooter>

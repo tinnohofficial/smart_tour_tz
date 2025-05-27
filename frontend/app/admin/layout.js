@@ -71,8 +71,8 @@ export default function AdminLayout({ children }) {
     <RouteProtection allowedRoles={['admin']}>
       <div className="h-full -top-5 relative">
         {/* --- Desktop Sidebar --- */}
-        <div className="hidden h-full -ml-12 md:flex md:w-72 md:flex-col md:fixed md:inset-y-0 z-[80] bg-gray-900">
-          <div className="h-20 flex items-center justify-center border-b border-gray-800">
+        <div className="hidden h-full md:flex md:w-72 md:flex-col md:fixed md:inset-y-0 z-[80] bg-amber-900">
+          <div className="h-20 flex items-center justify-center border-b border-amber-800">
             <Link href="/admin/dashboard" className="flex items-center">
               <h1 className="text-2xl font-bold text-white">Smart Tour Admin</h1>
             </Link>
@@ -84,22 +84,22 @@ export default function AdminLayout({ children }) {
                   key={route.href}
                   href={route.href}
                   className={cn(
-                    "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-gray-800/50 rounded-lg transition",
-                    route.active ? "text-white bg-gray-800" : "text-gray-400",
+                    "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-amber-800/50 rounded-lg transition",
+                    route.active ? "text-white bg-amber-800" : "text-amber-200",
                   )}
                 >
                   <div className="flex items-center flex-1">
-                    <route.icon className={cn("h-5 w-5 mr-3", route.active ? "text-white" : "text-gray-400")} />
+                    <route.icon className={cn("h-5 w-5 mr-3", route.active ? "text-white" : "text-amber-200")} />
                     {route.label}
                   </div>
                 </Link>
               ))}
             </div>
           </ScrollArea>
-          <div className="p-4 border-t border-gray-800">
+          <div className="p-4 border-t border-amber-800">
             <Button 
               variant="ghost" 
-              className="w-full justify-start text-gray-400 hover:text-white hover:bg-gray-800/50"
+              className="w-full justify-start text-amber-200 hover:text-white hover:bg-amber-800/50"
               onClick={handleLogout}
             >
               <LogOut className="h-5 w-5 mr-3" />
@@ -109,9 +109,9 @@ export default function AdminLayout({ children }) {
         </div>
 
         {/* --- Main Content Area --- */}
-        <div className="md:pl-60 -mr-8 h-full">
+        <div className="md:pl-72 h-full">
           {/* --- Mobile Header / Trigger --- */}
-          <div className="flex items-center bg-white">
+          <div className="flex items-center bg-white p-4 md:hidden">
             {/* Use Zustand state and action for the Sheet */}
             <Sheet open={isMobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
               <SheetTrigger asChild>
@@ -120,8 +120,8 @@ export default function AdminLayout({ children }) {
                 </Button>
               </SheetTrigger>
               {/* --- Mobile Sidebar Content (SheetContent) --- */}
-              <SheetContent side="left" className="p-0 bg-gray-900">
-                <div className="h-20 flex items-center justify-center border-b border-gray-800">
+              <SheetContent side="left" className="p-0 bg-amber-900">
+                <div className="h-20 flex items-center justify-center border-b border-amber-800">
                   {/* Close sidebar on link click */}
                   <Link href="/admin/dashboard" className="flex items-center" onClick={closeMobileSidebar}>
                     <h1 className="text-2xl font-bold text-white">Smart Tour Admin</h1>
@@ -135,22 +135,22 @@ export default function AdminLayout({ children }) {
                         href={route.href}
                         onClick={closeMobileSidebar} // Close sidebar on link click
                         className={cn(
-                          "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-gray-800/50 rounded-lg transition",
-                          route.active ? "text-white bg-gray-800" : "text-gray-400",
+                          "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-amber-800/50 rounded-lg transition",
+                          route.active ? "text-white bg-amber-800" : "text-amber-200",
                         )}
                       >
                         <div className="flex items-center flex-1">
-                          <route.icon className={cn("h-5 w-5 mr-3", route.active ? "text-white" : "text-gray-400")} />
+                          <route.icon className={cn("h-5 w-5 mr-3", route.active ? "text-white" : "text-amber-200")} />
                           {route.label}
                         </div>
                       </Link>
                     ))}
                   </div>
                 </ScrollArea>
-                <div className="p-4 border-t border-gray-800">
+                <div className="p-4 border-t border-amber-800">
                   <Button
                     variant="ghost"
-                    className="w-full justify-start text-gray-400 hover:text-white hover:bg-gray-800/50"
+                    className="w-full justify-start text-amber-200 hover:text-white hover:bg-amber-800/50"
                     onClick={handleLogout}
                   >
                     <LogOut className="h-5 w-5 mr-3" />
@@ -159,20 +159,6 @@ export default function AdminLayout({ children }) {
                 </div>
               </SheetContent>
             </Sheet>
-
-            {/* --- Header Content (Right Side) --- */}
-            {/* <div className="flex w-full justify-between">
-              <div className="flex items-center gap-x-2"> */}
-                {/* Title shown only on mobile where sidebar is hidden */}
-                {/* <h1 className="text-xl font-semibold md:hidden">Smart Tour Admin</h1>
-              </div>
-              <div className="flex items-center gap-x-2">
-                <div className="flex items-center">
-                  <div className="h-8 w-8 rounded-full bg-gray-800 flex items-center justify-center text-white">A</div>
-                  <span className="ml-2 font-medium hidden md:block">Admin</span>
-                </div>
-              </div>
-            </div> */}
           </div>
 
           {/* --- Page Content --- */}

@@ -27,13 +27,13 @@ export default function Locations() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6 text-blue-600">Explore Locations</h1>
+      <h1 className="text-3xl font-bold mb-6 text-amber-900">Explore Locations</h1>
       <Input
         type="text"
         placeholder="Search locations..."
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        className="mb-6 py-4.5"
+        className="mb-6 py-4.5 border-amber-200 focus:border-amber-500"
       />
       {loading && <div>Loading...</div>}
       {error && <div className="text-red-500">{error}</div>}

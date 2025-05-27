@@ -51,7 +51,7 @@ export default function TourGuideDashboard() {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-700 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading Smart Tour Tanzania...</p>
         </div>
       </div>
@@ -73,29 +73,29 @@ export default function TourGuideDashboard() {
   return (
     <div>
       {/* Header Section - Matching the mockup */}
-      <div className="bg-blue-600 p-6 mb-6 rounded-lg">
+      <div className="bg-amber-700 p-6 mb-6 rounded-lg">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
           <div>
             <h1 className="text-2xl font-bold text-white">Tour Guide Dashboard</h1>
-            <p className="text-blue-100">Welcome back, {userData?.name}</p>
+            <p className="text-amber-100">Welcome back, {userData?.name}</p>
             
             {profileStatus === 'active' && (
               <div className="flex mt-2 gap-3">
-                <Badge className="bg-blue-700/40 text-white border-0">
+                <Badge className="bg-amber-800/40 text-white border-0">
                   Active Guide
                 </Badge>
-                <Badge className="bg-blue-700/40 text-white border-0">
+                <Badge className="bg-amber-800/40 text-white border-0">
                   {userData?.rating || '4.5'} Rating
                 </Badge>
               </div>
             )}
           </div>
           
-          <div className="mt-4 md:mt-0 bg-blue-700/40 rounded-lg px-4 py-2">
+          <div className="mt-4 md:mt-0 bg-amber-800/40 rounded-lg px-4 py-2">
             <div className="flex items-center gap-2">
               <div>
                 <span className="text-sm text-white font-medium">Availability Status</span>
-                <p className="text-xs text-blue-100">Set your availability for new tours</p>
+                <p className="text-xs text-amber-100">Set your availability for new tours</p>
               </div>
               <Switch 
                 checked={isAvailable} 
@@ -157,7 +157,7 @@ export default function TourGuideDashboard() {
             {/* Stats Cards - Matching the mockup layout */}
             <div className="md:col-span-12 grid grid-cols-1 md:grid-cols-4 gap-6">
               {/* Upcoming Tours Card */}
-              <Card className="bg-blue-50/50">
+              <Card className="bg-amber-50/50">
                 <CardContent className="p-0">
                   <div className="flex justify-between items-center">
                     <div className="p-5">
@@ -168,14 +168,14 @@ export default function TourGuideDashboard() {
                         </p>
                         <p className="text-xs text-gray-500 mb-1 ml-1">scheduled</p>
                       </div>
-                      <Link href="/tour-guide/bookings" className="text-xs text-blue-600 mt-3 font-medium flex items-center">
+                      <Link href="/tour-guide/bookings" className="text-xs text-amber-700 mt-3 font-medium flex items-center">
                         View Schedule
                         <ChevronRight className="h-3 w-3 ml-0.5" />
                       </Link>
                     </div>
                     <div className="h-full flex items-center pr-5">
-                      <div className="bg-blue-100 p-3 rounded-full">
-                        <Calendar className="h-6 w-6 text-blue-600" />
+                      <div className="bg-amber-100 p-3 rounded-full">
+                        <Calendar className="h-6 w-6 text-amber-700" />
                       </div>
                     </div>
                   </div>
@@ -264,7 +264,7 @@ export default function TourGuideDashboard() {
               <Card>
                 <CardHeader className="flex justify-between items-center pb-2 pt-5 px-6">
                   <h3 className="font-semibold text-gray-800">Profile Overview</h3>
-                  <Button variant="ghost" size="sm" className="h-8 text-blue-600 hover:text-blue-700 p-0" asChild>
+                  <Button variant="ghost" size="sm" className="h-8 text-amber-700 hover:text-amber-800 p-0" asChild>
                     <Link href="/tour-guide/profile">
                       Edit
                       <ChevronRight className="h-3 w-3 ml-1" />
@@ -272,7 +272,7 @@ export default function TourGuideDashboard() {
                   </Button>
                 </CardHeader>
                 <CardContent className="flex flex-col items-center text-center px-6">
-                  <Avatar className="h-20 w-20 bg-blue-600 mb-4">
+                  <Avatar className="h-20 w-20 bg-amber-700 mb-4">
                     <AvatarImage src={userData?.profileImage} alt={userData?.name} />
                     <AvatarFallback>{userData?.name?.charAt(0) || 'E'}</AvatarFallback>
                   </Avatar>
@@ -283,7 +283,7 @@ export default function TourGuideDashboard() {
                   </div>
                   
                   <div className="flex items-center mt-3">
-                    <Badge className="bg-blue-100 text-blue-600 border-0">Tour Guide</Badge>
+                    <Badge className="bg-amber-100 text-amber-700 border-0">Tour Guide</Badge>
                     <Badge className="bg-gray-100 text-gray-600 border-0 ml-2">{userData?.yearsExperience || '3'}+ years</Badge>
                   </div>
                   
@@ -291,26 +291,26 @@ export default function TourGuideDashboard() {
                     <h4 className="font-medium text-sm mb-3 text-gray-700 text-left">Areas of Expertise</h4>
                     <div className="flex flex-wrap gap-1">
                       {hasGeneralExpertise && (
-                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
                           {generalExpertise}
                         </Badge>
                       )}
                       
                       {hasActivityExpertise && 
                         activityExpertise.map((activity) => (
-                          <Badge key={activity.id} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                          <Badge key={activity.id} variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
                             {activity.name}
                           </Badge>
                         ))
                       }
                       
                       {!hasAnyExpertise && (
-                        <Badge variant="outline" className="border-blue-200 text-blue-600">
+                        <Badge variant="outline" className="border-amber-200 text-amber-700">
                           Guided Nature Walks
                         </Badge>
                       )}
                     </div>
-                    <Button className="w-full text-white bg-blue-600 hover:bg-blue-700 mt-5" size="sm" asChild>
+                    <Button className="w-full text-white bg-amber-700 hover:bg-amber-800 mt-5" size="sm" asChild>
                       <Link href="/tour-guide/profile">Edit Profile</Link>
                     </Button>
                   </div>

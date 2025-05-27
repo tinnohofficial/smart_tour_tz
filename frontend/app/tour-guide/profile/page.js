@@ -59,7 +59,7 @@ export default function TourGuideProfile() {
     return (
       <div className="flex h-[80vh] items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-700 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading profile data...</p>
         </div>
       </div>
@@ -75,18 +75,18 @@ export default function TourGuideProfile() {
   return (
     <div className="container px-1">
       {/* Page Header */}
-      <div className="bg-blue-600 p-4 rounded-lg mb-6">
+      <div className="bg-amber-700 p-4 rounded-lg mb-6">
         <div className="flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
           <div>
             <h1 className="text-xl font-bold text-white">Tour Guide Profile</h1>
-            <p className="text-blue-100 text-sm">Manage your personal information and professional details</p>
+            <p className="text-amber-100 text-sm">Manage your personal information and professional details</p>
           </div>
           
           {isApproved && (
-            <div className="flex items-center gap-3 bg-blue-700/40 rounded-lg px-3 py-2">
+            <div className="flex items-center gap-3 bg-amber-800/40 rounded-lg px-3 py-2">
               <div>
                 <span className="text-sm text-white font-medium">Availability Status</span>
-                <p className="text-xs text-blue-100">Set your availability for new tours</p>
+                <p className="text-xs text-amber-100">Set your availability for new tours</p>
               </div>
               <Switch 
                 checked={isAvailable} 
@@ -118,13 +118,13 @@ export default function TourGuideProfile() {
           {/* Left Column - Profile Card */}
           <div className="md:col-span-4">
             <Card className="bg-white border-0 py-0 shadow-md overflow-hidden">
-              <div className="bg-gradient-to-br from-blue-600 to-blue-700 h-24"></div>
+              <div className="bg-gradient-to-br from-amber-700 to-amber-800 h-24"></div>
               <div className="px-6 pb-6 -mt-12 flex flex-col items-center">
-                <div className="w-24 h-24 rounded-full bg-blue-100 border-4 border-white shadow-md flex items-center justify-center mb-3">
+                <div className="w-24 h-24 rounded-full bg-amber-100 border-4 border-white shadow-md flex items-center justify-center mb-3">
                   {fullName ? (
-                    <span className="text-3xl font-semibold text-blue-700">{fullName.charAt(0)}</span>
+                    <span className="text-3xl font-semibold text-amber-700">{fullName.charAt(0)}</span>
                   ) : (
-                    <Camera className="h-10 w-10 text-blue-400" />
+                    <Camera className="h-10 w-10 text-amber-600" />
                   )}
                 </div>
                 
@@ -138,7 +138,7 @@ export default function TourGuideProfile() {
                 )}
                 
                 <div className="flex gap-2 mt-4">
-                  <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-0">Tour Guide</Badge>
+                  <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-200 border-0">Tour Guide</Badge>
                   {isApproved ? (
                     <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-0">
                       <CheckCircle className="h-3.5 w-3.5 mr-1" />
@@ -159,7 +159,7 @@ export default function TourGuideProfile() {
                   </div>
 
                   <div className="flex items-center gap-2 py-2 border-t">
-                    <Building className="h-4 w-4 text-blue-600" />
+                    <Building className="h-4 w-4 text-amber-700" />
                     <span className="text-sm font-medium">Experience:</span>
                     <span className="text-sm text-gray-600">{profileData?.years_experience || '0'} years</span>
                   </div>
@@ -179,7 +179,7 @@ export default function TourGuideProfile() {
             {/* Personal Information Card */}
             <Card className="shadow-sm py-0">
               <CardHeader className="bg-gray-50 border-b p-4 flex flex-row items-start">
-                <User className="h-5 w-5 text-blue-600 mt-0.5 mr-2" />
+                <User className="h-5 w-5 text-amber-700 mt-0.5 mr-2" />
                 <div>
                   <CardTitle className="text-base font-semibold">Personal Information</CardTitle>
                   <CardDescription>Your basic contact information</CardDescription>
@@ -195,7 +195,7 @@ export default function TourGuideProfile() {
                       name="fullName"
                       defaultValue={fullName}
                       placeholder="Your full name"
-                      className="border-gray-300 focus:border-blue-400"
+                      className="border-gray-300 focus:border-amber-600"
                     />
                   </div>
 
@@ -206,7 +206,7 @@ export default function TourGuideProfile() {
                       <Input
                         id="location"
                         name="location"
-                        className="pl-10 border-gray-300 focus:border-blue-400"
+                        className="pl-10 border-gray-300 focus:border-amber-600"
                         defaultValue={location}
                         placeholder="City, Country"
                       />
@@ -219,7 +219,7 @@ export default function TourGuideProfile() {
             {/* Professional Details Card */}
             <Card className="shadow-sm border-0 py-0">
               <CardHeader className="bg-gray-50 border-b p-4 flex flex-row items-start">
-                <Award className="h-5 w-5 text-blue-600 mt-0.5 mr-2" />
+                <Award className="h-5 w-5 text-amber-700 mt-0.5 mr-2" />
                 <div>
                   <CardTitle className="text-base font-semibold">Professional Details</CardTitle>
                   <CardDescription>Your expertise and tour guide qualifications</CardDescription>
@@ -234,7 +234,7 @@ export default function TourGuideProfile() {
                     name="expertise"
                     defaultValue={expertiseGeneral}
                     placeholder="Describe your expertise and experience..."
-                    className="min-h-[120px] border-gray-300 focus:border-blue-400"
+                    className="min-h-[120px] border-gray-300 focus:border-amber-600"
                   />
                   <p className="text-sm text-gray-500 mt-1">
                     List your specialties, certifications, and years of experience in different types of tours
@@ -250,7 +250,7 @@ export default function TourGuideProfile() {
                     value={licenseUrl ? [licenseUrl] : []}
                   />
                   <div className="flex items-start gap-2 mt-2 bg-gray-50 p-2 rounded-md">
-                    <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <AlertCircle className="h-4 w-4 text-amber-700 mt-0.5 flex-shrink-0" />
                     <p className="text-sm text-gray-600">
                       Upload your tour guide license or certification (PDF or image format). This is required for verification.
                     </p>
@@ -262,7 +262,7 @@ export default function TourGuideProfile() {
                 <div className="w-full flex justify-end">
                   <Button 
                     type="submit" 
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6" 
+                    className="bg-amber-700 hover:bg-amber-800 text-white px-6" 
                     disabled={isSubmitting || isUploading}
                   >
                     {(isSubmitting || isUploading) ? (

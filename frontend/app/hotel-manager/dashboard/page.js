@@ -31,11 +31,11 @@ export default function HotelManagerDashboard() {
   return (
     <div className="container px-1">
       {/* Page Header */}
-      <div className="bg-blue-600 p-4 rounded-lg mb-6">
+      <div className="bg-amber-700 p-4 rounded-lg mb-6">
         <div className="flex flex-col md:flex-row justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-white">Dashboard</h1>
-            <p className="text-blue-100 text-sm">Welcome to your hotel management dashboard</p>
+            <p className="text-amber-100 text-sm">Welcome to your hotel management dashboard</p>
           </div>
         </div>
       </div>
@@ -87,8 +87,8 @@ export default function HotelManagerDashboard() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center">
-              <div className="mr-4 rounded-full bg-blue-100 p-2">
-                <Calendar className="h-4 w-4 text-blue-600" />
+              <div className="mr-4 rounded-full bg-amber-100 p-2">
+                <Calendar className="h-4 w-4 text-amber-700" />
               </div>
               <div>
                 <div className="text-2xl font-bold">{stats.totalBookings}</div>
@@ -96,7 +96,7 @@ export default function HotelManagerDashboard() {
               </div>
             </div>
           </CardContent>
-          <div className="absolute right-0 top-0 h-full w-1.5 bg-blue-500" />
+          <div className="absolute right-0 top-0 h-full w-1.5 bg-amber-700" />
         </Card>
 
         {/* Monthly Revenue Card */}
@@ -195,10 +195,10 @@ export default function HotelManagerDashboard() {
               className="w-full justify-start" 
               onClick={() => router.push('/hotel-manager/bookings')}
             >
-              <CalendarClock className="mr-2 h-4 w-4 text-blue-600" />
+              <CalendarClock className="mr-2 h-4 w-4 text-amber-700" />
               <span>Manage Bookings</span>
               {stats.pendingBookings > 0 && (
-                <div className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
+                <div className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-amber-700 text-xs font-bold text-white">
                   {stats.pendingBookings}
                 </div>
               )}

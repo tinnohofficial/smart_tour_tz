@@ -23,13 +23,13 @@ export default function TravelAgentDashboard() {
   if (userStatus === "pending_profile") {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+        <div className="bg-amber-50 border-l-4 border-amber-700 p-4 mb-6">
           <div className="flex">
             <div className="flex-shrink-0">
-              <Briefcase className="h-5 w-5 text-blue-500" />
+              <Briefcase className="h-5 w-5 text-amber-700" />
             </div>
             <div className="ml-3">
-              <p className="text-sm text-blue-700">
+              <p className="text-sm text-amber-700">
                 Welcome to Smart Tour Tanzania! Please complete your travel agency profile to get started.
               </p>
             </div>
@@ -38,14 +38,14 @@ export default function TravelAgentDashboard() {
 
         <Card className="text-center py-10">
           <CardContent>
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-blue-100">
-              <Briefcase className="h-10 w-10 text-blue-600" />
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-amber-100">
+              <Briefcase className="h-10 w-10 text-amber-700" />
             </div>
             <h2 className="mt-6 text-2xl font-semibold text-gray-800">Set Up Your Travel Agency</h2>
             <p className="mt-2 text-gray-600 max-w-md mx-auto">
               To start managing bookings and transport routes, please complete your agency profile.
             </p>
-            <Button className="mt-6 text-white bg-blue-600 hover:bg-blue-700" onClick={() => router.push('/travel-agent/profile')}>
+            <Button className="mt-6 text-white bg-amber-700 hover:bg-amber-800" onClick={() => router.push('/travel-agent/profile')}>
               Complete Profile
             </Button>
           </CardContent>
@@ -79,7 +79,7 @@ export default function TravelAgentDashboard() {
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <Button 
           onClick={() => router.push('/travel-agent/routes')}
-          className="text-white bg-blue-600 hover:bg-blue-700">
+          className="text-white bg-amber-700 hover:bg-amber-800">
           Manage Routes
         </Button>
       </div>
@@ -115,8 +115,8 @@ export default function TravelAgentDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Total Routes</CardTitle>
-            <div className="bg-blue-100 p-2 rounded-md">
-              <Car className="h-4 w-4 text-blue-500" />
+            <div className="bg-amber-100 p-2 rounded-md">
+              <Car className="h-4 w-4 text-amber-700" />
             </div>
           </CardHeader>
           <CardContent>
@@ -155,7 +155,7 @@ export default function TravelAgentDashboard() {
           <CardContent>
             {isLoading ? (
               <div className="flex justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-700"></div>
               </div>
             ) : stats.pendingBookings > 0 ? (
               <div className="space-y-4">

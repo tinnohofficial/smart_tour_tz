@@ -88,7 +88,7 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Applications</CardTitle>
-            <Users className="h-4 w-4 text-blue-500" />
+            <Users className="h-4 w-4 text-amber-700" />
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -106,7 +106,7 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Destinations</CardTitle>
-            <MapPin className="h-4 w-4 text-blue-500" />
+            <MapPin className="h-4 w-4 text-amber-700" />
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -122,7 +122,7 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Activities</CardTitle>
-            <Activity className="h-4 w-4 text-blue-500" />
+            <Activity className="h-4 w-4 text-amber-700" />
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -138,7 +138,7 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Unassigned Bookings</CardTitle>
-            <Calendar className="h-4 w-4 text-blue-500" />
+            <Calendar className="h-4 w-4 text-amber-700" />
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -169,7 +169,7 @@ export default function AdminDashboard() {
                 <CardDescription>Review and approve pending account applications</CardDescription>
               </CardHeader>
               <CardContent className="flex justify-end">
-                <Button asChild className="text-white bg-blue-600 hover:bg-blue-700">
+                <Button asChild className="text-white bg-amber-700 hover:bg-amber-800">
                   <Link href="/admin/applications">Manage Applications</Link>
                 </Button>
               </CardContent>
@@ -180,7 +180,7 @@ export default function AdminDashboard() {
                 <CardDescription>Manage tourist destinations in the system</CardDescription>
               </CardHeader>
               <CardContent className="flex justify-end">
-                <Button asChild className="text-white bg-blue-600 hover:bg-blue-700">
+                <Button asChild className="text-white bg-amber-700 hover:bg-amber-800">
                   <Link href="/admin/destinations">Manage Destinations</Link>
                 </Button>
               </CardContent>
@@ -191,7 +191,7 @@ export default function AdminDashboard() {
                 <CardDescription>Manage activities available at destinations</CardDescription>
               </CardHeader>
               <CardContent className="flex justify-end">
-                <Button asChild className="text-white bg-blue-600 hover:bg-blue-700">
+                <Button asChild className="text-white bg-amber-700 hover:bg-amber-800">
                   <Link href="/admin/activities">Manage Activities</Link>
                 </Button>
               </CardContent>
@@ -202,7 +202,7 @@ export default function AdminDashboard() {
                 <CardDescription>Assign tour guides to bookings</CardDescription>
               </CardHeader>
               <CardContent className="flex justify-end">
-                <Button asChild className="text-white bg-blue-600 hover:bg-blue-700">
+                <Button asChild className="text-white bg-amber-700 hover:bg-amber-800">
                   <Link href="/admin/assignments">Manage Assignments</Link>
                 </Button>
               </CardContent>

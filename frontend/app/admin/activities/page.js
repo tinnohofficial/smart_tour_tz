@@ -136,7 +136,7 @@ export default function ActivitiesPage() {
             if (!open) resetForm(); // Reset form on close
         }}>
           <DialogTrigger asChild>
-            <Button className="border border-blue-200 hover:bg-blue-50" onClick={() => { resetForm(); setIsAddDialogOpen(true); }}>
+            <Button className="border border-amber-200 hover:bg-amber-50" onClick={() => { resetForm(); setIsAddDialogOpen(true); }}>
               <Plus className="mr-2 h-4 w-4" /> Add Activity
             </Button>
           </DialogTrigger>
@@ -179,8 +179,8 @@ export default function ActivitiesPage() {
                 </div>
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" className="hover:bg-blue-50" onClick={() => setIsAddDialogOpen(false)}> Cancel </Button>
-                <Button type="submit" variant="outline" className="hover:bg-blue-50" disabled={isSubmitting}>
+                <Button type="button" variant="outline" className="hover:bg-amber-50" onClick={() => setIsAddDialogOpen(false)}> Cancel </Button>
+                <Button type="submit" variant="outline" className="hover:bg-amber-50" disabled={isSubmitting}>
                   {isSubmitting ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>) : ("Save Activity")}
                 </Button>
               </DialogFooter>
@@ -199,7 +199,7 @@ export default function ActivitiesPage() {
           {isLoading ? (
              <div className="flex items-center justify-center p-8">
               <div className="flex flex-col items-center gap-2">
-                <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-700 border-t-transparent"></div>
                 <p className="text-sm text-gray-500">Loading activities...</p>
               </div>
             </div>
@@ -237,10 +237,10 @@ export default function ActivitiesPage() {
                     <TableCell>{formatDate(activity.created_at)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button variant="outline" className='hover:bg-blue-50' size="sm" onClick={() => handleEditClick(activity)}>
+                        <Button variant="outline" className='hover:bg-amber-50' size="sm" onClick={() => handleEditClick(activity)}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" className='hover:bg-blue-50' size="sm" onClick={() => handleDeleteClick(activity)}>
+                        <Button variant="outline" className='hover:bg-amber-50' size="sm" onClick={() => handleDeleteClick(activity)}>
                           <Trash className="h-4 w-4" />
                         </Button>
                       </div>
@@ -285,8 +285,8 @@ export default function ActivitiesPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" className="border border-blue-200 hover:bg-blue-50" onClick={() => setIsEditDialogOpen(false)}> Cancel </Button>
-              <Button type="submit" variant="outline" className="border border-blue-200 hover:bg-blue-50" disabled={isSubmitting}>
+              <Button type="button" variant="outline" className="border border-amber-200 hover:bg-amber-50" onClick={() => setIsEditDialogOpen(false)}> Cancel </Button>
+              <Button type="submit" variant="outline" className="border border-amber-200 hover:bg-amber-50" disabled={isSubmitting}>
                 {isSubmitting ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating...</>) : ("Update Activity")}
               </Button>
             </DialogFooter>
