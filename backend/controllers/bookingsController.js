@@ -1020,3 +1020,88 @@ exports.processBookingPayment = async (req, res) => {
       .json({ message: "Payment processing error", error: error.message });
   }
 };
+
+/**
+ * Get completed hotel bookings
+ */
+exports.getHotelBookingsCompleted = async (req, res) => {
+  const userId = req.user.id;
+  try {
+    // Hotel ID is now directly the user ID of the hotel manager
+    const hotelId = userId;
+    
+    // Get completed bookings for this hotel
+    const [bookingItems] = await db.query(
+      `SELECT 
+        bi.id, bi.booking_id, bi.item_type, bi.id as hotel_id, bi.cost, bi.item_details,
+        b.start_date, b.end_date, b.created_at, b.status, b.total_cost,
+        u.email as tourist_email
+       FROM booking_items bi
+       JOIN bookings b ON bi.booking_id = b.id
+       JOIN users u ON b.tourist_user_id = u.id
+       WHERE bi.item_type = 'hotel' 
+       AND bi.id = ?
+       AND bi.item_details IS NOT NULL
+       AND JSON_EXTRACT(bi.item_details, '$.room_confirmed') = true
+       ORDER BY b.created_at DESC`,
+      [hotelId]
+    );
+
+    // Parse item_details JSON if it exists
+    const processedBookings = parseJsonFields(bookingItems, ['item_details']);
+    
+    res.status(200).json(processedBookings);
+  } catch (error) {
+    console.error("Error fetching completed hotel bookings:", error);
+    res.status(500).json({ message: "Failed to fetch completed bookings", error: error.message });
+  }
+};
+
+/**
+ * Get completed transport bookings
+ */
+exports.getTransportBookingsCompleted = async (req, res) => {
+  const userId = req.user.id;
+  
+  try {
+    // Get all transport routes owned by this travel agent
+    const [routes] = await db.query(
+      "SELECT id FROM transports WHERE agency_id = ?",
+      [userId]
+    );
+    
+    if (routes.length === 0) {
+      return res.status(200).json([]);
+    }
+    
+    const routeIds = routes.map(route => route.id);
+    const placeholders = routeIds.map(() => '?').join(',');
+    
+    // Get completed transport bookings
+    const [bookingItems] = await db.query(
+      `SELECT 
+        bi.id, bi.booking_id, bi.item_type, bi.id as route_id, bi.cost, bi.item_details,
+        b.start_date, b.end_date, b.created_at, b.status, b.total_cost,
+        u.email as tourist_email,
+        t.origin, t.destination, t.transport_type
+       FROM booking_items bi
+       JOIN bookings b ON bi.booking_id = b.id
+       JOIN users u ON b.tourist_user_id = u.id
+       JOIN transports t ON bi.id = t.id
+       WHERE bi.item_type = 'transport' 
+       AND bi.id IN (${placeholders})
+       AND bi.item_details IS NOT NULL
+       AND JSON_EXTRACT(bi.item_details, '$.ticket_assigned') = true
+       ORDER BY b.created_at DESC`,
+      routeIds
+    );
+
+    // Parse item_details JSON if it exists
+    const processedBookings = parseJsonFields(bookingItems, ['item_details']);
+    
+    res.status(200).json(processedBookings);
+  } catch (error) {
+    console.error("Error fetching completed transport bookings:", error);
+    res.status(500).json({ message: "Failed to fetch completed bookings", error: error.message });
+  }
+};

@@ -16,6 +16,14 @@ router.post(
   hotelsController.createHotel
 );
 
+// Hotel manager profile routes - these should map to the same functionality
+router.post(
+  "/manager/profile",
+  authenticateToken,
+  checkRole("hotel_manager", false),
+  hotelsController.createHotel  // Same functionality for profile creation
+);
+
 router.get(
   "/manager/profile",
   authenticateToken,

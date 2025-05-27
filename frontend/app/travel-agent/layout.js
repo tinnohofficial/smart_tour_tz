@@ -96,8 +96,8 @@ export default function TravelAgentLayout({ children }) {
       label: "Agency Profile",
       icon: <Briefcase className="h-5 w-5" />,
       active: pathname === "/travel-agent/profile",
-      // Only show profile if user has a profile or if they are active
-      show: hasProfile || userStatus === 'active'
+      // Always show profile - users need to access it to complete initial setup
+      show: true
     },
     {
       href: "/travel-agent/password",
@@ -109,16 +109,16 @@ export default function TravelAgentLayout({ children }) {
     }
   ]
 
-  // Allow access only to dashboard and password page if user hasn't completed profile
+  // Allow access only to dashboard, profile, and password page if user hasn't completed profile
   const shouldRestrictAccess = () => {
     if (isLoading) return true // Don't render content while checking
     
     if (!hasProfile) {
-      return !['/travel-agent/dashboard', '/travel-agent/password'].includes(pathname)
+      return !['/travel-agent/dashboard', '/travel-agent/profile', '/travel-agent/password'].includes(pathname)
     }
     
     if (userStatus === 'pending_approval') {
-      return !['/travel-agent/dashboard', '/travel-agent/password'].includes(pathname)
+      return !['/travel-agent/dashboard', '/travel-agent/profile', '/travel-agent/password'].includes(pathname)
     }
     
     return false

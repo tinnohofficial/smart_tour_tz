@@ -17,7 +17,6 @@ import {
   Hotel,
   MapPin,
   RefreshCw,
-  Star,
   Clock,
   ArrowRight,
   Bus,
@@ -267,8 +266,7 @@ function BookLocation({ params }) {
               <MapPin className="h-4 w-4" /> {destination.region || 'Tanzania'}
             </Badge>
             <h1 className="text-3xl md:text-5xl font-bold text-white mb-2">{destination.name}</h1>
-            <p className="text-lg md:text-xl text-white/90 max-w-3xl">{destination.description}</p>
-            <div className="flex items-center gap-4 mt-4">
+            <p className="text-lg md:text-xl text-white/90 max-w-3xl">{destination.description}</p>              <div className="flex items-center gap-4 mt-4">
               <Badge variant="secondary" className="text-lg bg-amber-700 text-white">
                 ${(() => {
                   // Handle the cost display with proper parsing
@@ -279,11 +277,6 @@ function BookLocation({ params }) {
                   return 'Price varies';
                 })()} / visit
               </Badge>
-              <div className="flex items-center gap-1 text-white">
-                <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                <span className="font-medium">{destination.rating || '4.5'}</span>
-                <span className="text-white/70">({destination.reviews_count || '100+'})</span>
-              </div>
             </div>
           </div>
         </div>
@@ -623,10 +616,6 @@ function BookLocation({ params }) {
                                         <span>{hotel.location}</span>
                                       </div>
                                       <div className="flex items-center gap-2 mb-3 text-sm">
-                                        <Badge variant="outline" className="bg-amber-50 border-amber-200">
-                                          <Star className="h-3 w-3 mr-1 fill-yellow-400 text-yellow-400" />
-                                          {hotel.rating || "4.8"}
-                                        </Badge>
                                         <Badge variant="outline" className="bg-green-50 border-green-200">
                                           Capacity: {hotel.capacity}
                                         </Badge>

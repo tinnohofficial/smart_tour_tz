@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -13,12 +14,35 @@ export default function Home() {
   const [user, setUser] = useState(null)
   const [featuredDestinations, setFeaturedDestinations] = useState([])
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
-    // Check if user is logged in
+    // Check if user is logged in and redirect to appropriate dashboard
     const userData = localStorage.getItem("userData")
     if (userData) {
-      setUser(JSON.parse(userData))
+      const user = JSON.parse(userData)
+      setUser(user)
+      
+      // Redirect logged-in users to their respective dashboards
+      switch (user.role) {
+        case 'admin':
+          router.push("/admin/dashboard")
+          return
+        case 'tour_guide':
+          router.push("/tour-guide/dashboard")
+          return
+        case 'travel_agent':
+          router.push("/travel-agent/dashboard")
+          return
+        case 'hotel_manager':
+          router.push("/hotel-manager/dashboard")
+          return
+        case 'tourist':
+          // Tourists can stay on home page but we'll still set user state
+          break
+        default:
+          break
+      }
     }
 
     // Fetch featured destinations
@@ -35,7 +59,7 @@ export default function Home() {
     }
 
     fetchDestinations()
-  }, [])
+  }, [router])
 
   const renderHeroSection = () => (
     <div className="relative bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 rounded-2xl p-8 md:p-12 mb-12">

@@ -3,4 +3,3 @@ This is the Smart Tour Tanzania system. In the codebase there are 3 main folders
 Note that there are a couple of roles in the system which are the tourist, admin, hotel manager, travel agent and tour guide. Of which each of them have their own view into the sytem.
 
 Plz go through the whole system in the codebase in each of the folders backend, frontend and blockchain and then understand how it works step by step. Note there are complex paths such as booking process which involve interactions between multiple users so pay close attention to those and other ones to. Plz think about all the business flows and understand them in much detail I insist this deeply.
-

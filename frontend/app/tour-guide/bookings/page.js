@@ -223,11 +223,6 @@ export default function TourGuideBookings() {
                               </Button>
                             </>
                           )}
-                          {tour.status === 'completed' && tour.feedback && (
-                            <Button size="sm" variant="outline" className="text-xs sm:text-sm">
-                              View Feedback
-                            </Button>
-                          )}
                         </div>
                       </div>
                     </div>

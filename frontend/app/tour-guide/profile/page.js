@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
-import { MapPin, Award, User, Loader2, Save, Camera, FileText, CheckCircle, AlertCircle, ChevronRight, Building, Star } from "lucide-react"
+import { MapPin, Award, User, Loader2, Save, Camera, FileText, CheckCircle, AlertCircle, ChevronRight, Building } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
@@ -152,12 +152,6 @@ export default function TourGuideProfile() {
                 </div>
 
                 <div className="w-full mt-6">
-                  <div className="flex items-center gap-2 py-2 border-t">
-                    <Star className="h-4 w-4 text-yellow-400" />
-                    <span className="text-sm font-medium">Rating:</span>
-                    <span className="text-sm text-gray-600">{profileData?.rating || '0'} / 5.0</span>
-                  </div>
-
                   <div className="flex items-center gap-2 py-2 border-t">
                     <Building className="h-4 w-4 text-amber-700" />
                     <span className="text-sm font-medium">Experience:</span>

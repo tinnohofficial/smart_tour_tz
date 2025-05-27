@@ -44,7 +44,6 @@ exports.getTransportById = async (req, res) => {
 
 exports.createTransport = async (req, res) => {
   const {
-    agency_id,
     origin,
     destination,
     transportation_type,
@@ -52,11 +51,14 @@ exports.createTransport = async (req, res) => {
     description
   } = req.body;
 
+  // Use the authenticated user's ID as the agency_id
+  const agency_id = req.user.id;
+
   // Validate required fields
-  if (!agency_id || !origin || !destination || !cost) {
+  if (!origin || !destination || !cost) {
     return res.status(400).json({
       message:
-        "Required fields missing: agency_id, origin, destination, and cost are required",
+        "Required fields missing: origin, destination, and cost are required",
     });
   }
   
@@ -85,14 +87,14 @@ exports.createTransport = async (req, res) => {
   }
 
   try {
-    // Verify the agency exists and is active
+    // Verify the user is an active travel agent with a profile
     const [agencyRows] = await db.query(
-      "SELECT ta.id FROM travel_agencies ta JOIN users u ON ta.user_id = u.id WHERE ta.id = ? AND u.status = 'active'",
+      "SELECT ta.id FROM travel_agencies ta JOIN users u ON ta.id = u.id WHERE ta.id = ? AND u.status = 'active' AND u.role = 'travel_agent'",
       [agency_id],
     );
 
     if (agencyRows.length === 0) {
-      return res.status(404).json({ message: "Travel agency not found or not active" });
+      return res.status(404).json({ message: "Travel agency profile not found or not active" });
     }
     
     // Verify the origin and destination locations exist in our destinations if possible
@@ -120,22 +122,24 @@ exports.createTransport = async (req, res) => {
         agency_id,
         origin,
         destination,
-        transportation_type || null,
+        transportation_type || 'bus',
         cost,
         description || null
       ],
     );
 
     res.status(201).json({
-      message: "Transport created successfully",
+      message: "Transport route created successfully",
       id: result.insertId,
       origin,
-      destination
+      destination,
+      transportation_type: transportation_type || 'bus',
+      cost
     });
   } catch (error) {
     console.error("Error creating transport:", error);
     res.status(500).json({
-      message: "Failed to create transport",
+      message: "Failed to create transport route",
       error: error.message,
     });
   }

@@ -52,6 +52,14 @@ router.get(
   bookingsController.getHotelBookingsNeedingAction,
 );
 
+// Get completed hotel bookings
+router.get(
+  "/hotel-bookings-completed",
+  authenticateToken,
+  checkRole("hotel_manager"),
+  bookingsController.getHotelBookingsCompleted,
+);
+
 // Confirm room for booking
 router.patch(
   "/items/:itemId/confirm-room",
@@ -66,6 +74,14 @@ router.get(
   authenticateToken,
   checkRole("travel_agent"),
   bookingsController.getTransportBookingsNeedingAction,
+);
+
+// Get completed transport bookings
+router.get(
+  "/transport-bookings-completed",
+  authenticateToken,
+  checkRole("travel_agent"),
+  bookingsController.getTransportBookingsCompleted,
 );
 
 // Assign ticket for booking

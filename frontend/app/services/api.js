@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
 // Utility function to get auth headers
 const getAuthHeaders = () => {
@@ -163,7 +163,7 @@ export const tourGuideService = {
 
   async updateAvailability(available) {
     return apiRequest('/tour-guides/availability', {
-      method: 'PUT',
+      method: 'PATCH',
       body: JSON.stringify({ available })
     })
   }
@@ -386,10 +386,13 @@ export const uploadService = {
 
 // Password Service
 export const passwordService = {
-  async changePassword(passwordData) {
-    return apiRequest('/users/change-password', {
-      method: 'POST',
-      body: JSON.stringify(passwordData)
+  async changePassword(currentPassword, newPassword) {
+    return apiRequest('/api/auth/password', {
+      method: 'PUT',
+      body: JSON.stringify({
+        currentPassword,
+        newPassword
+      })
     })
   }
 }

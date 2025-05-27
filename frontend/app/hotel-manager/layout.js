@@ -89,8 +89,8 @@ export default function HotelManagerLayout({ children }) {
       label: "Hotel Profile",
       icon: <Building className="h-5 w-5" />,
       active: pathname === "/hotel-manager/profile",
-      // Only show profile if user has a profile or if they are active
-      show: hasProfile || userStatus === 'active'
+      // Always show profile - users need to access it to complete initial setup
+      show: true
     },
     {
       href: "/hotel-manager/password",
@@ -102,16 +102,16 @@ export default function HotelManagerLayout({ children }) {
     }
   ]
 
-  // Allow access only to dashboard and password page if user hasn't completed profile
+  // Allow access only to dashboard, profile, and password page if user hasn't completed profile
   const shouldRestrictAccess = () => {
     if (isLoading) return true // Don't render content while checking
     
     if (!hasProfile) {
-      return !['/hotel-manager/dashboard', '/hotel-manager/password'].includes(pathname)
+      return !['/hotel-manager/dashboard', '/hotel-manager/profile', '/hotel-manager/password'].includes(pathname)
     }
     
     if (userStatus === 'pending_approval') {
-      return !['/hotel-manager/dashboard', '/hotel-manager/password'].includes(pathname)
+      return !['/hotel-manager/dashboard', '/hotel-manager/profile', '/hotel-manager/password'].includes(pathname)
     }
     
     return false

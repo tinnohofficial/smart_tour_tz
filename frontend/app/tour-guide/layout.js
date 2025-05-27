@@ -93,8 +93,8 @@ export default function TourGuideLayout({ children }) {
       label: "Profile",
       icon: <User className="h-5 w-5" />,
       active: pathname === "/tour-guide/profile",
-      // Only show profile if profile is active or not yet submitted (pending_profile)
-      show: userStatus === 'active' || userStatus === 'pending_profile'
+      // Always show profile - users need to access it to complete initial setup
+      show: true
     },
     {
       href: "/tour-guide/password",
@@ -106,17 +106,17 @@ export default function TourGuideLayout({ children }) {
     }
   ]
 
-  // Allow access only to dashboard and password page if user hasn't completed profile
+  // Allow access only to dashboard, profile, and password page if user hasn't completed profile
   const shouldRestrictAccess = () => {
     if (isLoading) return true // Don't render content while checking
     
     if (!hasProfile) {
-      return !['/tour-guide/dashboard', '/tour-guide/password'].includes(pathname)
+      return !['/tour-guide/dashboard', '/tour-guide/profile', '/tour-guide/password'].includes(pathname)
     }
     
     if (userStatus === 'pending_approval') {
-      // Do not allow access to profile page when in pending approval state
-      return pathname === '/tour-guide/profile' || (!['/tour-guide/dashboard', '/tour-guide/password'].includes(pathname))
+      // Allow access to profile, dashboard and password when pending approval
+      return !['/tour-guide/dashboard', '/tour-guide/profile', '/tour-guide/password'].includes(pathname)
     }
     
     return false
@@ -155,7 +155,7 @@ export default function TourGuideLayout({ children }) {
 
   return (
     <RouteProtection allowedRoles={['tour_guide']}>
-      <div className="flex h-screen bg-gray-50">
+      <div className="flex h-screen bg-amber-50">
         {/* Mobile sidebar backdrop */}
         {isSidebarOpen && (
           <div className="fixed inset-0 z-20 bg-black/50 md:hidden" onClick={() => setIsSidebarOpen(false)} />
@@ -164,17 +164,17 @@ export default function TourGuideLayout({ children }) {
         {/* Sidebar */}
         <aside
           className={cn(
-            "fixed inset-y-0 left-0 z-30 w-64 transform bg-gray-900 transition-transform duration-200 ease-in-out md:translate-x-0",
+            "fixed inset-y-0 left-0 z-30 w-64 transform bg-amber-900 transition-transform duration-200 ease-in-out md:translate-x-0",
             isSidebarOpen ? "translate-x-0" : "-translate-x-full",
           )}
         >
           <div className="flex h-full flex-col">
-            <div className="flex h-16 items-center justify-between border-b border-gray-800 px-4">
+            <div className="flex h-16 items-center justify-between border-b border-amber-800 px-4">
               <h1 className="text-xl font-semibold text-white">Tour Guide Portal</h1>
               <Button
                 variant="ghost"
                 size="icon"
-                className="md:hidden text-gray-400 hover:text-white"
+                className="md:hidden text-amber-200 hover:text-white"
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <X className="h-5 w-5" />
@@ -188,7 +188,7 @@ export default function TourGuideLayout({ children }) {
                   href={item.href}
                   className={cn(
                     "flex items-center px-2 py-2 text-sm font-medium rounded-md",
-                    item.active ? "bg-gray-800 text-white" : "text-gray-300 hover:bg-gray-700 hover:text-white",
+                    item.active ? "bg-amber-800 text-white" : "text-amber-200 hover:bg-amber-800/50 hover:text-white",
                   )}
                 >
                   <span className="mr-3">{item.icon}</span>
@@ -197,9 +197,9 @@ export default function TourGuideLayout({ children }) {
               ))}
             </nav>
 
-            <div className="border-t border-gray-800 p-4">
+            <div className="border-t border-amber-800 p-4">
               <button 
-                className="flex w-full items-center rounded-md px-2 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+                className="flex w-full items-center rounded-md px-2 py-2 text-sm font-medium text-amber-200 hover:bg-amber-800/50 hover:text-white"
                 onClick={handleLogout}
               >
                 <LogOut className="mr-3 h-5 w-5" />
