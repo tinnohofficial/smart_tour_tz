@@ -1,5 +1,6 @@
 // src/store/bookingStore.js
 import { create } from 'zustand'
+import { destinationsService, transportService, activitiesService, apiUtils } from '@/app/services/api'
 
 // Helper function to calculate nights
 const calculateNights = (startDate, endDate) => {
@@ -13,9 +14,6 @@ const calculateNights = (startDate, endDate) => {
   }
   return 0
 }
-
-// API base URL - can be configured from environment variables if needed
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export const useBookingStore = create((set, get) => ({
   // State
@@ -53,129 +51,103 @@ export const useBookingStore = create((set, get) => ({
   fetchDestination: async (destinationId) => {
     if (!destinationId) return;
     
-    set(state => ({
-      isLoading: { ...state.isLoading, destination: true },
-      error: { ...state.error, destination: null }
-    }));
-    
-    try {
-      const response = await fetch(`${API_URL}/destinations/${destinationId}`);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch destination: ${response.statusText}`);
+    return apiUtils.withLoadingAndError(
+      async () => {
+        const data = await destinationsService.getDestinationById(destinationId)
+        set({ destination: data })
+        return data
+      },
+      {
+        setLoading: (loading) => set(state => ({
+          isLoading: { ...state.isLoading, destination: loading }
+        })),
+        setError: (error) => set(state => ({
+          error: { ...state.error, destination: error }
+        })),
+        onError: (error) => {
+          console.error('Error fetching destination:', error)
+        }
       }
-      
-      const data = await response.json();
-      set({ 
-        destination: data,
-        isLoading: { ...get().isLoading, destination: false }
-      });
-    } catch (error) {
-      console.error('Error fetching destination:', error);
-      set({ 
-        error: { ...get().error, destination: error.message },
-        isLoading: { ...get().isLoading, destination: false }
-      });
-    }
+    )
   },
 
   fetchTransportRoutes: async (originOrDestination) => {
-    set(state => ({
-      isLoading: { ...state.isLoading, transports: true },
-      error: { ...state.error, transports: null }
-    }));
-    
-    try {
-      // If we have origin or destination info, we can filter by it
-      let url = `${API_URL}/transports`;
-      if (originOrDestination) {
-        url += `?filter=${encodeURIComponent(originOrDestination)}`;
+    return apiUtils.withLoadingAndError(
+      async () => {
+        const data = await transportService.getAllRoutes()
+        // Filter routes by origin or destination if provided
+        let filteredData = data
+        if (originOrDestination) {
+          filteredData = data.filter(route => 
+            route.origin?.toLowerCase().includes(originOrDestination.toLowerCase()) ||
+            route.destination?.toLowerCase().includes(originOrDestination.toLowerCase())
+          )
+        }
+        set({ transportRoutes: filteredData })
+        return filteredData
+      },
+      {
+        setLoading: (loading) => set(state => ({
+          isLoading: { ...state.isLoading, transports: loading }
+        })),
+        setError: (error) => set(state => ({
+          error: { ...state.error, transports: error }
+        })),
+        onError: (error) => {
+          console.error('Error fetching transport routes:', error)
+        }
       }
-      
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch transport routes: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      set({ 
-        transportRoutes: data,
-        isLoading: { ...get().isLoading, transports: false }
-      });
-    } catch (error) {
-      console.error('Error fetching transport routes:', error);
-      set({ 
-        error: { ...get().error, transports: error.message },
-        isLoading: { ...get().isLoading, transports: false }
-      });
-    }
+    )
   },
 
   fetchHotels: async (location) => {
-    set(state => ({
-      isLoading: { ...state.isLoading, hotels: true },
-      error: { ...state.error, hotels: null }
-    }));
-    
-    try {
-      // Update query parameter to match backend implementation
-      let url = `${API_URL}/hotels`;
-      if (location) {
-        url += `?location=${encodeURIComponent(location)}`;
+    return apiUtils.withLoadingAndError(
+      async () => {
+        // For now, we'll use a mock API call since hotels service isn't in the shared API yet
+        // This would be replaced with a proper hotels service call
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/hotels${location ? `?location=${encodeURIComponent(location)}` : ''}`)
+        if (!response.ok) {
+          throw new Error(`Failed to fetch hotels: ${response.statusText}`)
+        }
+        const data = await response.json()
+        set({ hotels: data })
+        return data
+      },
+      {
+        setLoading: (loading) => set(state => ({
+          isLoading: { ...state.isLoading, hotels: loading }
+        })),
+        setError: (error) => set(state => ({
+          error: { ...state.error, hotels: error }
+        })),
+        onError: (error) => {
+          console.error('Error fetching hotels:', error)
+        }
       }
-      
-      console.log("Fetching hotels from URL:", url); // Add logging for debugging
-      
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch hotels: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      console.log("Hotels fetched:", data); // Log fetched data
-      
-      set({ 
-        hotels: data,
-        isLoading: { ...get().isLoading, hotels: false }
-      });
-    } catch (error) {
-      console.error('Error fetching hotels:', error);
-      set({ 
-        error: { ...get().error, hotels: error.message },
-        isLoading: { ...get().isLoading, hotels: false }
-      });
-    }
+    )
   },
 
   fetchActivities: async (destinationId) => {
     if (!destinationId) return;
     
-    set(state => ({
-      isLoading: { ...state.isLoading, activities: true },
-      error: { ...state.error, activities: null }
-    }));
-    
-    try {
-      const response = await fetch(`${API_URL}/activities?destination=${destinationId}`);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch activities: ${response.statusText}`);
+    return apiUtils.withLoadingAndError(
+      async () => {
+        const data = await activitiesService.getActivitiesByDestination(destinationId)
+        set({ activities: data })
+        return data
+      },
+      {
+        setLoading: (loading) => set(state => ({
+          isLoading: { ...state.isLoading, activities: loading }
+        })),
+        setError: (error) => set(state => ({
+          error: { ...state.error, activities: error }
+        })),
+        onError: (error) => {
+          console.error('Error fetching activities:', error)
+        }
       }
-      
-      const data = await response.json();
-      set({ 
-        activities: data,
-        isLoading: { ...get().isLoading, activities: false }
-      });
-    } catch (error) {
-      console.error('Error fetching activities:', error);
-      set({ 
-        error: { ...get().error, activities: error.message },
-        isLoading: { ...get().isLoading, activities: false }
-      });
-    }
+    )
   },
 
   // Actions

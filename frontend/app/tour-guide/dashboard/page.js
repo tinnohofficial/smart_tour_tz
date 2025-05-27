@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
+import Image from "next/image"
 import { Calendar, CreditCard, Map, Star, Users, ChevronRight } from "lucide-react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -333,11 +334,12 @@ export default function TourGuideDashboard() {
                   {upcomingTours.length > 0 ? (
                     upcomingTours.map((tour) => (
                       <div key={tour.id} className="flex items-center gap-4 py-4 border-b last:border-0">
-                        <div className="flex-shrink-0">
-                          <img
+                        <div className="flex-shrink-0 relative h-16 w-20 rounded-md overflow-hidden">
+                          <Image
                             src={tour.image || "/placeholder.svg"}
                             alt={tour.destination}
-                            className="h-16 w-20 object-cover rounded-md"
+                            className="h-full w-full object-cover"
+                            fill
                           />
                         </div>
                         <div className="flex-1">
@@ -362,7 +364,7 @@ export default function TourGuideDashboard() {
                       <Calendar className="h-12 w-12 mx-auto text-gray-300" />
                       <p className="mt-3 text-gray-500 font-medium">No upcoming tours scheduled</p>
                       <p className="text-sm text-gray-400 mt-1 max-w-md mx-auto">
-                        When you're assigned to guide a tour, it will appear here. Make sure your availability is turned on.
+                        When you&apos;re assigned to guide a tour, it will appear here. Make sure your availability is turned on.
                       </p>
                     </div>
                   )}

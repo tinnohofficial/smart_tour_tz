@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label"
 import { format } from "date-fns"
 import { useBookingsStore } from "./store"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
+import { formatDateWithFormat } from "@/app/utils/dateUtils"
+import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner"
 
 export default function HotelManagerBookings() {
   const {
@@ -49,24 +51,10 @@ export default function HotelManagerBookings() {
     { id: "balcony", label: "Balcony/Terrace" }
   ]
 
-  const formatDate = (dateString) => {
-    if (!dateString) return ""
-    try {
-      return format(new Date(dateString), "MMM dd, yyyy")
-    } catch (error) {
-      return dateString
-    }
-  }
+  const formatDate = (dateString) => formatDateWithFormat(dateString, "MMM dd, yyyy", dateString)
 
   if (isLoading) {
-    return (
-      <div className="flex h-[70vh] items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto" />
-          <p className="mt-4 text-gray-600">Loading bookings...</p>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner message="Loading bookings..." />
   }
 
   return (

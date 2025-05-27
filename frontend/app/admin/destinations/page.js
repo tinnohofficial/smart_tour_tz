@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
+import Image from "next/image"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -28,7 +29,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Search, Plus, Edit, Trash, AlertTriangle, Loader2, MapPin, ImageIcon } from "lucide-react"
-import { useDestinationsStore } from "./destinationsStore"; 
+import { useDestinationsStore } from "./destinationsStore";
+import { formatDate } from "@/app/utils/dateUtils" 
 
 export default function DestinationsPage() {
   // Select state and actions from the Zustand store
@@ -95,10 +97,7 @@ export default function DestinationsPage() {
   };
 
   // --- Helper Functions ---
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString();
-  };
+  // Use shared formatDate utility
 
   // --- Render Logic ---
   return (
@@ -143,7 +142,7 @@ export default function DestinationsPage() {
             <DialogHeader>
               <DialogTitle>Add New Destination</DialogTitle>
               <DialogDescription>
-                Enter the details for the new destination. Click save when you're done.
+                Enter the details for the new destination. Click save when you&apos;re done.
               </DialogDescription>
             </DialogHeader>
             {/* Add Form */}
@@ -192,7 +191,7 @@ export default function DestinationsPage() {
                     {/* Image Preview */}
                     {previewUrl ? (
                       <div className="relative mt-2 h-40 w-full overflow-hidden rounded-md border">
-                        <img src={previewUrl} alt="Preview" className="h-full w-full object-cover"/>
+                        <Image src={previewUrl} alt="Preview" className="h-full w-full object-cover" fill />
                       </div>
                     ) : (
                        <div className="flex h-40 w-full items-center justify-center rounded-md border border-dashed border-blue-200">
@@ -249,7 +248,9 @@ export default function DestinationsPage() {
                     <TableCell>
                       <div className="h-12 w-20 overflow-hidden rounded-md">
                         {destination.image_url ? (
-                          <img key={`img-url-${destination.id}`} src={destination.image_url} alt={destination.name} className="h-full w-full object-cover"/>
+                          <div key={`img-url-${destination.id}`} className="relative h-full w-full">
+                            <Image src={destination.image_url} alt={destination.name} className="h-full w-full object-cover" fill />
+                          </div>
                         ) : (
                           <div key={`img-placeholder-${destination.id}`} className="flex h-full w-full items-center justify-center bg-gray-500"><ImageIcon className="h-6 w-6 text-gray-500" /></div>
                         )}
@@ -284,7 +285,7 @@ export default function DestinationsPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Destination</DialogTitle>
-            <DialogDescription>Update the details for this destination. Click save when you're done.</DialogDescription>
+            <DialogDescription>Update the details for this destination. Click save when you&apos;re done.</DialogDescription>
           </DialogHeader>
           {/* Edit Form */}
            <form onSubmit={onUpdateSubmit}>
@@ -332,7 +333,7 @@ export default function DestinationsPage() {
                    {/* Image Preview */}
                    {previewUrl ? (
                      <div className="relative mt-2 h-40 w-full overflow-hidden rounded-md border">
-                       <img src={previewUrl} alt="Preview" className="h-full w-full object-cover"/>
+                       <Image src={previewUrl} alt="Preview" className="h-full w-full object-cover" fill />
                      </div>
                    ) : (
                      <div className="flex h-40 w-full items-center justify-center rounded-md border border-dashed"><div className="flex flex-col items-center gap-1 text-muted-foreground"><ImageIcon className="h-8 w-8" /> <span className="text-xs">No image selected</span></div></div>

@@ -6,12 +6,11 @@ import { BarChart3, Calendar, CreditCard, LogOut, Star, User, Menu, X, Lock } fr
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
-import { useLayoutStore } from "./layoutStore"
+import { useLayoutStore } from "@/app/store/layoutStore"
 import { PendingApprovalAlert } from "@/components/pending-approval-alert"
 import { RouteProtection } from "@/components/route-protection"
+import { tourGuideService, apiUtils } from "@/app/services/api"
 import { useEffect, useState } from "react"
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL
 
 export default function TourGuideLayout({ children }) {
   const pathname = usePathname()
@@ -32,38 +31,36 @@ export default function TourGuideLayout({ children }) {
           return
         }
 
-        // Fetch user profile to check status
-        const response = await fetch(`${API_URL}/tour-guides/profile`, {
-          headers: {
-            Authorization: `Bearer ${token}`
+        // Fetch user profile to check status using shared API service
+        const data = await apiUtils.withLoadingAndError(
+          () => tourGuideService.getProfile(),
+          {
+            onSuccess: (data) => {
+              setUserStatus(data.status || 'pending_profile')
+              setHasProfile(true)
+              
+              // Redirect away from profile page if status is pending_approval
+              if (data.status === 'pending_approval' && pathname === '/tour-guide/profile') {
+                router.push('/tour-guide/dashboard')
+              }
+            },
+            onError: (error) => {
+              if (error.response?.status === 404) {
+                // User has no profile yet
+                setUserStatus('pending_profile')
+                setHasProfile(false)
+                
+                // If not on dashboard or password page and has no profile, redirect to dashboard
+                if (!pathname.includes('/dashboard') && !pathname.includes('/password')) {
+                  router.push('/tour-guide/dashboard')
+                }
+              } else {
+                console.error('Error fetching profile:', error)
+                apiUtils.handleAuthError(error, router)
+              }
+            }
           }
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          setUserStatus(data.status || 'pending_profile')
-          setHasProfile(true)
-          
-          // Redirect away from profile page if status is pending_approval
-          if (data.status === 'pending_approval' && pathname === '/tour-guide/profile') {
-            router.push('/tour-guide/dashboard')
-          }
-        } else if (response.status === 404) {
-          // User has no profile yet
-          setUserStatus('pending_profile')
-          setHasProfile(false)
-          
-          // If not on dashboard or password page and has no profile, redirect to dashboard
-          if (!pathname.includes('/dashboard') && !pathname.includes('/password')) {
-            router.push('/tour-guide/dashboard')
-          }
-        } else if (response.status === 401) {
-          // Unauthorized, redirect to login
-          localStorage.removeItem('token')
-          localStorage.removeItem('userData')
-          router.push('/login')
-          return
-        }
+        )
       } catch (error) {
         console.error("Error fetching user profile:", error)
       } finally {
@@ -249,7 +246,7 @@ export default function TourGuideLayout({ children }) {
                     <div>
                       <User className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
                       <h2 className="text-xl font-semibold text-gray-700">Profile Under Review</h2>
-                      <p className="text-gray-500 mb-6">Your profile is currently under review and cannot be modified. You will be able to access your profile again once it's approved.</p>
+                      <p className="text-gray-500 mb-6">Your profile is currently under review and cannot be modified. You will be able to access your profile again once it&apos;s approved.</p>
                       <Button 
                         onClick={() => router.push('/tour-guide/dashboard')}
                         className="bg-blue-600 hover:bg-blue-700"

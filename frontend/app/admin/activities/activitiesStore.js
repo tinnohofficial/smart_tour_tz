@@ -1,17 +1,7 @@
-// src/stores/activitiesStore.js (or wherever you keep your stores)
 import { create } from 'zustand';
-import { toast } from "sonner"; // Import toast here
-
-// Define API base URL (can be shared or redefined here)
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-// Helper to get token safely
-const getToken = () => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem("token");
-  }
-  return null;
-};
+import { toast } from "sonner";
+import { activitiesService, destinationsService, apiUtils } from '@/app/services/api'
+import { SUCCESS_MESSAGES, ERROR_MESSAGES } from '@/app/constants'
 
 export const useActivitiesStore = create((set, get) => ({
   // --- State ---
@@ -69,39 +59,31 @@ export const useActivitiesStore = create((set, get) => ({
 
   // Fetching Actions
   fetchActivities: async () => {
-    set({ isLoading: true, error: null });
-    try {
-      const token = getToken();
-      const response = await fetch(`${API_URL}/activities`, {
-        headers: { Authorization: token ? `Bearer ${token}` : "" },
-      });
-      if (!response.ok) throw new Error("Failed to fetch activities");
-      const data = await response.json();
-      set({ activities: data });
-      get().filterActivities(); // Filter after fetching
-    } catch (err) {
-      console.error("Error fetching activities:", err);
-      set({ error: "Failed to load activities. Please try again." });
-      toast({ variant: "destructive", title: "Error", description: get().error }); // Show toast on error
-    } finally {
-      set({ isLoading: false });
-    }
+    return apiUtils.withLoadingAndError(
+      async () => {
+        const data = await activitiesService.getAllActivities()
+        set({ activities: data })
+        get().filterActivities()
+        return data
+      },
+      {
+        setLoading: (loading) => set({ isLoading: loading }),
+        setError: (error) => set({ error }),
+        onError: (error) => {
+          console.error("Error fetching activities:", error)
+          toast.error(ERROR_MESSAGES.GENERIC_ERROR)
+        }
+      }
+    )
   },
 
   fetchDestinations: async () => {
-    // No loading state change here usually, as it's secondary data
     try {
-      const token = getToken();
-      const response = await fetch(`${API_URL}/destinations`, {
-        headers: { Authorization: token ? `Bearer ${token}` : "" },
-      });
-      if (!response.ok) throw new Error("Failed to fetch destinations");
-      const data = await response.json();
-      set({ destinations: data });
+      const data = await destinationsService.getAllDestinations()
+      set({ destinations: data })
     } catch (err) {
-      console.error("Error fetching destinations:", err);
-      // Show toast directly for this less critical fetch failure
-      toast.error("Failed to load destinations. Some features may be limited.");
+      console.error("Error fetching destinations:", err)
+      toast.error("Failed to load destinations. Some features may be limited.")
     }
   },
 
@@ -113,36 +95,34 @@ export const useActivitiesStore = create((set, get) => ({
       return;
     }
 
-    set({ isSubmitting: true, error: null });
-    try {
-      const activityData = {
-        name: formData.name,
-        description: formData.description,
-        destination_id: Number.parseInt(formData.destination_id),
-        price: Number.parseFloat(formData.price),
-      };
-      const token = getToken();
-      const response = await fetch(`${API_URL}/activities`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: token ? `Bearer ${token}` : "" },
-        body: JSON.stringify(activityData),
-      });
-      if (!response.ok) throw new Error("Failed to create activity");
-      const newActivity = await response.json();
+    return apiUtils.withLoadingAndError(
+      async () => {
+        const activityData = {
+          name: formData.name,
+          description: formData.description,
+          destination_id: Number.parseInt(formData.destination_id),
+          price: Number.parseFloat(formData.price),
+        };
 
-      set((state) => ({ activities: [...state.activities, newActivity] }));
-      get().filterActivities(); // Re-filter to include the new activity
-      toast.success("Activity added: The new activity has been added successfully.");
-      get().resetForm();
-      set({ isAddDialogOpen: false });
-
-    } catch (err) {
-      console.error("Error adding activity:", err);
-      set({ error: "Failed to add activity. Please try again." });
-      toast.error(get().error);
-    } finally {
-      set({ isSubmitting: false });
-    }
+        const newActivity = await activitiesService.createActivity(activityData)
+        
+        set((state) => ({ activities: [...state.activities, newActivity] }))
+        get().filterActivities()
+        get().resetForm()
+        set({ isAddDialogOpen: false })
+        
+        toast.success("Activity added: The new activity has been added successfully.")
+        return newActivity
+      },
+      {
+        setLoading: (loading) => set({ isSubmitting: loading }),
+        setError: (error) => set({ error }),
+        onError: (error, message) => {
+          console.error("Error adding activity:", error)
+          toast.error(message)
+        }
+      }
+    )
   },
 
   // Prepare Edit Dialog
@@ -169,38 +149,37 @@ export const useActivitiesStore = create((set, get) => ({
       return;
     }
 
-    set({ isSubmitting: true, error: null });
-    try {
-      // Only send fields that can be updated (don't send destination_id)
-      const activityData = {
-        name: formData.name,
-        description: formData.description,
-        price: Number.parseFloat(formData.price),
-      };
-      const token = getToken();
-      const response = await fetch(`${API_URL}/activities/${selectedActivity.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: token ? `Bearer ${token}` : "" },
-        body: JSON.stringify(activityData),
-      });
-      if (!response.ok) throw new Error("Failed to update activity");
-      const updatedActivity = await response.json();
+    return apiUtils.withLoadingAndError(
+      async () => {
+        const activityData = {
+          name: formData.name,
+          description: formData.description,
+          price: Number.parseFloat(formData.price),
+        };
 
-      set((state) => ({
-        activities: state.activities.map((act) => (act.id === selectedActivity.id ? updatedActivity : act)),
-      }));
-      get().filterActivities(); // Re-filter
-      toast.success("Activity updated: The activity has been updated successfully.");
-      get().resetForm();
-      set({ isEditDialogOpen: false, selectedActivity: null }); // Close and clear selection
-
-    } catch (err) {
-      console.error("Error updating activity:", err);
-      set({ error: "Failed to update activity. Please try again." });
-      toast.error(get().error);
-    } finally {
-      set({ isSubmitting: false });
-    }
+        const updatedActivity = await activitiesService.updateActivity(selectedActivity.id, activityData)
+        
+        set((state) => ({
+          activities: state.activities.map((activity) =>
+            activity.id === selectedActivity.id ? updatedActivity : activity
+          ),
+        }))
+        get().filterActivities()
+        get().resetForm()
+        set({ isEditDialogOpen: false, selectedActivity: null })
+        
+        toast.success("Activity updated: The activity has been updated successfully.")
+        return updatedActivity
+      },
+      {
+        setLoading: (loading) => set({ isSubmitting: loading }),
+        setError: (error) => set({ error }),
+        onError: (error, message) => {
+          console.error("Error updating activity:", error)
+          toast.error(message)
+        }
+      }
+    )
   },
 
   // Prepare Delete Dialog
@@ -212,39 +191,29 @@ export const useActivitiesStore = create((set, get) => ({
     const { selectedActivity } = get();
     if (!selectedActivity) return;
 
-    set({ isSubmitting: true, error: null });
-    try {
-      const token = getToken();
-      const response = await fetch(`${API_URL}/activities/${selectedActivity.id}`, {
-        method: "DELETE",
-        headers: { Authorization: token ? `Bearer ${token}` : "" },
-      });
-      if (!response.ok) {
-          // Attempt to read error message from backend if available
-          let errorMsg = "Failed to delete activity.";
-          try {
-              const errorData = await response.json();
-              errorMsg = errorData.message || errorMsg;
-          } catch (_) { /* Ignore parsing error */ }
-          throw new Error(errorMsg);
+    return apiUtils.withLoadingAndError(
+      async () => {
+        await activitiesService.deleteActivity(selectedActivity.id)
+        
+        set((state) => ({
+          activities: state.activities.filter((activity) => activity.id !== selectedActivity.id),
+        }))
+        get().filterActivities()
+        set({ isDeleteDialogOpen: false, selectedActivity: null })
+        
+        toast.success("Activity deleted: The activity has been deleted successfully.")
+      },
+      {
+        setLoading: (loading) => set({ isSubmitting: loading }),
+        setError: (error) => set({ error }),
+        onError: (error, message) => {
+          console.error("Error deleting activity:", error)
+          const description = message?.includes("booking") || message?.includes("constraint")
+            ? "This activity may be part of active bookings and cannot be deleted."
+            : message || "Failed to delete activity. Please try again."
+          toast.error(description)
+        }
       }
-
-      set((state) => ({
-        activities: state.activities.filter((act) => act.id !== selectedActivity.id),
-      }));
-      get().filterActivities(); // Re-filter
-      toast.success("Activity deleted: The activity has been deleted successfully.");
-      set({ isDeleteDialogOpen: false, selectedActivity: null }); // Close and clear selection
-
-    } catch (err) {
-      console.error("Error deleting activity:", err);
-      const description = err.message?.includes("booking") // Basic check for constraint error
-        ? "This activity may be part of active bookings and cannot be deleted."
-        : err.message || "Failed to delete activity. Please try again.";
-      set({ error: description }); // Set error state for potential display elsewhere
-      toast.error(description);
-    } finally {
-      set({ isSubmitting: false });
-    }
+    )
   },
 }));

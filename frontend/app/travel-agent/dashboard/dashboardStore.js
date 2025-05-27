@@ -1,6 +1,5 @@
 import { create } from 'zustand'
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL
+import { travelAgentService, enhancedBookingsService, apiUtils } from '@/app/services/api'
 
 export const useDashboardStore = create((set) => ({
   stats: {
@@ -19,79 +18,48 @@ export const useDashboardStore = create((set) => ({
   
   // Fetch dashboard data
   fetchDashboardData: async (router) => {
-    set({ isLoading: true })
-    
-    try {
-      const token = localStorage.getItem('token')
-      if (!token) {
-        router.push('/login')
-        return
-      }
-
-      // Get agency profile to check status
-      const profileResponse = await fetch(`${API_URL}/travel-agents/profile`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
-
-      if (!profileResponse.ok) {
-        if (profileResponse.status === 404) {
-          set({ userStatus: "pending_profile" })
-        } else if (profileResponse.status === 401) {
-          localStorage.removeItem('token')
-          router.push('/login')
-          return
-        }
-        set({ isLoading: false })
-        return
-      }
-
-      const profileData = await profileResponse.json()
-      set({ userStatus: profileData.status || "pending_profile" })
-
-      // Only fetch stats if user is active
-      if (profileData.status === "active") {
-        // Fetch pending bookings count
-        const pendingResponse = await fetch(`${API_URL}/bookings/transport-bookings-pending`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        })
-        const pendingBookings = await pendingResponse.json()
-
-        // Fetch completed bookings count
-        let completedBookingsCount = 0; // Default value
+    return apiUtils.withLoadingAndError(
+      async () => {
         try {
-            const completedResponse = await fetch(`${API_URL}/bookings/transport-bookings-completed`, { // NEW ENDPOINT
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
-            if (completedResponse.ok) {
-                const completedBookingsArray = await completedResponse.json();
-                completedBookingsCount = completedBookingsArray.length || 0;
-            } else {
-                console.warn("Dashboard: Could not fetch completed bookings. Status:", completedResponse.status);
-            }
-        } catch (err) {
-            console.error("Dashboard: Error fetching completed bookings:", err);
-        }
+          // Get agency profile to check status
+          const profileData = await travelAgentService.getProfile()
+          set({ userStatus: profileData.status || "pending_profile" })
 
-        // Fake data for now - in a real app you'd get this from the API
-        set({
-          stats: {
-            pendingBookings: pendingBookings.length || 0,
-            completedBookings: completedBookingsCount, // UPDATED to use fetched data
-            totalRoutes: profileData.routes ? profileData.routes.length : 0,
-            monthlyRevenue: Math.floor(Math.random() * 10000) // monthlyRevenue remains random as per original
+          // Only fetch stats if user is active
+          if (profileData.status === "active") {
+            // Fetch pending and completed bookings
+            const [pendingBookings, completedBookings] = await Promise.allSettled([
+              enhancedBookingsService.getPendingBookings(),
+              enhancedBookingsService.getCompletedBookings()
+            ])
+
+            set({
+              stats: {
+                pendingBookings: pendingBookings.status === 'fulfilled' ? (pendingBookings.value?.length || 0) : 0,
+                completedBookings: completedBookings.status === 'fulfilled' ? (completedBookings.value?.length || 0) : 0,
+                totalRoutes: profileData.routes ? profileData.routes.length : 0,
+                monthlyRevenue: Math.floor(Math.random() * 10000) // Keep as random for now
+              }
+            })
           }
-        })
+        } catch (error) {
+          if (error.message?.includes('404')) {
+            set({ userStatus: "pending_profile" })
+          } else if (error.message?.includes('401')) {
+            localStorage.removeItem('token')
+            router.push('/login')
+            return
+          }
+          throw error
+        }
+      },
+      {
+        setLoading: (loading) => set({ isLoading: loading }),
+        setError: () => {}, // Error handling done in try-catch
+        onError: (error) => {
+          console.error("Error fetching dashboard data:", error)
+        }
       }
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error)
-    } finally {
-      set({ isLoading: false })
-    }
+    )
   }
 }))

@@ -1,141 +1,395 @@
-import axios from "axios"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL
+// Utility function to get auth headers
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token')
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` })
+  }
+}
 
-
-// Create axios instance with default config
-const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-})
-
-// Add request interceptor to add auth token
-api.interceptors.request.use(
-  (config) => {
-    // Check if localStorage is available (for server-side rendering safety)
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem("token")
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`
-      }
+// Generic API request handler
+const apiRequest = async (endpoint, options = {}) => {
+  const url = `${API_BASE_URL}${endpoint}`
+  const config = {
+    headers: getAuthHeaders(),
+    ...options,
+    headers: {
+      ...getAuthHeaders(),
+      ...options.headers
     }
-    return config
+  }
+
+  const response = await fetch(url, config)
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'Network error' }))
+    const error = new Error(errorData.message || `HTTP ${response.status}`)
+    error.response = { status: response.status, data: errorData }
+    throw error
+  }
+
+  return response.json()
+}
+
+// API Utils for common patterns
+export const apiUtils = {
+  async withLoadingAndError(
+    asyncFn,
+    {
+      setLoading = () => {},
+      setError = () => {},
+      onSuccess = () => {},
+      onError = () => {},
+      onFinally = () => {}
+    } = {}
+  ) {
+    try {
+      setLoading(true)
+      setError(null)
+      const result = await asyncFn()
+      onSuccess(result)
+      return result
+    } catch (error) {
+      console.error('API Error:', error)
+      setError(error.message)
+      onError(error, error.message)
+      throw error
+    } finally {
+      setLoading(false)
+      onFinally()
+    }
   },
-  (error) => Promise.reject(error),
-)
 
+  handleAuthError(error, router) {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('userData')
+      router.push('/login')
+    }
+  }
+}
 
-// Authentication services
+// Authentication Service
 export const authService = {
-  login: async (email, password) => { 
-    const response = await api.post("/auth/login", { email, password })
-    if (response.data.token && typeof window !== 'undefined') {
-      localStorage.setItem("token", response.data.token)
-      localStorage.setItem("user", JSON.stringify(response.data.user))
-    }
-    return response.data
+  async login(credentials) {
+    return apiRequest('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials)
+    })
   },
-  logout: () => {
-    if (typeof window !== 'undefined') { 
-      localStorage.removeItem("token")
-      localStorage.removeItem("user")
-    }
+
+  async register(userData) {
+    return apiRequest('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData)
+    })
   },
-  getCurrentUser: () => {
-    if (typeof window !== 'undefined') { 
-      const userStr = localStorage.getItem("user")
-      if (userStr) return JSON.parse(userStr)
-    }
-    return null
+
+  async getUserStatus() {
+    return apiRequest('/auth/status')
   },
+
+  async changePassword(passwordData) {
+    return apiRequest('/users/change-password', {
+      method: 'POST',
+      body: JSON.stringify(passwordData)
+    })
+  }
 }
 
-// Applications services
-export const applicationsService = {
-  getPendingApplications: async () => {
-    const response = await api.get("/applications/pending")
-    return response.data
+// Hotel Manager Service
+export const hotelManagerService = {
+  async getProfile() {
+    return apiRequest('/hotels/manager/profile')
   },
-  approveApplication: async (userId) => { 
-    const response = await api.patch(`/applications/${userId}/status`, { newStatus: "active" })
-    return response.data
+
+  async createProfile(profileData) {
+    return apiRequest('/hotels/manager/profile', {
+      method: 'POST',
+      body: JSON.stringify(profileData)
+    })
   },
-  rejectApplication: async (userId) => { 
-    const response = await api.patch(`/applications/${userId}/status`, { newStatus: "rejected" })
-    return response.data
-  },
+
+  async updateProfile(profileData) {
+    return apiRequest('/hotels/manager/profile', {
+      method: 'PUT',
+      body: JSON.stringify(profileData)
+    })
+  }
 }
 
-// Destinations services
+// Travel Agent Service
+export const travelAgentService = {
+  async getProfile() {
+    return apiRequest('/travel-agents/profile')
+  },
+
+  async createProfile(profileData) {
+    return apiRequest('/travel-agents/profile', {
+      method: 'POST',
+      body: JSON.stringify(profileData)
+    })
+  },
+
+  async updateProfile(profileData) {
+    return apiRequest('/travel-agents/profile', {
+      method: 'PUT',
+      body: JSON.stringify(profileData)
+    })
+  }
+}
+
+// Tour Guide Service
+export const tourGuideService = {
+  async getProfile() {
+    return apiRequest('/tour-guides/profile')
+  },
+
+  async createProfile(profileData) {
+    return apiRequest('/tour-guides/profile', {
+      method: 'POST',
+      body: JSON.stringify(profileData)
+    })
+  },
+
+  async updateProfile(profileData) {
+    return apiRequest('/tour-guides/profile', {
+      method: 'PUT',
+      body: JSON.stringify(profileData)
+    })
+  },
+
+  async updateAvailability(available) {
+    return apiRequest('/tour-guides/availability', {
+      method: 'PUT',
+      body: JSON.stringify({ available })
+    })
+  }
+}
+
+// Destinations Service
 export const destinationsService = {
-  getAllDestinations: async () => {
-    const response = await api.get("/destinations")
-    return response.data
+  async getAllDestinations() {
+    return apiRequest('/destinations')
   },
-  getDestinationById: async (id) => { 
-    const response = await api.get(`/destinations/${id}`)
-    return response.data
+
+  async getDestinationById(id) {
+    return apiRequest(`/destinations/${id}`)
   },
-  createDestination: async (destinationData) => {
-    const response = await api.post("/destinations", destinationData)
-    return response.data
+
+  async createDestination(destinationData) {
+    return apiRequest('/destinations', {
+      method: 'POST',
+      body: JSON.stringify(destinationData)
+    })
   },
-  updateDestination: async (id, destinationData) => { 
-    const response = await api.put(`/destinations/${id}`, destinationData)
-    return response.data
+
+  async updateDestination(id, destinationData) {
+    return apiRequest(`/destinations/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(destinationData)
+    })
   },
-  deleteDestination: async (id) => {
-    const response = await api.delete(`/destinations/${id}`)
-    return response.data
-  },
+
+  async deleteDestination(id) {
+    return apiRequest(`/destinations/${id}`, {
+      method: 'DELETE'
+    })
+  }
 }
 
-// Activities services
+// Activities Service
 export const activitiesService = {
-  getAllActivities: async () => {
-    const response = await api.get("/activities")
-    return response.data
+  async getAllActivities() {
+    return apiRequest('/activities')
   },
-  getActivitiesByDestination: async (destinationId) => { 
-    const response = await api.get(`/activities?destinationId=${destinationId}`)
-    return response.data
+
+  async getActivitiesByDestination(destinationId) {
+    return apiRequest(`/activities?destinationId=${destinationId}`)
   },
-  getActivityById: async (id) => { 
-    const response = await api.get(`/activities/${id}`)
-    return response.data
+
+  async getActivityById(id) {
+    return apiRequest(`/activities/${id}`)
   },
-  createActivity: async (activityData) => { 
-    const response = await api.post("/activities", activityData)
-    return response.data
+
+  async createActivity(activityData) {
+    return apiRequest('/activities', {
+      method: 'POST',
+      body: JSON.stringify(activityData)
+    })
   },
-  updateActivity: async (id, activityData) => { 
-    const response = await api.put(`/activities/${id}`, activityData)
-    return response.data
+
+  async updateActivity(id, activityData) {
+    return apiRequest(`/activities/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(activityData)
+    })
   },
-  deleteActivity: async (id) => { 
-    const response = await api.delete(`/activities/${id}`)
-    return response.data
-  },
+
+  async deleteActivity(id) {
+    return apiRequest(`/activities/${id}`, {
+      method: 'DELETE'
+    })
+  }
 }
 
-// Bookings and assignments services
+// Bookings Service
 export const bookingsService = {
-  getUnassignedBookings: async () => {
-    const response = await api.get("/bookings/unassigned-bookings")
-    return response.data
+  async getUnassignedBookings() {
+    return apiRequest('/bookings/unassigned-bookings')
   },
-  getEligibleGuides: async (bookingId) => { 
-    const response = await api.get(`/bookings/${bookingId}/eligible-guides`)
-    return response.data
+
+  async getEligibleGuides(bookingId) {
+    return apiRequest(`/bookings/${bookingId}/eligible-guides`)
   },
-  assignGuide: async (bookingId, guideId) => { 
-    const response = await api.post(`/bookings/${bookingId}/assign-guide`, { guideId })
-    return response.data
+
+  async assignGuide(bookingId, guideId) {
+    return apiRequest(`/bookings/${bookingId}/assign-guide`, {
+      method: 'POST',
+      body: JSON.stringify({ guide_id: guideId })
+    })
   },
+
+  async getTourGuideAssignedBookings() {
+    return apiRequest('/bookings/tour-guide-assigned')
+  }
 }
 
+// Enhanced Bookings Service
+export const enhancedBookingsService = {
+  async getPendingBookings() {
+    return apiRequest('/bookings/transport-bookings-pending')
+  },
 
+  async getCompletedBookings() {
+    return apiRequest('/bookings/transport-bookings-completed')
+  },
 
-export default api
+  async assignTransportTicket(itemId, ticketDetails) {
+    return apiRequest(`/bookings/items/${itemId}/assign-ticket`, {
+      method: 'POST',
+      body: JSON.stringify(ticketDetails)
+    })
+  }
+}
+
+// Hotel Bookings Service
+export const hotelBookingsService = {
+  async getPendingBookings() {
+    return apiRequest('/bookings/hotel-bookings-pending')
+  },
+
+  async getCompletedBookings() {
+    return apiRequest('/bookings/hotel-bookings-completed')
+  },
+
+  async confirmRoom(itemId, roomDetails) {
+    return apiRequest(`/bookings/items/${itemId}/confirm-room`, {
+      method: 'POST',
+      body: JSON.stringify(roomDetails)
+    })
+  }
+}
+
+// Transport Service
+export const transportService = {
+  async getAllRoutes() {
+    return apiRequest('/transports')
+  },
+
+  async getRouteById(routeId) {
+    return apiRequest(`/transports/${routeId}`)
+  },
+
+  async createRoute(routeData) {
+    return apiRequest('/transports', {
+      method: 'POST',
+      body: JSON.stringify(routeData)
+    })
+  },
+
+  async updateRoute(routeId, routeData) {
+    return apiRequest(`/transports/${routeId}`, {
+      method: 'PUT',
+      body: JSON.stringify(routeData)
+    })
+  },
+
+  async deleteRoute(routeId) {
+    return apiRequest(`/transports/${routeId}`, {
+      method: 'DELETE'
+    })
+  }
+}
+
+// Applications Service
+export const applicationsService = {
+  async getPendingApplications() {
+    return apiRequest('/applications/pending')
+  },
+
+  async getApplicationStatus(userId) {
+    return apiRequest(`/applications/${userId}/status`)
+  },
+
+  async approveApplication(userId) {
+    return apiRequest(`/applications/${userId}/approve`, {
+      method: 'POST'
+    })
+  },
+
+  async rejectApplication(userId) {
+    return apiRequest(`/applications/${userId}/reject`, {
+      method: 'POST'
+    })
+  }
+}
+
+// Upload Service
+export const uploadService = {
+  async uploadFile(file) {
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    const response = await fetch('/api/upload-url', {
+      method: 'POST',
+      body: formData
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Upload failed' }))
+      throw new Error(errorData.message || 'Upload failed')
+    }
+
+    return response.json()
+  },
+
+  async uploadDocument(file) {
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    const response = await fetch('/api/upload-url', {
+      method: 'POST',
+      body: formData
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Document upload failed' }))
+      throw new Error(errorData.message || 'Document upload failed')
+    }
+
+    return response.json()
+  }
+}
+
+// Password Service
+export const passwordService = {
+  async changePassword(passwordData) {
+    return apiRequest('/users/change-password', {
+      method: 'POST',
+      body: JSON.stringify(passwordData)
+    })
+  }
+}

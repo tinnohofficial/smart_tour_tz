@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/button"
 import { ShieldAlert, LogIn, Home } from "lucide-react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, Suspense } from "react"
 
-export default function ForbiddenPage() {
+function ForbiddenContent() {
   const searchParams = useSearchParams()
-  const message = searchParams.get('message') || "You don't have permission to access this page."
+  const message = searchParams.get('message') || "You don&apos;t have permission to access this page."
   
   useEffect(() => {
     document.title = "Access Denied | Smart Tour Tanzania"
@@ -79,5 +79,13 @@ export default function ForbiddenPage() {
         </div>
       </footer>
     </div>
+  )
+}
+
+export default function ForbiddenPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <ForbiddenContent />
+    </Suspense>
   )
 }

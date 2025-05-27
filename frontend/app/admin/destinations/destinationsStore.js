@@ -1,17 +1,8 @@
 // src/stores/destinationsStore.js (or your preferred location)
 import { create } from 'zustand';
 import { toast } from 'sonner'; // Import toast from sonner
-
-// Define API base URL (can be shared or redefined here)
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-// Helper to get token safely
-const getToken = () => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem("token");
-  }
-  return null;
-};
+import { destinationsService, uploadService, apiUtils } from '@/app/services/api'
+import { SUCCESS_MESSAGES, ERROR_MESSAGES } from '@/app/constants'
 
 export const useDestinationsStore = create((set, get) => ({
   // --- State ---
@@ -102,17 +93,7 @@ export const useDestinationsStore = create((set, get) => ({
     if (!file) return null;
     set({ isUploading: true });
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const response = await fetch("/api/upload", { 
-        method: "POST",
-        body: formData,
-      });
-      if (!response.ok) {
-         const errorData = await response.json().catch(() => ({}));
-         throw new Error(errorData.error || "Failed to upload image");
-      }
-      const { url } = await response.json();
+      const { url } = await uploadService.uploadFile(file)
       return url;
     } catch (error) {
       console.error("Error uploading image:", error);
@@ -125,24 +106,22 @@ export const useDestinationsStore = create((set, get) => ({
 
   // Fetching Action
   fetchDestinations: async () => {
-    set({ isLoading: true, error: null });
-    try {
-      const token = getToken();
-      const response = await fetch(`${API_URL}/destinations`, {
-        headers: { Authorization: token ? `Bearer ${token}` : "" },
-      });
-      if (!response.ok) throw new Error("Failed to fetch destinations");
-      const data = await response.json();
-      set({ destinations: data });
-      get().filterDestinations();
-    } catch (err) {
-      console.error("Error fetching destinations:", err);
-      const errorMsg = "Failed to load destinations. Please try again.";
-      set({ error: errorMsg });
-      toast.error(errorMsg);
-    } finally {
-      set({ isLoading: false });
-    }
+    return apiUtils.withLoadingAndError(
+      async () => {
+        const data = await destinationsService.getAllDestinations()
+        set({ destinations: data })
+        get().filterDestinations()
+        return data
+      },
+      {
+        setLoading: (loading) => set({ isLoading: loading }),
+        setError: (error) => set({ error }),
+        onError: (error) => {
+          console.error("Error fetching destinations:", error)
+          toast.error(ERROR_MESSAGES.GENERIC_ERROR)
+        }
+      }
+    )
   },
 
   // Add Destination Action
@@ -158,42 +137,37 @@ export const useDestinationsStore = create((set, get) => ({
         return;
     }
 
+    return apiUtils.withLoadingAndError(
+      async () => {
+        let imageUrl = formData.image_url; // Use URL from form first
+        if (selectedFile) {
+          imageUrl = await get()._uploadImageToBlob(selectedFile); // Upload if file exists
+          if (!imageUrl) throw new Error("Image upload failed, cannot proceed."); // Stop if upload fails
+        }
 
-    set({ isSubmitting: true, error: null });
-    try {
-      let imageUrl = formData.image_url; // Use URL from form first
-      if (selectedFile) {
-        imageUrl = await get()._uploadImageToBlob(selectedFile); // Upload if file exists
-        if (!imageUrl) throw new Error("Image upload failed, cannot proceed."); // Stop if upload fails
+        const destinationData = { ...formData, image_url: imageUrl };
+        const newDestination = await destinationsService.createDestination(destinationData)
+
+        set((state) => ({ destinations: [...state.destinations, newDestination] }));
+        get().filterDestinations();
+        toast.success("Destination added successfully!");
+        get().resetFormAndFile();
+        set({ isAddDialogOpen: false });
+
+        return newDestination
+      },
+      {
+        setLoading: (loading) => set({ isSubmitting: loading }),
+        setError: (error) => set({ error }),
+        onError: (error, message) => {
+          console.error("Error adding destination:", error);
+          // Toast handled in _uploadImageToBlob or here if API call fails
+          if (!error.message?.includes("upload failed")) { // Avoid double toast
+            toast.error(message)
+          }
+        }
       }
-
-      const destinationData = { ...formData, image_url: imageUrl };
-      const token = getToken();
-      const response = await fetch(`${API_URL}/destinations`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: token ? `Bearer ${token}` : "" },
-        body: JSON.stringify(destinationData),
-      });
-      if (!response.ok) throw new Error("Failed to create destination");
-      const newDestination = await response.json();
-
-      set((state) => ({ destinations: [...state.destinations, newDestination] }));
-      get().filterDestinations();
-      toast.success("Destination added successfully!");
-      get().resetFormAndFile();
-      set({ isAddDialogOpen: false });
-
-    } catch (err) {
-      console.error("Error adding destination:", err);
-      const errorMsg = `Failed to add destination: ${err.message || 'Please try again.'}`;
-      set({ error: errorMsg });
-      // Toast handled in _uploadImageToBlob or here if API call fails
-       if (!err.message?.includes("upload failed")) { // Avoid double toast
-           toast.error(errorMsg);
-       }
-    } finally {
-      set({ isSubmitting: false });
-    }
+    )
   },
 
   // Prepare Edit Dialog
@@ -229,44 +203,40 @@ export const useDestinationsStore = create((set, get) => ({
         return;
     }
 
-    set({ isSubmitting: true, error: null });
-    try {
-      let imageUrl = formData.image_url; // Start with potentially existing URL
-      if (selectedFile) { // If a *new* file is selected, upload it
-        imageUrl = await get()._uploadImageToBlob(selectedFile);
-         if (!imageUrl) throw new Error("Image upload failed, cannot proceed."); // Stop if upload fails
+    return apiUtils.withLoadingAndError(
+      async () => {
+        let imageUrl = formData.image_url; // Start with potentially existing URL
+        if (selectedFile) { // If a *new* file is selected, upload it
+          imageUrl = await get()._uploadImageToBlob(selectedFile);
+           if (!imageUrl) throw new Error("Image upload failed, cannot proceed."); // Stop if upload fails
+        }
+
+        const destinationData = { ...formData, image_url: imageUrl };
+        const updatedDestination = await destinationsService.updateDestination(selectedDestination.id, destinationData)
+
+        set((state) => ({
+          destinations: state.destinations.map((dest) =>
+            dest.id === selectedDestination.id ? updatedDestination : dest
+          ),
+        }));
+        get().filterDestinations();
+        toast.success("Destination updated successfully!");
+        get().resetFormAndFile();
+        set({ isEditDialogOpen: false, selectedDestination: null });
+
+        return updatedDestination
+      },
+      {
+        setLoading: (loading) => set({ isSubmitting: loading }),
+        setError: (error) => set({ error }),
+        onError: (error, message) => {
+          console.error("Error updating destination:", error);
+          if (!error.message?.includes("upload failed")) { // Avoid double toast
+            toast.error(message)
+          }
+        }
       }
-
-      const destinationData = { ...formData, image_url: imageUrl };
-      const token = getToken();
-      const response = await fetch(`${API_URL}/destinations/${selectedDestination.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: token ? `Bearer ${token}` : "" },
-        body: JSON.stringify(destinationData),
-      });
-      if (!response.ok) throw new Error("Failed to update destination");
-      const updatedDestination = await response.json();
-
-      set((state) => ({
-        destinations: state.destinations.map((dest) =>
-          dest.id === selectedDestination.id ? updatedDestination : dest
-        ),
-      }));
-      get().filterDestinations();
-      toast.success("Destination updated successfully!");
-      get().resetFormAndFile();
-      set({ isEditDialogOpen: false, selectedDestination: null });
-
-    } catch (err) {
-      console.error("Error updating destination:", err);
-      const errorMsg = `Failed to update destination: ${err.message || 'Please try again.'}`;
-      set({ error: errorMsg });
-       if (!err.message?.includes("upload failed")) { // Avoid double toast
-           toast.error(errorMsg);
-       }
-    } finally {
-      set({ isSubmitting: false });
-    }
+    )
   },
 
    // Prepare Delete Dialog
@@ -279,35 +249,29 @@ export const useDestinationsStore = create((set, get) => ({
     const { selectedDestination } = get();
     if (!selectedDestination) return;
 
-    set({ isSubmitting: true, error: null });
-    try {
-      const token = getToken();
-      const response = await fetch(`${API_URL}/destinations/${selectedDestination.id}`, {
-        method: "DELETE",
-        headers: { Authorization: token ? `Bearer ${token}` : "" },
-      });
-      if (!response.ok) {
-        let errorMsg = "Failed to delete destination.";
-        try { const errorData = await response.json(); errorMsg = errorData.message || errorMsg; } catch (_) { /* Ignore */ }
-        throw new Error(errorMsg);
+    return apiUtils.withLoadingAndError(
+      async () => {
+        await destinationsService.deleteDestination(selectedDestination.id)
+
+        set((state) => ({
+          destinations: state.destinations.filter((dest) => dest.id !== selectedDestination.id),
+        }));
+        get().filterDestinations();
+        toast.success(SUCCESS_MESSAGES.DESTINATION_DELETED);
+        set({ isDeleteDialogOpen: false, selectedDestination: null });
+      },
+      {
+        setLoading: (loading) => set({ isSubmitting: loading }),
+        setError: (error) => set({ error }),
+        onError: (error, message) => {
+          console.error("Error deleting destination:", error);
+          const description = error.message?.includes("activit") // Basic check
+            ? "This destination may have associated activities and cannot be deleted."
+            : message || ERROR_MESSAGES.GENERIC_ERROR;
+          set({ error: description });
+          toast.error(description);
+        }
       }
-
-      set((state) => ({
-        destinations: state.destinations.filter((dest) => dest.id !== selectedDestination.id),
-      }));
-      get().filterDestinations();
-      toast.success("Destination deleted successfully!");
-      set({ isDeleteDialogOpen: false, selectedDestination: null });
-
-    } catch (err) {
-      console.error("Error deleting destination:", err);
-      const description = err.message?.includes("activit") // Basic check
-        ? "This destination may have associated activities and cannot be deleted."
-        : err.message || "Failed to delete destination. Please try again.";
-      set({ error: description });
-      toast.error(description);
-    } finally {
-      set({ isSubmitting: false });
-    }
+    )
   },
 }));

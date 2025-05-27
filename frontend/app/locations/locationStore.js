@@ -1,5 +1,5 @@
 import { create } from "zustand"
-const API_URL = process.env.NEXT_PUBLIC_API_URL
+import { destinationsService, apiUtils } from '@/app/services/api'
 
 const useLocationStore = create((set) => ({
   locations: [],
@@ -8,21 +8,22 @@ const useLocationStore = create((set) => ({
   error: null,
   setSearchTerm: (term) => set({ searchTerm: term }),
   fetchLocations: async () => {
-    set({ loading: true, error: null })
-    try {
-      const res = await fetch(`${API_URL}/destinations`)
-      if (!res.ok) throw new Error("Failed to fetch destinations")
-      const data = await res.json()
-      set({
-        locations: data.map(loc => ({
+    return apiUtils.withLoadingAndError(
+      async () => {
+        const data = await destinationsService.getAllDestinations()
+        const formattedData = data.map(loc => ({
           ...loc,
           image: loc.image_url,
-        })),
-        loading: false,
-      })
-    } catch (err) {
-      set({ error: err.message, loading: false })
-    }
+        }))
+        set({ locations: formattedData })
+        return formattedData
+      },
+      {
+        setLoading: (loading) => set({ loading }),
+        setError: (error) => set({ error }),
+        onError: (error) => console.error('Error fetching locations:', error)
+      }
+    )
   },
 }))
 

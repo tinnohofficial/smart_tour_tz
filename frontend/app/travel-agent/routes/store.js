@@ -2,8 +2,8 @@
 
 import { create } from "zustand"
 import { toast } from "sonner"
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL
+import { travelAgentService, transportService, apiUtils } from "@/app/services/api"
+import { SUCCESS_MESSAGES, ERROR_MESSAGES } from "@/app/constants"
 
 export const useRoutesStore = create((set, get) => ({
   routes: [],
@@ -11,134 +11,74 @@ export const useRoutesStore = create((set, get) => ({
   error: null,
 
   fetchRoutes: async () => {
-    try {
-      set({ isLoading: true })
-      const token = localStorage.getItem('token')
-      if (!token) {
-        throw new Error('No authentication token found')
+    return apiUtils.withLoadingAndError(
+      async () => {
+        const data = await travelAgentService.getProfile()
+        set({ routes: data.routes || [] })
+        return data.routes || []
+      },
+      {
+        setLoading: (loading) => set({ isLoading: loading }),
+        setError: (error) => set({ error }),
+        onError: () => toast.error('Failed to load transport routes')
       }
-
-      // First get the agency profile to get routes
-      const response = await fetch(`${API_URL}/travel-agents/profile`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch agency profile')
-      }
-
-      const data = await response.json()
-      
-      set({ 
-        routes: data.routes || [],
-        isLoading: false 
-      })
-    } catch (error) {
-      console.error('Error fetching routes:', error)
-      toast.error('Failed to load transport routes')
-      set({ isLoading: false, error: error.message })
-    }
+    )
   },
 
   createRoute: async (routeData) => {
-    try {
-      set({ isLoading: true })
-      const token = localStorage.getItem('token')
-      if (!token) {
-        throw new Error('No authentication token found')
+    return apiUtils.withLoadingAndError(
+      async () => {
+        await transportService.createRoute(routeData)
+        await get().fetchRoutes() // Refresh the routes list
+        toast.success(SUCCESS_MESSAGES.ROUTE_CREATED)
+        return true
+      },
+      {
+        setLoading: (loading) => set({ isLoading: loading }),
+        setError: (error) => set({ error }),
+        onError: (error, message) => {
+          console.error('Error creating transport route:', error)
+          toast.error(message)
+        }
       }
-
-      const response = await fetch(`${API_URL}/transports`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(routeData)
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || 'Failed to create transport route')
-      }
-
-      // After successful creation, refresh the routes list
-      await get().fetchRoutes()
-      
-      set({ isLoading: false })
-      return true
-    } catch (error) {
-      console.error('Error creating transport route:', error)
-      set({ isLoading: false, error: error.message })
-      throw error
-    }
+    )
   },
 
   updateRoute: async (routeId, routeData) => {
-    try {
-      set({ isLoading: true })
-      const token = localStorage.getItem('token')
-      if (!token) {
-        throw new Error('No authentication token found')
+    return apiUtils.withLoadingAndError(
+      async () => {
+        await transportService.updateRoute(routeId, routeData)
+        await get().fetchRoutes() // Refresh the routes list
+        toast.success(SUCCESS_MESSAGES.ROUTE_UPDATED)
+        return true
+      },
+      {
+        setLoading: (loading) => set({ isLoading: loading }),
+        setError: (error) => set({ error }),
+        onError: (error, message) => {
+          console.error('Error updating transport route:', error)
+          toast.error(message)
+        }
       }
-
-      const response = await fetch(`${API_URL}/transports/${routeId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(routeData)
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || 'Failed to update transport route')
-      }
-
-      // After successful update, refresh the routes list
-      await get().fetchRoutes()
-      
-      set({ isLoading: false })
-      return true
-    } catch (error) {
-      console.error('Error updating transport route:', error)
-      set({ isLoading: false, error: error.message })
-      throw error
-    }
+    )
   },
 
   deleteRoute: async (routeId) => {
-    try {
-      set({ isLoading: true })
-      const token = localStorage.getItem('token')
-      if (!token) {
-        throw new Error('No authentication token found')
-      }
-
-      const response = await fetch(`${API_URL}/transports/${routeId}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`
+    return apiUtils.withLoadingAndError(
+      async () => {
+        await transportService.deleteRoute(routeId)
+        await get().fetchRoutes() // Refresh the routes list
+        toast.success(SUCCESS_MESSAGES.ROUTE_DELETED)
+        return true
+      },
+      {
+        setLoading: (loading) => set({ isLoading: loading }),
+        setError: (error) => set({ error }),
+        onError: (error, message) => {
+          console.error('Error deleting transport route:', error)
+          toast.error(message)
         }
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || 'Failed to delete transport route')
       }
-
-      // After successful deletion, refresh the routes list
-      await get().fetchRoutes()
-      
-      set({ isLoading: false })
-      return true
-    } catch (error) {
-      console.error('Error deleting transport route:', error)
-      set({ isLoading: false, error: error.message })
-      throw error
-    }
+    )
   }
 }))

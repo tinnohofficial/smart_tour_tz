@@ -24,6 +24,7 @@ import { Search, Calendar, MapPin, AlertTriangle, Loader2, CheckCircle } from "l
 
 // Import the Zustand store
 import { useAssignmentsStore } from "./assignmentsStore"; // Adjust path if needed
+import { formatDate, formatDateRange } from "@/app/utils/dateUtils";
 
 export default function AssignmentsPage() {
   // Select state and actions from the Zustand store
@@ -52,15 +53,8 @@ export default function AssignmentsPage() {
     fetchUnassignedBookings();
   }, [fetchUnassignedBookings]); // Depend on the stable fetch function from the store
 
-  // --- Helper Functions (Keep these as they are presentation logic) ---
-  const formatDate = (dateString) => { // Type annotation removed
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString();
-  };
-
-  const formatDateRange = (startDate, endDate) => { // Type annotations removed
-    return `${formatDate(startDate)} - ${formatDate(endDate)}`;
-  };
+  // Use shared utilities
+  const formatDateRangeShared = formatDateRange;
 
   // --- Render Logic ---
   return (
@@ -184,7 +178,7 @@ export default function AssignmentsPage() {
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div><span className="text-muted-foreground">Tourist:</span> {selectedBooking.tourist_name}</div>
                   <div><span className="text-muted-foreground">Destination:</span> {selectedBooking.destination_name}</div>
-                  <div><span className="text-muted-foreground">Date Range:</span> {formatDateRange(selectedBooking.start_date, selectedBooking.end_date)}</div>
+                  <div><span className="text-muted-foreground">Date Range:</span> {formatDateRangeShared(selectedBooking.start_date, selectedBooking.end_date)}</div>
                   <div><span className="text-muted-foreground">Status:</span> {selectedBooking.status}</div>
                 </div>
                 <div className="mt-2 text-sm">

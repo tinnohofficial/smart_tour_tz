@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
+import Image from "next/image"
 import { Search, CalendarDays, Users, MapPin, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -148,10 +149,11 @@ export default function TourGuideBookings() {
                     >
                       {/* Tour Image */}
                       <div className="w-full md:w-48 h-48 md:h-full relative rounded-md overflow-hidden">
-                        <img
+                        <Image
                           src={tour.image}
                           alt={tour.destination}
                           className="absolute inset-0 w-full h-full object-cover"
+                          fill
                         />
                       </div>
 

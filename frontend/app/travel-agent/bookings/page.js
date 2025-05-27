@@ -48,21 +48,9 @@ import {
 import { toast } from "sonner";
 import { useBookingsStore } from "./store";
 import { Badge } from "@/components/ui/badge";
-
-const TransportIcon = ({ type }) => {
-  switch (type?.toLowerCase()) {
-    case "air":
-      return <Plane className="h-5 w-5 text-gray-500 mr-3" />;
-    case "bus":
-      return <Car className="h-5 w-5 text-gray-500 mr-3" />;
-    case "train":
-      return <Train className="h-5 w-5 text-gray-500 mr-3" />;
-    case "ferry":
-      return <Ship className="h-5 w-5 text-gray-500 mr-3" />;
-    default:
-      return <Car className="h-5 w-5 text-gray-500 mr-3" />;
-  }
-};
+import { TransportIconWithMargin as TransportIcon } from "@/app/components/shared/TransportIcon";
+import { formatPrettyDate } from "@/app/utils/dateUtils";
+import { CompactLoader } from "@/app/components/shared/LoadingSpinner";
 
 export default function TravelAgentBookings() {
   const router = useRouter();
@@ -106,11 +94,7 @@ export default function TravelAgentBookings() {
     }
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    return isNaN(date) ? "Invalid date" : format(date, "PPP");
-  };
+  const formatDate = formatPrettyDate;
 
   const renderBookingCard = (booking, isCompleted = false) => (
     <Card key={booking.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-lg overflow-hidden">
@@ -218,10 +202,7 @@ export default function TravelAgentBookings() {
 
         <TabsContent value="pending" className="mt-6">
           {isLoading && pendingBookings.length === 0 ? (
-            <div className="text-center py-10 col-span-full">
-              <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto" />
-              <p className="mt-4 text-gray-600">Loading pending bookings...</p>
-            </div>
+            <CompactLoader message="Loading pending bookings..." />
           ) : pendingBookings.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {pendingBookings.map(booking => renderBookingCard(booking, false))}
@@ -233,10 +214,7 @@ export default function TravelAgentBookings() {
 
         <TabsContent value="completed" className="mt-6">
           {isLoading && completedBookings.length === 0 ? (
-            <div className="text-center py-10 col-span-full">
-              <Loader2 className="h-12 w-12 animate-spin text-green-600 mx-auto" />
-              <p className="mt-4 text-gray-600">Loading completed bookings...</p>
-            </div>
+            <CompactLoader message="Loading completed bookings..." />
           ) : completedBookings.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {completedBookings.map(booking => renderBookingCard(booking, true))}

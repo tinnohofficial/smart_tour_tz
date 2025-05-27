@@ -1,7 +1,7 @@
 import { create } from "zustand"
 import { toast } from "sonner"
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL
+import { tourGuideService, bookingsService, apiUtils } from '@/app/services/api'
+import { ERROR_MESSAGES, USER_STATUS } from '@/app/constants'
 
 export const useDashboardStore = create((set) => ({
   userData: null,
@@ -15,18 +15,11 @@ export const useDashboardStore = create((set) => ({
   setIsAvailable: (isAvailable) => set({ isAvailable }),
   
   fetchDashboard: async () => {
-    set({ isLoading: true })
-    try {
-      // Fetch profile data
-      const token = localStorage.getItem('token')
-      const response = await fetch(`${API_URL}/tour-guides/profile`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
+    return apiUtils.withLoadingAndError(
+      async () => {
+        // Fetch profile data
+        const data = await tourGuideService.getProfile()
+        
         set({
           userData: {
             id: data.user_id,
@@ -48,17 +41,14 @@ export const useDashboardStore = create((set) => ({
         })
 
         // Only fetch tours and earnings if profile is approved
-        if (data.status === 'active') {
+        if (data.status === USER_STATUS.ACTIVE) {
           // Fetch assigned tours
-          const toursResponse = await fetch(`${API_URL}/bookings/tour-guide-assigned`, {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          })
-          
-          if (toursResponse.ok) {
-            const toursData = await toursResponse.json()
+          try {
+            const toursData = await bookingsService.getTourGuideAssignedBookings()
             set({ tours: toursData })
+          } catch (error) {
+            console.error('Error fetching tours:', error)
+            // Don't fail the whole operation if tours fail to load
           }
 
           // For now using mock earnings data
@@ -70,13 +60,17 @@ export const useDashboardStore = create((set) => ({
             }
           })
         }
+
+        return data
+      },
+      {
+        setLoading: (loading) => set({ isLoading: loading }),
+        setError: (error) => set({ error }),
+        onError: (error) => {
+          console.error('Error fetching dashboard data:', error)
+          toast.error(ERROR_MESSAGES.PROFILE_LOAD_ERROR)
+        }
       }
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error)
-      set({ error: 'Failed to load dashboard data' })
-      toast.error('Failed to load dashboard data')
-    } finally {
-      set({ isLoading: false })
-    }
+    )
   }
 }))

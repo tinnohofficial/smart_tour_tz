@@ -6,13 +6,12 @@ import { BarChart3, Hotel, Bed, LogOut, Menu, X, Lock, User, Building } from "lu
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
-import { useLayoutStore } from "./layoutStore"
+import { useLayoutStore } from "@/app/store/layoutStore"
 import { PendingApprovalAlert } from "@/components/pending-approval-alert"
 import { RouteProtection } from "@/components/route-protection"
 import { publishAuthChange } from "@/components/Navbar"
+import { hotelManagerService, apiUtils } from "@/app/services/api"
 import { useEffect, useState } from "react"
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL
 
 export default function HotelManagerLayout({ children }) {
   const pathname = usePathname()
@@ -33,32 +32,31 @@ export default function HotelManagerLayout({ children }) {
           return
         }
 
-        // Fetch user profile to check status
-        const response = await fetch(`${API_URL}/hotels/manager/profile`, {
-          headers: {
-            Authorization: `Bearer ${token}`
+        // Fetch user profile to check status using shared API service
+        const data = await apiUtils.withLoadingAndError(
+          () => hotelManagerService.getProfile(),
+          {
+            onSuccess: (data) => {
+              setUserStatus(data.status || 'pending_profile')
+              setHasProfile(true)
+            },
+            onError: (error) => {
+              if (error.response?.status === 404) {
+                // User has no profile yet
+                setUserStatus('pending_profile')
+                setHasProfile(false)
+                
+                // If not on dashboard or password page and has no profile, redirect to dashboard
+                if (!pathname.includes('/dashboard') && !pathname.includes('/password')) {
+                  router.push('/hotel-manager/dashboard')
+                }
+              } else {
+                console.error('Error fetching profile:', error)
+                apiUtils.handleAuthError(error, router)
+              }
+            }
           }
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          setUserStatus(data.status || 'pending_profile')
-          setHasProfile(true)
-        } else if (response.status === 404) {
-          // User has no profile yet
-          setUserStatus('pending_profile')
-          setHasProfile(false)
-          
-          // If not on dashboard or password page and has no profile, redirect to dashboard
-          if (!pathname.includes('/dashboard') && !pathname.includes('/password')) {
-            router.push('/hotel-manager/dashboard')
-          }
-        } else if (response.status === 401) {
-          // Unauthorized, redirect to login
-          localStorage.removeItem('token')
-          router.push('/login')
-          return
-        }
+        )
       } catch (error) {
         console.error("Error fetching user profile:", error)
       } finally {
@@ -90,7 +88,7 @@ export default function HotelManagerLayout({ children }) {
       href: "/hotel-manager/profile",
       label: "Hotel Profile",
       icon: <Building className="h-5 w-5" />,
-      active: pathname === "/profile/hotelManager",
+      active: pathname === "/hotel-manager/profile",
       // Only show profile if user has a profile or if they are active
       show: hasProfile || userStatus === 'active'
     },
@@ -238,7 +236,7 @@ export default function HotelManagerLayout({ children }) {
                   <h2 className="text-xl font-semibold text-gray-700">Please complete your profile</h2>
                   <p className="text-gray-500 mb-6">You need to complete your hotel profile before accessing this page.</p>
                   <Button 
-                    onClick={() => router.push('/profile/hotelManager')}
+                    onClick={() => router.push('/hotel-manager/profile')}
                     className="bg-blue-600 hover:bg-blue-700"
                   >
                     Complete Profile

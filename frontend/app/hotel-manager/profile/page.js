@@ -69,7 +69,7 @@ export default function HotelManagerProfile() {
         <div className="flex flex-col md:flex-row justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-white">Hotel Profile</h1>
-            <p className="text-blue-100 text-sm">Manage your hotel's information and accommodation details</p>
+            <p className="text-blue-100 text-sm">Manage your hotel&apos;s information and accommodation details</p>
           </div>
         </div>
       </div>

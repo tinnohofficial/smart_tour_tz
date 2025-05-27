@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { toast } from 'sonner'
+import { authService, apiUtils } from '../services/api'
 
 export const useUserStore = create((set) => ({
   isApproved: false,
@@ -12,27 +13,28 @@ export const useUserStore = create((set) => ({
 
   // Fetch user status from API
   fetchUserStatus: async () => {
+    const token = localStorage.getItem('token')
+    if (!token) return
+
     try {
-      const token = localStorage.getItem('token')
-      if (!token) return
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/status`, {
-        headers: {
-          Authorization: `Bearer ${token}`
+      const data = await apiUtils.withLoadingAndError(
+        () => authService.getUserStatus(),
+        {
+          setError: (error) => {
+            console.error('Error fetching user status:', error)
+            toast.error('Failed to fetch user status')
+          },
+          onSuccess: (data) => {
+            set({
+              isApproved: data.isApproved,
+              hasCompletedProfile: data.hasCompletedProfile,
+              userRole: data.role
+            })
+          }
         }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        set({
-          isApproved: data.isApproved,
-          hasCompletedProfile: data.hasCompletedProfile,
-          userRole: data.role
-        })
-      }
+      )
     } catch (error) {
-      console.error('Error fetching user status:', error)
-      toast.error('Failed to fetch user status')
+      // Error already handled by apiUtils.withLoadingAndError
     }
   }
 }))

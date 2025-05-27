@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Search, Plus, Edit, Trash, AlertTriangle, Loader2, MapPin } from "lucide-react"
 import { useActivitiesStore } from "./activitiesStore" 
+import { formatDate } from "@/app/utils/dateUtils" 
 
 export default function ActivitiesPage() {
   const {
@@ -101,11 +102,6 @@ export default function ActivitiesPage() {
     return destination ? destination.name : "Unknown";
   };
 
-  const formatDate = (dateString) => { 
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString();
-  };
-
   return (
     <div className="space-y-6">
       <div>
@@ -148,7 +144,7 @@ export default function ActivitiesPage() {
             <DialogHeader>
               <DialogTitle>Add New Activity</DialogTitle>
               <DialogDescription>
-                Enter the details for the new activity. Click save when you're done.
+                Enter the details for the new activity. Click save when you&apos;re done.
               </DialogDescription>
             </DialogHeader>
             {/* Add Form - uses store state/actions */}
@@ -265,7 +261,7 @@ export default function ActivitiesPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Activity</DialogTitle>
-            <DialogDescription>Update the details for this activity. Click save when you're done.</DialogDescription>
+            <DialogDescription>Update the details for this activity. Click save when you&apos;re done.</DialogDescription>
           </DialogHeader>
           {/* Edit Form  */}
           <form onSubmit={handleUpdateSubmit}>

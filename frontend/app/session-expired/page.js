@@ -39,7 +39,7 @@ export default function SessionExpiredPage() {
         <CardContent className="text-center pb-6">
           <p className="text-gray-600">Your session has expired due to inactivity or token expiration.</p>
           <p className="text-gray-500 text-sm mt-4">
-            For security reasons, you've been logged out. Please sign in again to continue.
+            For security reasons, you&apos;ve been logged out. Please sign in again to continue.
           </p>
         </CardContent>
         

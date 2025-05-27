@@ -11,6 +11,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useDashboardStore } from "./store"
 import { format } from "date-fns"
+import { formatDateWithFormat } from "@/app/utils/dateUtils"
+import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner"
 
 export default function HotelManagerDashboard() {
   const { stats, recentBookings, isLoading, error, fetchDashboardData } = useDashboardStore()
@@ -20,24 +22,10 @@ export default function HotelManagerDashboard() {
     fetchDashboardData()
   }, [fetchDashboardData])
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A"
-    try {
-      return format(new Date(dateString), "MMM dd, yyyy")
-    } catch (error) {
-      return "Invalid date"
-    }
-  }
+  const formatDate = (dateString) => formatDateWithFormat(dateString, "MMM dd, yyyy", "Invalid date")
 
   if (isLoading) {
-    return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto" />
-          <p className="mt-4 text-gray-600">Loading dashboard data...</p>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner message="Loading dashboard data..." />
   }
 
   return (

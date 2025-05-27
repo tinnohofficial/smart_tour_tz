@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { MapPin, Briefcase, Loader2, Save, Camera, CheckCircle, AlertCircle, Car, Plus, Trash2, UploadCloud } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -38,9 +38,9 @@ export default function TravelAgentProfile() {
 
   useEffect(() => {
     fetchProfile()
-  }, [])
+  }, [fetchProfile])
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     setIsLoading(true)
     try {
       const token = localStorage.getItem('token')
@@ -112,7 +112,7 @@ export default function TravelAgentProfile() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [router])
 
   const handleSubmit = async (e) => {
     e.preventDefault()

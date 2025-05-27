@@ -45,7 +45,7 @@ export default function TravelAgentDashboard() {
             <p className="mt-2 text-gray-600 max-w-md mx-auto">
               To start managing bookings and transport routes, please complete your agency profile.
             </p>
-            <Button className="mt-6 text-white bg-blue-600 hover:bg-blue-700" onClick={() => router.push('/profile/travelAgent')}>
+            <Button className="mt-6 text-white bg-blue-600 hover:bg-blue-700" onClick={() => router.push('/travel-agent/profile')}>
               Complete Profile
             </Button>
           </CardContent>
@@ -65,7 +65,7 @@ export default function TravelAgentDashboard() {
             </div>
             <h2 className="mt-6 text-2xl font-semibold text-gray-800">Application Under Review</h2>
             <p className="mt-2 text-gray-600 max-w-md mx-auto">
-              Your travel agency profile has been submitted and is currently under review. You'll be notified once the approval process is complete.
+              Your travel agency profile has been submitted and is currently under review. You&apos;ll be notified once the approval process is complete.
             </p>
           </CardContent>
         </Card>

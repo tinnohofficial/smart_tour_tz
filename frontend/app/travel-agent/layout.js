@@ -6,12 +6,11 @@ import { BarChart3, MapPin, Briefcase, LogOut, Menu, X, Lock, Car, Package } fro
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
-import { useLayoutStore } from "./layoutStore"
+import { useLayoutStore } from "@/app/store/layoutStore"
 import { PendingApprovalAlert } from "@/components/pending-approval-alert"
 import { RouteProtection } from "@/components/route-protection"
+import { travelAgentService, apiUtils } from "@/app/services/api"
 import { useEffect, useState } from "react"
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL
 
 export default function TravelAgentLayout({ children }) {
   const pathname = usePathname()
@@ -32,33 +31,31 @@ export default function TravelAgentLayout({ children }) {
           return
         }
 
-        // Fetch user profile to check status
-        const response = await fetch(`${API_URL}/travel-agents/profile`, {
-          headers: {
-            Authorization: `Bearer ${token}`
+        // Fetch user profile to check status using shared API service
+        const data = await apiUtils.withLoadingAndError(
+          () => travelAgentService.getProfile(),
+          {
+            onSuccess: (data) => {
+              setUserStatus(data.status || 'pending_profile')
+              setHasProfile(true)
+            },
+            onError: (error) => {
+              if (error.response?.status === 404) {
+                // User has no profile yet
+                setUserStatus('pending_profile')
+                setHasProfile(false)
+                
+                // If not on dashboard or password page and has no profile, redirect to dashboard
+                if (!pathname.includes('/dashboard') && !pathname.includes('/password')) {
+                  router.push('/travel-agent/dashboard')
+                }
+              } else {
+                console.error('Error fetching profile:', error)
+                apiUtils.handleAuthError(error, router)
+              }
+            }
           }
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          setUserStatus(data.status || 'pending_profile')
-          setHasProfile(true)
-        } else if (response.status === 404) {
-          // User has no profile yet
-          setUserStatus('pending_profile')
-          setHasProfile(false)
-          
-          // If not on dashboard or password page and has no profile, redirect to dashboard
-          if (!pathname.includes('/dashboard') && !pathname.includes('/password')) {
-            router.push('/travel-agent/dashboard')
-          }
-        } else if (response.status === 401) {
-          // Unauthorized, redirect to login
-          localStorage.removeItem('token')
-          localStorage.removeItem('userData')
-          router.push('/login')
-          return
-        }
+        )
       } catch (error) {
         console.error("Error fetching user profile:", error)
       } finally {

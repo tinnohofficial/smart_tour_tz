@@ -1,8 +1,8 @@
 // hotel-manager/bookings/store.js
 import { create } from 'zustand'
 import { toast } from 'sonner'
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL
+import { hotelBookingsService, apiUtils } from '@/app/services/api'
+import { SUCCESS_MESSAGES, ERROR_MESSAGES } from '@/app/constants'
 
 export const useBookingsStore = create((set, get) => ({
   // Booking data
@@ -46,43 +46,38 @@ export const useBookingsStore = create((set, get) => ({
   },
 
   fetchBookings: async () => {
-    set({ isLoading: true })
-    try {
-      const token = localStorage.getItem('token')
-      if (!token) throw new Error('No authentication token found')
-
-      const response = await fetch(`${API_URL}/bookings/hotel-bookings-pending`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
-
-      if (!response.ok) throw new Error('Failed to fetch bookings')
-      
-      const bookings = await response.json()
-      
-      // Parse the item details if needed
-      const parsedBookings = bookings.map(booking => {
-        if (booking.item_details && typeof booking.item_details === 'string') {
-          try {
-            booking.item_details = JSON.parse(booking.item_details)
-          } catch (e) {
-            console.error('Failed to parse item details:', e)
+    return apiUtils.withLoadingAndError(
+      async () => {
+        const bookings = await hotelBookingsService.getPendingBookings()
+        
+        // Parse the item details if needed
+        const parsedBookings = bookings.map(booking => {
+          if (booking.item_details && typeof booking.item_details === 'string') {
+            try {
+              booking.item_details = JSON.parse(booking.item_details)
+            } catch (e) {
+              console.error('Failed to parse item details:', e)
+            }
           }
+          return booking
+        })
+        
+        set({ 
+          bookings: parsedBookings, 
+          filteredBookings: parsedBookings
+        })
+        
+        return parsedBookings
+      },
+      {
+        setLoading: (loading) => set({ isLoading: loading }),
+        setError: (error) => set({ error }),
+        onError: (error) => {
+          console.error('Error fetching bookings:', error)
+          toast.error(ERROR_MESSAGES.BOOKINGS_LOAD_ERROR)
         }
-        return booking
-      })
-      
-      set({ 
-        bookings: parsedBookings, 
-        filteredBookings: parsedBookings,
-        isLoading: false 
-      })
-    } catch (error) {
-      console.error('Error fetching bookings:', error)
-      toast.error('Failed to load bookings')
-      set({ error: error.message, isLoading: false })
-    }
+      }
+    )
   },
 
   setSelectedBooking: (booking) => {
@@ -133,47 +128,35 @@ export const useBookingsStore = create((set, get) => ({
   },
 
   confirmRoom: async (itemId) => {
-    set({ isSubmitting: true })
-    try {
-      const token = localStorage.getItem('token')
-      if (!token) throw new Error('No authentication token found')
-
-      const { roomDetails } = get()
-      
-      // Validate required fields
-      if (!roomDetails.roomNumber || !roomDetails.roomType) {
-        toast.error('Room number and type are required')
-        set({ isSubmitting: false })
-        return
-      }
-
-      const response = await fetch(`${API_URL}/bookings/items/${itemId}/confirm-room`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ roomDetails })
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || 'Failed to confirm room')
-      }
-
-      toast.success('Room confirmed successfully')
-      
-      // Update local state - remove the confirmed booking
-      set(state => ({
-        bookings: state.bookings.filter(booking => booking.id !== itemId),
-        filteredBookings: state.filteredBookings.filter(booking => booking.id !== itemId),
-        isRoomDialogOpen: false,
-        isSubmitting: false
-      }))
-    } catch (error) {
-      console.error('Error confirming room:', error)
-      toast.error(error.message || 'Failed to confirm room')
-      set({ isSubmitting: false })
+    const { roomDetails } = get()
+    
+    // Validate required fields
+    if (!roomDetails.roomNumber || !roomDetails.roomType) {
+      toast.error('Room number and type are required')
+      return
     }
+
+    return apiUtils.withLoadingAndError(
+      async () => {
+        await hotelBookingsService.confirmRoom(itemId, roomDetails)
+        
+        // Update local state - remove the confirmed booking
+        set(state => ({
+          bookings: state.bookings.filter(booking => booking.id !== itemId),
+          filteredBookings: state.filteredBookings.filter(booking => booking.id !== itemId),
+          isRoomDialogOpen: false
+        }))
+        
+        toast.success(SUCCESS_MESSAGES.ROOM_CONFIRM_SUCCESS)
+      },
+      {
+        setLoading: (loading) => set({ isSubmitting: loading }),
+        setError: (error) => set({ error }),
+        onError: (error, message) => {
+          console.error('Error confirming room:', error)
+          toast.error(message || ERROR_MESSAGES.ROOM_CONFIRM_ERROR)
+        }
+      }
+    )
   }
 }))

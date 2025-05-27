@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
+import Image from "next/image"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -19,6 +20,8 @@ import { Search, CheckCircle, X, AlertTriangle, User, Hotel, Briefcase, FileText
 
 // Import the Zustand store
 import { useApplicationsStore } from "./applicationsStore"; // Adjust path if needed
+import { formatDate } from "@/app/utils/dateUtils";
+import { RoleBadge } from "@/app/components/shared/RoleBadge";
 
 export default function ApplicationsPage() {
   // Select state and actions from the Zustand store
@@ -44,23 +47,10 @@ export default function ApplicationsPage() {
     fetchApplications();
   }, [fetchApplications]); // Depend on the stable fetch function from the store
 
-  // --- Helper Functions (Keep these as they are presentation logic) ---
-  const formatDate = (dateString) => { 
+  // Use shared date formatting utility
+  const formatApplicationDate = (dateString) => {
     if (!dateString) return "2025-05-01"; // Default date if none provided
     return new Date(dateString).toLocaleString();
-  };
-
-  const getRoleBadge = (role) => { 
-    switch (role) {
-      case "tour_guide":
-        return <Badge variant="outline" className="flex items-center gap-1"><User className="h-3 w-3" /> Tour Guide</Badge>;
-      case "hotel_manager":
-        return <Badge variant="outline" className="flex items-center gap-1"><Hotel className="h-3 w-3" /> Hotel Manager</Badge>;
-      case "travel_agent":
-        return <Badge variant="outline" className="flex items-center gap-1"><Briefcase className="h-3 w-3" /> Travel Agent</Badge>;
-      default:
-        return <Badge variant="outline">{role}</Badge>;
-    }
   };
 
   // --- Render Logic ---
@@ -136,7 +126,7 @@ export default function ApplicationsPage() {
                   <TableRow key={application.id}>
                     <TableCell className="font-medium">{application.name}</TableCell>
                     <TableCell>{application.email}</TableCell>
-                    <TableCell>{getRoleBadge(application.role)}</TableCell>
+                    <TableCell><RoleBadge role={application.role} /></TableCell>
                     <TableCell>{formatDate(application.submitted_at)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
@@ -191,7 +181,7 @@ export default function ApplicationsPage() {
                   <h3 className="text-lg font-semibold">{selectedApplication.name}</h3>
                   <p className="text-gray-500">{selectedApplication.email}</p>
                 </div>
-                <div>{getRoleBadge(selectedApplication.role)}</div>
+                <div><RoleBadge role={selectedApplication.role} /></div>
               </div>
 
               <div className="space-y-6">
@@ -231,7 +221,7 @@ export default function ApplicationsPage() {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
                         {selectedApplication.details.images && selectedApplication.details.images.map((image, index) => ( // Removed types
                           <div key={index} className="relative aspect-video rounded-md overflow-hidden border">
-                            <img src={image || "/placeholder.svg"} alt={`Hotel image ${index + 1}`} className="object-cover w-full h-full" />
+                            <Image src={image || "/placeholder.svg"} alt={`Hotel image ${index + 1}`} className="object-cover w-full h-full" fill />
                           </div>
                         ))}
                       </div>

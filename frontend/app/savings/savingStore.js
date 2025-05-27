@@ -1,16 +1,15 @@
 import { create } from "zustand";
 
-// Zustand Store for Savings Component (savingsStore.js - create this file)
 const useSavingsStore = create((set, get) => ({
-  balance: 1800, // Mock initial balance
-  savingDuration: 30, // Mock saving duration in days
+  balance: 1800, // Initial balance - in production this would come from API
+  savingDuration: 30, // Saving duration in days
   depositAmount: "",
   isDepositing: false,
   isBalanceVisible: false,
   targetAmount: 5000,
   transactions: [
     { id: 1, type: "deposit", amount: 500, method: "Credit Card", date: "2023-05-15" },
-    { id: 2, type: "deposit", amount: 1000, method: "Cryptocurrency", date: "2023-05-01" },
+    { id: 2, type: "deposit", amount: 1000, method: "Bank Transfer", date: "2023-05-01" },
     { id: 3, type: "deposit", amount: 300, method: "Credit Card", date: "2023-04-22" },
   ],
 

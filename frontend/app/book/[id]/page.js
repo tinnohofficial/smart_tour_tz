@@ -43,26 +43,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useBookingStore, useBookingNights } from "./bookingStore"
 // Import RouteProtection component
 import { RouteProtection } from "@/components/route-protection"
-
-// Activities mock data - this will be replaced in a future update
-const activities = [
-  { id: 1, name: "Game Drive", price: 100, duration: "3 hours", description: "Explore the wildlife in a 4x4 vehicle" },
-  {
-    id: 2,
-    name: "Hot Air Balloon Safari",
-    price: 300,
-    duration: "1 hour",
-    description: "See the landscape from above",
-  },
-  {
-    id: 3,
-    name: "Guided Nature Walk",
-    price: 50,
-    duration: "2 hours",
-    description: "Learn about local flora and fauna",
-  },
-  { id: 4, name: "Cultural Village Visit", price: 75, duration: "4 hours", description: "Experience local traditions" },
-]
+// Import shared utilities
+import { formatBookingDate } from "@/app/utils/dateUtils"
+import { TransportIcon } from "@/app/components/shared/TransportIcon"
 
 function BookLocation({ params }) {
   const { id } = React.use(params) // Unwrap the params Promise
@@ -113,18 +96,9 @@ function BookLocation({ params }) {
   useEffect(() => {
     if (destinationId) {
       fetchDestination(destinationId);
-      console.log("Fetching destination with ID:", destinationId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [destinationId]); 
-
-  // Debug log whenever destination changes
-  useEffect(() => {
-    if (destination) {
-      console.log("Destination data loaded:", destination);
-      console.log("Destination cost:", destination.cost);
-    }
-  }, [destination]);
 
   // Fetch related data when destination is loaded
   useEffect(() => {
@@ -143,10 +117,6 @@ function BookLocation({ params }) {
 
   // For now, still using mock activities data - will be replaced in a future update
   const selectedActivitiesObj = useMemo(() => {
-    if (!apiActivities || apiActivities.length === 0) {
-      // Fallback to mock data if no API data available
-      return activities.filter((a) => selectedActivities.includes(a.id.toString()));
-    }
     // Use the actual API data when available
     return apiActivities.filter((a) => selectedActivities.includes(a.id.toString()));
   }, [selectedActivities, apiActivities]);
@@ -215,16 +185,6 @@ function BookLocation({ params }) {
       return
     }
 
-    console.log("Booking:", {
-      destinationId,
-      startDate,
-      endDate,
-      transportRouteId: selectedTransportRoute,
-      hotelId: selectedHotel,
-      activityIds: selectedActivities,
-      paymentMethod,
-    })
-
     alert(
       `Booking confirmed for ${destination?.name}. Payment processed via ${paymentMethod === "credit" ? "credit card" : paymentMethod === "savings" ? "savings account" : "crypto"}.`
     )
@@ -232,43 +192,18 @@ function BookLocation({ params }) {
     resetBooking()
     router.push("/")
   }, [
-    destination,
-    destinationId,
-    startDate,
-    endDate,
-    selectedTransportRoute,
-    selectedHotel,
-    selectedActivities,
+    destination?.name,
     paymentMethod,
     router,
     setIsPaymentDialogOpen,
     resetBooking
   ])
 
-  const formatDate = useCallback((dateString) => {
-    if (!dateString) return ""
-    try {
-      const date = new Date(dateString)
-      if (isNaN(date.getTime())) return "Invalid Date";
-      return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })
-    } catch (error) {
-        console.error("Error formatting date:", dateString, error);
-        return "Invalid Date";
-    }
-  }, [])
+  const formatDate = formatBookingDate;
 
-  const getTransportIcon = useCallback((type) => {
-    switch (type?.toLowerCase()) {
-      case "bus":
-        return <Bus className="h-5 w-5 text-blue-600" />
-      case "air":
-        return <Plane className="h-5 w-5 text-blue-600" />
-      case "ferry":
-        return <Ship className="h-5 w-5 text-blue-600" />
-      default:
-        return <Bus className="h-5 w-5 text-blue-600" />
-    }
-  }, [])
+  const getTransportIcon = useCallback((type) => (
+    <TransportIcon type={type} className="h-5 w-5" color="text-blue-600" />
+  ), [])
 
   // Show loading state while fetching destination
   if (isLoading.destination) {
@@ -653,8 +588,6 @@ function BookLocation({ params }) {
                             <CardContent className="p-0">
                               <div className="flex flex-col md:flex-row">
                                 <div className="relative w-full md:w-1/3 h-48">
-                                  {/* Adding console log to debug hotel image data format */}
-                                  {console.log("Hotel image data:", hotel.images)}
                                   <Image
                                     src={(() => {
                                       try {
@@ -782,7 +715,7 @@ function BookLocation({ params }) {
                     ) : apiActivities && apiActivities.length > 0 ? (
                       <>
                         <p className="text-sm text-gray-500 mb-4">
-                          Enhance your stay in {destination.name} with these exciting activities. Select as many as you'd like.
+                          Enhance your stay in {destination.name} with these exciting activities. Select as many as you&apos;d like.
                         </p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {apiActivities.map((activity) => (

@@ -3,8 +3,8 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { LayoutDashboard, Users, MapPin, Activity, Calendar, LogOut, Menu } from "lucide-react"
-import { create } from 'zustand' // Import zustand create
-import { publishAuthChange } from "@/components/Navbar" // Import publishAuthChange
+import { publishAuthChange } from "@/components/Navbar"
+import { useLayoutStore } from "@/app/store/layoutStore"
 
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -12,22 +12,11 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
 import { RouteProtection } from "@/components/route-protection"
 
-// 1. Define the Zustand Store
-export const useAdminLayoutStore = create((set) => ({
-  isMobileSidebarOpen: false, // Initial state
-  setMobileSidebarOpen: (isOpen) => set({ isMobileSidebarOpen: isOpen }), // Action to explicitly set the state
-  // Optional: toggle action if needed elsewhere
-  // toggleMobileSidebar: () => set((state) => ({ isMobileSidebarOpen: !state.isMobileSidebarOpen })),
-}))
-
-
-// 2. Define the AdminLayout Component
 export default function AdminLayout({ children }) {
   const pathname = usePathname()
   const router = useRouter()
-  // Get state and actions from the Zustand store
-  const isMobileSidebarOpen = useAdminLayoutStore((state) => state.isMobileSidebarOpen)
-  const setMobileSidebarOpen = useAdminLayoutStore((state) => state.setMobileSidebarOpen)
+  // Use the shared layout store
+  const { isSidebarOpen: isMobileSidebarOpen, setIsSidebarOpen: setMobileSidebarOpen } = useLayoutStore()
 
   const routes = [
     {

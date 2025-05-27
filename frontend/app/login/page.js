@@ -1,19 +1,23 @@
 "use client"
 
+import { useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
 import { LogIn } from "lucide-react"
-import { useLoginStore } from "./loginStore"
-import { publishAuthChange } from "@/components/Navbar" // Import the publishAuthChange function
+import { publishAuthChange } from "@/components/Navbar"
 
-export default function Login() {
+function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const returnUrl = searchParams.get('returnUrl') || "/"
-  const { email, password, isLoading, setEmail, setPassword, setIsLoading } = useLoginStore(); 
+  
+  // Local state instead of Zustand store for simple form data
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [isLoading, setIsLoading] = useState(false) 
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL
 
@@ -88,8 +92,6 @@ export default function Login() {
 
       // Default role-based redirection using the correct user role
       const userRole = data.user.role;
-      
-      console.log("User role:", userRole);  // For debugging
 
       switch (userRole) {
         case 'admin':
@@ -165,7 +167,7 @@ export default function Login() {
         </CardContent>
         <CardFooter className="flex flex-col space-y-4 border-t pt-6">
           <div className="text-sm text-gray-500 text-center">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <a href="/register" className="text-blue-600 hover:underline">
               Create an account
             </a>
@@ -178,5 +180,13 @@ export default function Login() {
         </CardFooter>
       </Card>
     </div>
+  )
+}
+
+export default function Login() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <LoginForm />
+    </Suspense>
   )
 }

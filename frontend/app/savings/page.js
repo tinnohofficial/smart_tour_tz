@@ -13,6 +13,7 @@ import { useSavingsStore } from "./savingStore"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Progress } from "@/components/ui/progress"
+import { formatDate } from "@/app/utils/dateUtils"
 
 // Mock data for transactions
 const transactions = [
@@ -48,11 +49,6 @@ export default function Savings() {
       toast.success(`Successfully deposited $${amount.toFixed(2)}.`)
     }
   }, [depositAmount, depositFunds])
-
-  const formatDate = (dateString) => {
-    const options = { year: "numeric", month: "short", day: "numeric" }
-    return new Date(dateString).toLocaleDateString(undefined, options)
-  }
 
   // Calculate savings progress (example: target is $5000)
   const targetAmount = 5000
