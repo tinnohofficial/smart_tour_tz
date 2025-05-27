@@ -148,7 +148,7 @@ export default function TravelAgentLayout({ children }) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Smart Tour Tanzania...</p>
         </div>
       </div>
@@ -157,7 +157,7 @@ export default function TravelAgentLayout({ children }) {
 
   return (
     <RouteProtection allowedRoles={['travel_agent']}>
-      <div className="flex h-screen bg-gray-50">
+      <div className="flex h-screen bg-amber-50">
         {/* Mobile sidebar backdrop */}
         {isSidebarOpen && (
           <div className="fixed inset-0 z-20 bg-black/50 md:hidden" onClick={() => setIsSidebarOpen(false)} />
@@ -166,20 +166,20 @@ export default function TravelAgentLayout({ children }) {
         {/* Sidebar */}
         <aside
           className={cn(
-            "fixed inset-y-0 left-0 z-30 w-64 transform bg-gray-900 transition-transform duration-200 ease-in-out md:translate-x-0",
+            "fixed inset-y-0 left-0 z-30 w-64 transform bg-amber-900 transition-transform duration-200 ease-in-out md:translate-x-0",
             isSidebarOpen ? "translate-x-0" : "-translate-x-full",
           )}
         >
           <div className="flex h-full flex-col">
-            <div className="flex h-16 items-center justify-between border-b border-gray-800 px-4">
+            <div className="flex h-16 items-center justify-between border-b border-amber-800 px-4">
               <div className="flex items-center">
-                <Briefcase className="h-6 w-6 text-blue-400 mr-2" />
+                <Briefcase className="h-6 w-6 text-white mr-2" />
                 <h1 className="text-xl font-semibold text-white">Travel Agent</h1>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
-                className="md:hidden text-gray-400 hover:text-white"
+                className="md:hidden text-amber-200 hover:text-white"
                 onClick={() => setIsSidebarOpen(false)}
               >
                 <X className="h-5 w-5" />
@@ -193,7 +193,7 @@ export default function TravelAgentLayout({ children }) {
                   href={item.href}
                   className={cn(
                     "flex items-center px-2 py-2 text-sm font-medium rounded-md",
-                    item.active ? "bg-gray-800 text-white" : "text-gray-300 hover:bg-gray-700 hover:text-white",
+                    item.active ? "bg-amber-800 text-white" : "text-amber-200 hover:bg-amber-800/50 hover:text-white",
                   )}
                 >
                   <span className="mr-3">{item.icon}</span>
@@ -202,9 +202,9 @@ export default function TravelAgentLayout({ children }) {
               ))}
             </nav>
 
-            <div className="border-t border-gray-800 p-4">
+            <div className="border-t border-amber-800 p-4">
               <button 
-                className="flex w-full items-center rounded-md px-2 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+                className="flex w-full items-center rounded-md px-2 py-2 text-sm font-medium text-amber-200 hover:bg-amber-800/50 hover:text-white"
                 onClick={handleLogout}
               >
                 <LogOut className="mr-3 h-5 w-5" />
@@ -251,7 +251,7 @@ export default function TravelAgentLayout({ children }) {
                   <p className="text-gray-500 mb-6">You need to complete your travel agency profile before accessing this page.</p>
                   <Button 
                     onClick={() => router.push('/travel-agent/profile')}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-amber-700 hover:bg-amber-800"
                   >
                     Complete Profile
                   </Button>

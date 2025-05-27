@@ -202,7 +202,7 @@ function BookLocation({ params }) {
   const formatDate = formatBookingDate;
 
   const getTransportIcon = useCallback((type) => (
-    <TransportIcon type={type} className="h-5 w-5" color="text-blue-600" />
+    <TransportIcon type={type} className="h-5 w-5" color="text-amber-700" />
   ), [])
 
   // Show loading state while fetching destination
@@ -210,7 +210,7 @@ function BookLocation({ params }) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-700 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading Smart Tour Destinations</p>
         </div>
       </div>
@@ -269,7 +269,7 @@ function BookLocation({ params }) {
             <h1 className="text-3xl md:text-5xl font-bold text-white mb-2">{destination.name}</h1>
             <p className="text-lg md:text-xl text-white/90 max-w-3xl">{destination.description}</p>
             <div className="flex items-center gap-4 mt-4">
-              <Badge variant="secondary" className="text-lg bg-blue-600 text-white">
+              <Badge variant="secondary" className="text-lg bg-amber-700 text-white">
                 ${(() => {
                   // Handle the cost display with proper parsing
                   if (destination.cost) {
@@ -313,22 +313,22 @@ function BookLocation({ params }) {
           <div className="relative">
             <div className="flex justify-between md:gap-64 gap-6 mb-2 ">
               <div className="text-center w-full md:w-1/4">
-                <span className={`text-sm ${step >= 1 ? "text-blue-600 font-medium" : "text-gray-500"}`}>
+                <span className={`text-sm ${step >= 1 ? "text-amber-700 font-medium" : "text-gray-500"}`}>
                   Dates
                 </span>
               </div>
               <div className="text-center w-full md:w-1/4">
-                <span className={`text-sm ${step >= 2 ? "text-blue-600 font-medium" : "text-gray-500"}`}>
+                <span className={`text-sm ${step >= 2 ? "text-amber-700 font-medium" : "text-gray-500"}`}>
                   Transport
                 </span>
               </div>
               <div className="text-center w-full md:w-1/4">
-                <span className={`text-sm ${step >= 3 ? "text-blue-600 font-medium" : "text-gray-500"}`}>
+                <span className={`text-sm ${step >= 3 ? "text-amber-700 font-medium" : "text-gray-500"}`}>
                   Accommodations
                 </span>
               </div>
               <div className="text-center w-full md:w-1/4">
-                <span className={`text-sm ${step >= 4 ? "text-blue-600 font-medium" : "text-gray-500"}`}>
+                <span className={`text-sm ${step >= 4 ? "text-amber-700 font-medium" : "text-gray-500"}`}>
                   Activities
                 </span>
               </div>
@@ -337,31 +337,31 @@ function BookLocation({ params }) {
             <div className="flex items-center">
               <div
                 className={`rounded-full h-10 w-10 flex items-center justify-center ${
-                  step >= 1 ? "bg-blue-600 text-white" : "bg-blue-100 text-gray-500"
+                  step >= 1 ? "bg-amber-700 text-white" : "bg-amber-100 text-gray-500"
                 }`}
               >
                 1
               </div>
-              <div className={`h-1 flex-grow ${step > 1 ? "bg-blue-600" : "bg-blue-100"}`}></div>
+              <div className={`h-1 flex-grow ${step > 1 ? "bg-amber-700" : "bg-amber-100"}`}></div>
               <div
                 className={`rounded-full h-10 w-10 flex items-center justify-center ${
-                  step >= 2 ? "bg-blue-600 text-white" : "bg-blue-100 text-gray-500"
+                  step >= 2 ? "bg-amber-700 text-white" : "bg-amber-100 text-gray-500"
                 }`}
               >
                 2
               </div>
-              <div className={`h-1 flex-grow ${step > 2 ? "bg-blue-600" : "bg-blue-100"}`}></div>
+              <div className={`h-1 flex-grow ${step > 2 ? "bg-amber-700" : "bg-amber-100"}`}></div>
               <div
                 className={`rounded-full h-10 w-10 flex items-center justify-center ${
-                  step >= 3 ? "bg-blue-600 text-white" : "bg-blue-100 text-gray-500"
+                  step >= 3 ? "bg-amber-700 text-white" : "bg-amber-100 text-gray-500"
                 }`}
               >
                 3
               </div>
-              <div className={`h-1 flex-grow ${step > 3 ? "bg-blue-600" : "bg-blue-100"}`}></div>
+              <div className={`h-1 flex-grow ${step > 3 ? "bg-amber-700" : "bg-amber-100"}`}></div>
               <div
                 className={`rounded-full h-10 w-10 flex items-center justify-center ${
-                  step >= 4 ? "bg-blue-600 text-white" : "bg-blue-100 text-gray-500"
+                  step >= 4 ? "bg-amber-700 text-white" : "bg-amber-100 text-gray-500"
                 }`}
               >
                 4
@@ -376,7 +376,7 @@ function BookLocation({ params }) {
             <div className="space-y-8">
               <div>
                 <h3 className="text-xl font-semibold flex items-center gap-2 mb-6">
-                  <Calendar className="h-5 w-5 text-blue-600" /> Select Your Travel Dates
+                  <Calendar className="h-5 w-5 text-amber-600" /> Select Your Travel Dates
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -411,7 +411,7 @@ function BookLocation({ params }) {
                 </div>
 
                 {startDate && endDate && new Date(startDate) <= new Date(endDate) && (
-                  <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-medium">Duration of stay:</p>
@@ -440,7 +440,7 @@ function BookLocation({ params }) {
                 <Button 
                   type="button" 
                   onClick={nextStep} 
-                  className="w-full md:w-auto text-white bg-blue-600 hover:bg-blue-700 h-12"
+                  className="w-full md:w-auto text-white bg-amber-700 hover:bg-amber-800 h-12"
                 >
                   Continue <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -452,7 +452,7 @@ function BookLocation({ params }) {
             <div className="space-y-8">
               <div>
                 <h3 className="text-xl font-semibold flex items-center gap-2 mb-6">
-                  <Bus className="h-5 w-5 text-blue-600" /> Select Transport Route
+                  <Bus className="h-5 w-5 text-amber-600" /> Select Transport Route
                 </h3>
 
                 <div className="space-y-8">
@@ -464,8 +464,8 @@ function BookLocation({ params }) {
                     {/* Show loading state */}
                     {isLoading.transports ? (
                       <div className="flex justify-center items-center py-8">
-                        <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
-                        <span className="ml-3 text-blue-600">Loading transport options...</span>
+                        <Loader2 className="h-8 w-8 text-amber-600 animate-spin" />
+                        <span className="ml-3 text-amber-600">Loading transport options...</span>
                       </div>
                     ) : error.transports ? (
                       <Alert variant="destructive" className="mb-4">
@@ -488,13 +488,13 @@ function BookLocation({ params }) {
                             key={route.id}
                             className={`p-4 border rounded-lg cursor-pointer transition-all ${
                               selectedTransportRoute === route.id.toString()
-                                ? "border-blue-600 bg-blue-50"
-                                : "hover:border-blue-300"
+                                ? "border-amber-600 bg-amber-50"
+                                : "hover:border-amber-300"
                             }`}
                             onClick={() => setSelectedTransportRoute(route.id.toString())}
                           >
                             <div className="flex items-center gap-3 mb-2">
-                              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                              <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
                                 {getTransportIcon(route.transportation_type)}
                               </div>
                               <div>
@@ -512,7 +512,7 @@ function BookLocation({ params }) {
                               <div className="flex justify-between items-center text-sm text-gray-500">
                                 {/* Use duration if available, otherwise just show the route */}
                                 <span>{route.duration || `${route.origin} to ${route.destination}`}</span>
-                                <Badge className="border border-blue-200">${route.cost}</Badge>
+                                <Badge className="border border-amber-200">${route.cost}</Badge>
                               </div>
                               {/* Show schedule if available */}
                               {route.schedule && <p className="text-xs text-gray-500 mt-2">{route.schedule}</p>}
@@ -531,10 +531,10 @@ function BookLocation({ params }) {
               </div>
 
               <div className="flex justify-between">
-                <Button type="button" onClick={prevStep} variant="outline" className="h-12 px-8 border border-blue-200 hover:bg-blue-50">
+                <Button type="button" onClick={prevStep} variant="outline" className="h-12 px-8 border border-amber-200 hover:bg-amber-50">
                   Back
                 </Button>
-                <Button type="button" onClick={nextStep} className="h-12 px-8 text-white bg-blue-600 hover:bg-blue-700">
+                <Button type="button" onClick={nextStep} className="h-12 px-8 text-white bg-amber-700 hover:bg-amber-800">
                   Continue <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
@@ -545,7 +545,7 @@ function BookLocation({ params }) {
             <div className="space-y-8">
               <div>
                 <h3 className="text-xl font-semibold flex items-center gap-2 mb-6">
-                  <Hotel className="h-5 w-5 text-blue-600" /> Select Hotel
+                  <Hotel className="h-5 w-5 text-amber-600" /> Select Hotel
                 </h3>
                 <div className="space-y-4">
                   <div>
@@ -556,8 +556,8 @@ function BookLocation({ params }) {
                     {/* Show loading state for hotels */}
                     {isLoading.hotels ? (
                       <div className="flex justify-center items-center py-8">
-                        <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
-                        <span className="ml-3 text-blue-600">Loading hotels...</span>
+                        <Loader2 className="h-8 w-8 text-amber-600 animate-spin" />
+                        <span className="ml-3 text-amber-600">Loading hotels...</span>
                       </div>
                     ) : error.hotels ? (
                       <Alert variant="destructive" className="mb-4">
@@ -580,8 +580,8 @@ function BookLocation({ params }) {
                             key={hotel.id}
                             className={`cursor-pointer overflow-hidden transition-all duration-200 ${
                               selectedHotel === hotel.id.toString()
-                                ? "border-blue-600 ring-2 ring-blue-200"
-                                : "hover:border-blue-300"
+                                ? "border-amber-600 ring-2 ring-amber-200"
+                                : "hover:border-amber-300"
                             }`}
                             onClick={() => setSelectedHotel(hotel.id.toString())}
                           >
@@ -623,7 +623,7 @@ function BookLocation({ params }) {
                                         <span>{hotel.location}</span>
                                       </div>
                                       <div className="flex items-center gap-2 mb-3 text-sm">
-                                        <Badge variant="outline" className="bg-blue-50 border-blue-200">
+                                        <Badge variant="outline" className="bg-amber-50 border-amber-200">
                                           <Star className="h-3 w-3 mr-1 fill-yellow-400 text-yellow-400" />
                                           {hotel.rating || "4.8"}
                                         </Badge>
@@ -650,7 +650,7 @@ function BookLocation({ params }) {
                                       </div>
                                     </div>
                                     {selectedHotel === hotel.id.toString() && (
-                                      <div className="flex items-center gap-2 text-blue-600">
+                                      <div className="flex items-center gap-2 text-amber-600">
                                         <Check className="h-5 w-5" /> Selected
                                       </div>
                                     )}
@@ -672,14 +672,14 @@ function BookLocation({ params }) {
                   type="button"
                   onClick={prevStep}
                   variant="outline"
-                  className="h-12 px-8 border border-blue-200 hover:bg-blue-50"
+                  className="h-12 px-8 border border-amber-200 hover:bg-amber-50"
                 >
                   Back
                 </Button>
                 <Button
                   type="button"
                   onClick={nextStep}
-                  className="h-12 px-8 text-white bg-blue-600 hover:bg-blue-700"
+                  className="h-12 px-8 text-white bg-amber-700 hover:bg-amber-800"
                 >
                   Continue <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -691,7 +691,7 @@ function BookLocation({ params }) {
             <div className="space-y-8">
               <div>
                 <h3 className="text-xl font-semibold flex items-center gap-2 mb-6">
-                  <MapPin className="h-5 w-5 text-blue-600" /> Add Activities
+                  <MapPin className="h-5 w-5 text-amber-600" /> Add Activities
                 </h3>
                 <div className="space-y-4">
                   <div>
@@ -702,8 +702,8 @@ function BookLocation({ params }) {
                     {/* Show loading state for activities */}
                     {isLoading.activities ? (
                       <div className="flex justify-center items-center py-8">
-                        <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
-                        <span className="ml-3 text-blue-600">Loading activities...</span>
+                        <Loader2 className="h-8 w-8 text-amber-600 animate-spin" />
+                        <span className="ml-3 text-amber-600">Loading activities...</span>
                       </div>
                     ) : error.activities ? (
                       <Alert variant="destructive" className="mb-4">
@@ -723,8 +723,8 @@ function BookLocation({ params }) {
                               key={activity.id}
                               className={`p-4 border rounded-lg cursor-pointer transition-all ${
                                 selectedActivities.includes(activity.id.toString())
-                                  ? "border-blue-600 bg-blue-50"
-                                  : "hover:border-blue-300"
+                                  ? "border-amber-600 bg-amber-50"
+                                  : "hover:border-amber-300"
                               }`}
                               onClick={() => toggleActivity(activity.id.toString())}
                             >
@@ -737,13 +737,13 @@ function BookLocation({ params }) {
                                     </div>
                                   )}
                                 </div>
-                                <Badge className="border border-blue-200 bg-blue-50 text-blue-700">
+                                <Badge className="border border-amber-200 bg-amber-50 text-amber-700">
                                   ${activity.price}
                                 </Badge>
                               </div>
                               <p className="text-gray-600 text-sm mt-2 line-clamp-2">{activity.description}</p>
                               {selectedActivities.includes(activity.id.toString()) && (
-                                <div className="flex items-center gap-1 text-blue-600 mt-2">
+                                <div className="flex items-center gap-1 text-amber-600 mt-2">
                                   <Check className="h-4 w-4" /> Selected
                                 </div>
                               )}
@@ -761,7 +761,7 @@ function BookLocation({ params }) {
                     )}
                     
                     {selectedActivities.length > 0 && (
-                      <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
                         <div className="flex justify-between items-center">
                           <p className="font-medium">Selected activities:</p>
                           <p className="text-lg font-semibold">
@@ -778,14 +778,14 @@ function BookLocation({ params }) {
                   type="button"
                   onClick={prevStep}
                   variant="outline"
-                  className="h-12 px-8 border border-blue-200 hover:bg-blue-50"
+                  className="h-12 px-8 border border-amber-200 hover:bg-amber-50"
                 >
                   Back
                 </Button>
                 <Button
                   type="button"
                   onClick={nextStep}
-                  className="h-12 px-8 text-white bg-blue-600 hover:bg-blue-700"
+                  className="h-12 px-8 text-white bg-amber-700 hover:bg-amber-800"
                 >
                   Continue to Review <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -796,8 +796,8 @@ function BookLocation({ params }) {
           {step === 5 && (  /* Step 5 Content - Review and Payment Page */
             <div className="space-y-8">
               <div className="flex items-center gap-3 mb-6">
-                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                  <Check className="h-5 w-5 text-blue-600" />
+                <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
+                  <Check className="h-5 w-5 text-amber-600" />
                 </div>
                 <h3 className="text-2xl font-bold">Review and Confirm Your Booking</h3>
               </div>
@@ -809,21 +809,21 @@ function BookLocation({ params }) {
                   <Card className="border-0 shadow-md rounded-xl">
                     <CardContent className="p-6">
                       <div className="flex items-center gap-2 mb-6">
-                        <div className="h-9 w-9 rounded-full bg-blue-50 flex-shrink-0 flex items-center justify-center">
-                          <MapPin className="h-4 w-4 text-blue-600" />
+                        <div className="h-9 w-9 rounded-full bg-amber-50 flex-shrink-0 flex items-center justify-center">
+                          <MapPin className="h-4 w-4 text-amber-600" />
                         </div>
                         <div>
                           <h4 className="font-medium text-lg">{destination.name}</h4>
                           <p className="text-sm text-gray-600">{destination.region || 'Tanzania'}</p>
                         </div>
-                        <Badge className="ml-auto bg-blue-100 text-blue-800 border border-blue-200">
+                        <Badge className="ml-auto bg-amber-100 text-amber-800 border border-amber-200">
                           ${parseFloat(destination.cost || 0).toFixed(2)}
                         </Badge>
                       </div>
 
                       <div className="flex justify-between items-center mb-4 pt-4 border-t">
                         <div className="flex items-center gap-2">
-                          <Calendar className="h-5 w-5 text-blue-600" />
+                          <Calendar className="h-5 w-5 text-amber-600" />
                           <div>
                             <h4 className="font-medium">Travel Dates</h4>
                             <p className="text-gray-600 text-sm">
@@ -831,15 +831,15 @@ function BookLocation({ params }) {
                             </p>
                           </div>
                         </div>
-                        <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-700">
+                        <Badge variant="outline" className="bg-amber-50 border-amber-200 text-amber-700">
                           {nights} {nights === 1 ? "night" : "nights"}
                         </Badge>
                       </div>
                       
                       {selectedHotelObj && (
                         <div className="flex items-start gap-3 mb-4 pt-4 border-t">
-                          <div className="h-9 w-9 rounded-full bg-blue-50 flex-shrink-0 flex items-center justify-center">
-                            <Hotel className="h-4 w-4 text-blue-600" />
+                          <div className="h-9 w-9 rounded-full bg-amber-50 flex-shrink-0 flex items-center justify-center">
+                            <Hotel className="h-4 w-4 text-amber-600" />
                           </div>
                           <div className="flex-grow">
                             <div className="flex justify-between">
@@ -851,7 +851,7 @@ function BookLocation({ params }) {
                               </div>
                               <div className="text-right">
                                 <div className="text-sm font-medium">${selectedHotelObj.base_price_per_night} <span className="text-xs text-gray-500">/ night</span></div>
-                                <div className="text-sm text-blue-600 font-medium">${selectedHotelObj.base_price_per_night * nights} total</div>
+                                <div className="text-sm text-amber-600 font-medium">${selectedHotelObj.base_price_per_night * nights} total</div>
                               </div>
                             </div>
                           </div>
@@ -860,7 +860,7 @@ function BookLocation({ params }) {
                       
                       {selectedRoute && (
                         <div className="flex items-start gap-3 mb-4 pt-4 border-t">
-                          <div className="h-9 w-9 rounded-full bg-blue-50 flex-shrink-0 flex items-center justify-center">
+                          <div className="h-9 w-9 rounded-full bg-amber-50 flex-shrink-0 flex items-center justify-center">
                             {getTransportIcon(selectedRoute.transportation_type)}
                           </div>
                           <div className="flex-grow">
@@ -877,7 +877,7 @@ function BookLocation({ params }) {
                                 )}
                               </div>
                               <div className="text-right">
-                                <div className="text-sm font-medium text-blue-600">${selectedRoute.cost}</div>
+                                <div className="text-sm font-medium text-amber-600">${selectedRoute.cost}</div>
                               </div>
                             </div>
                           </div>
@@ -891,7 +891,7 @@ function BookLocation({ params }) {
                     <Card className="border-0 shadow-md rounded-xl">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-lg flex items-center gap-2">
-                          <MapPin className="h-5 w-5 text-blue-600" /> 
+                          <MapPin className="h-5 w-5 text-amber-600" /> 
                           Selected Activities
                         </CardTitle>
                       </CardHeader>
@@ -975,12 +975,12 @@ function BookLocation({ params }) {
                           
                           <div className="flex justify-between text-base font-bold">
                             <span>Total</span>
-                            <span className="text-blue-700">${totalPrice.toFixed(2)}</span>
+                            <span className="text-amber-700">${totalPrice.toFixed(2)}</span>
                           </div>
                         </div>
 
                         <div className="mt-6 space-y-4">
-                          <div className="flex items-center space-x-2 p-3 bg-blue-50 rounded-lg">
+                          <div className="flex items-center space-x-2 p-3 bg-amber-50 rounded-lg">
                             <Checkbox
                               id="terms"
                               checked={agreedToTerms}
@@ -997,7 +997,7 @@ function BookLocation({ params }) {
 
                           <Button
                             type="submit"
-                            className="w-full h-12 text-white bg-blue-600 hover:bg-blue-700 font-medium"
+                            className="w-full h-12 text-white bg-amber-700 hover:bg-amber-800 font-medium"
                             disabled={!agreedToTerms}
                           >
                             <CreditCard className="mr-2 h-4 w-4" />
@@ -1008,7 +1008,7 @@ function BookLocation({ params }) {
                             type="button"
                             onClick={prevStep}
                             variant="outline"
-                            className="w-full h-12 border-blue-200 hover:bg-blue-50 mt-2"
+                            className="w-full h-12 border-amber-200 hover:bg-amber-50 mt-2"
                           >
                             Go Back
                           </Button>
@@ -1081,7 +1081,7 @@ function BookLocation({ params }) {
             </TabsContent>
             
             <TabsContent value="savings" className="space-y-4">
-              <div className="p-4 bg-blue-50 rounded-lg">
+              <div className="p-4 bg-amber-50 rounded-lg">
                 <div className="flex justify-between items-center mb-2">
                   <span>Available Balance:</span>
                   <span className="font-semibold">${savingsBalance.toFixed(2)}</span>
@@ -1112,7 +1112,7 @@ function BookLocation({ params }) {
             </TabsContent>
             
             <TabsContent value="crypto" className="space-y-4">
-              <div className="p-4 bg-blue-50 rounded-lg">
+              <div className="p-4 bg-amber-50 rounded-lg">
                 <div className="flex justify-between items-center mb-2">
                   <span>Equivalent in ETH:</span>
                   <span className="font-semibold">{(totalPrice / 3500).toFixed(6)} ETH</span>
@@ -1131,7 +1131,7 @@ function BookLocation({ params }) {
                       type="button" 
                       variant="ghost" 
                       size="sm" 
-                      className="absolute right-1 top-1 h-7 text-xs text-blue-600"
+                      className="absolute right-1 top-1 h-7 text-xs text-amber-600"
                       onClick={() => {
                         if (window.ethereum) {
                           window.ethereum.request({ method: 'eth_requestAccounts' })
@@ -1154,8 +1154,8 @@ function BookLocation({ params }) {
                 <div className="mt-4">
                   <Label className="mb-2 block">Select Cryptocurrency</Label>
                   <div className="grid grid-cols-2 gap-2">
-                    <div className="flex items-center space-x-2 border rounded-md p-2 cursor-pointer bg-white hover:bg-blue-50 hover:border-blue-300">
-                      <svg className="h-5 w-5 text-blue-600" viewBox="0 0 24 24" fill="none">
+                    <div className="flex items-center space-x-2 border rounded-md p-2 cursor-pointer bg-white hover:bg-amber-50 hover:border-amber-300">
+                      <svg className="h-5 w-5 text-amber-600" viewBox="0 0 24 24" fill="none">
                         <path d="M11.767 19.089c4.924.868 6.14-6.025 1.216-6.894m-1.216 6.894L5.86 18.047m5.908 1.042-.347 1.97m1.563-8.864c4.924.869 6.14-6.025 1.215-6.893m-1.215 6.893-3.94-.694m3.94.694-.347 1.97M7.116 5.137l-1.257-.221 1.437 8.148" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                       <div>
@@ -1163,8 +1163,8 @@ function BookLocation({ params }) {
                         <p className="text-xs text-gray-500">BTC</p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2 border rounded-md p-2 cursor-pointer bg-white hover:bg-blue-50 hover:border-blue-300">
-                      <svg className="h-5 w-5 text-blue-600" viewBox="0 0 24 24" fill="none">
+                    <div className="flex items-center space-x-2 border rounded-md p-2 cursor-pointer bg-white hover:bg-amber-50 hover:border-amber-300">
+                      <svg className="h-5 w-5 text-amber-600" viewBox="0 0 24 24" fill="none">
                         <path d="M12 2L5.25 12.05L12 15.85V2ZM12 15.85L18.75 12.05L12 2V15.85Z" fill="currentColor" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" />
                         <path d="M12 22L5.25 12.5L12 16.3V22ZM12 16.3L18.75 12.5L12 22V16.3Z" fill="currentColor" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>

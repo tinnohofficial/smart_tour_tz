@@ -119,7 +119,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   return (
     <div className="container max-w-3xl mx-auto py-10">
-      <Card className="border-blue-100 shadow-md">
+      <Card className="border-amber-100 shadow-md">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-between">
             <CardTitle className="text-2xl font-bold">Create an Account</CardTitle>
@@ -195,7 +195,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
                 </div>
               </div>
 
-              <Button type="submit" className="w-full text-white bg-blue-600 hover:bg-blue-700">
+              <Button type="submit" className="w-full text-white bg-amber-700 hover:bg-amber-800">
                 Create Account
                 <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
@@ -205,7 +205,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
         <CardFooter className="flex flex-col space-y-4 border-t pt-6">
           <div className="text-sm text-gray-500 text-center">
             Already have an account?{" "}
-            <a href="/login" className="text-blue-600 hover:underline">
+            <a href="/login" className="text-amber-700 hover:underline">
               Sign in
             </a>
           </div>

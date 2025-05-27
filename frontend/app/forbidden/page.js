@@ -53,7 +53,7 @@ function ForbiddenContent() {
             </Link>
             <Link href="/login" className="w-full sm:w-auto">
               <Button 
-                className="w-full sm:w-auto text-white bg-blue-600 hover:bg-blue-700 px-5 py-2"
+                className="w-full sm:w-auto text-white bg-amber-700 hover:bg-amber-800 px-5 py-2"
               >
                 <LogIn className="mr-2 h-4 w-4" />
                 Sign In
@@ -72,7 +72,7 @@ function ForbiddenContent() {
             </p>
             <div className="flex items-center">
               <p className="text-sm text-gray-600">
-                Need help? Contact <span className="text-blue-600 font-medium">help@smarttourtanzania.com</span>
+                Need help? Contact <span className="text-amber-600 font-medium">help@smarttourtanzania.com</span>
               </p>
             </div>
           </div>

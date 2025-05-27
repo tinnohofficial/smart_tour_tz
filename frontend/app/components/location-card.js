@@ -49,14 +49,14 @@ export function LocationCard({ id, name, description, image }) {
         className="w-full h-56 object-cover m-0 p-0"
       />
       <CardHeader>
-        <CardTitle className="text-2xl text-blue-600">{name}</CardTitle>
+        <CardTitle className="text-2xl text-amber-700">{name}</CardTitle>
       </CardHeader>
       <CardContent className="flex-grow text-gray-500">
         <CardDescription>{description}</CardDescription>
       </CardContent>
       <CardFooter>
         <Button 
-          className="w-full text-white bg-blue-600 hover:bg-blue-700" 
+          className="w-full text-white bg-amber-700 hover:bg-amber-800" 
           onClick={handleBooking}
         >
           Book Now

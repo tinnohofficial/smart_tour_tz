@@ -58,10 +58,10 @@ export default function AssignmentsPage() {
 
   // --- Render Logic ---
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Tour Guide Assignments</h1>
-        <p className="text-muted-foreground">Assign tour guides to confirmed bookings.</p>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Tour Guide Assignments</h1>
+        <p className="text-muted-foreground text-sm sm:text-base">Assign tour guides to confirmed bookings.</p>
       </div>
 
       {/* Error Display (reads from store state) */}
@@ -73,18 +73,18 @@ export default function AssignmentsPage() {
         </Alert>
       )}
 
-      <div className="flex items-center">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+        <div className="relative flex-1 w-full max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
             placeholder="Search bookings..."
-            className="pl-8"
+            className="pl-8 text-sm"
             value={searchTerm} // Read from store
             onChange={(e) => setSearchTerm(e.target.value)} // Use store action
           />
         </div>
-        <Button variant="outline" className="ml-2" onClick={fetchUnassignedBookings} disabled={isLoading}>
+        <Button variant="outline" className="w-full sm:w-auto" onClick={fetchUnassignedBookings} disabled={isLoading}>
           Refresh
         </Button>
       </div>
@@ -113,45 +113,58 @@ export default function AssignmentsPage() {
               </p>
             </div>
           ) : (
-            /* Data Table */
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tourist</TableHead>
-                  <TableHead>Destination</TableHead>
-                  <TableHead>Date Range</TableHead>
-                  <TableHead>Activities</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredBookings.map((booking) => (
-                  <TableRow key={booking.id}>
-                    <TableCell className="font-medium">{booking.tourist_name}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center">
-                        <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
-                        {booking.destination_name}
-                      </div>
-                    </TableCell>
-                    <TableCell>{formatDateRange(booking.start_date, booking.end_date)}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {booking.activities.map((activity, index) => (
-                          <Badge key={index} variant="outline">{activity}</Badge>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {/* Use store action to prepare dialog and fetch guides */}
-                      <Button onClick={() => prepareAssignDialog(booking)} disabled={isSubmitting}>
-                        Assign Guide
-                      </Button>
-                    </TableCell>
+            /* Data Table - Make responsive */
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[120px]">Tourist</TableHead>
+                    <TableHead className="min-w-[150px]">Destination</TableHead>
+                    <TableHead className="min-w-[130px] hidden sm:table-cell">Date Range</TableHead>
+                    <TableHead className="min-w-[120px] hidden lg:table-cell">Activities</TableHead>
+                    <TableHead className="text-right min-w-[120px]">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredBookings.map((booking) => (
+                    <TableRow key={booking.id}>
+                      <TableCell className="font-medium">
+                        <div className="truncate max-w-[120px]">{booking.tourist_name}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center min-w-0">
+                          <MapPin className="h-4 w-4 mr-1 text-muted-foreground flex-shrink-0" />
+                          <span className="truncate max-w-[130px]">{booking.destination_name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        <div className="text-xs sm:text-sm">{formatDateRange(booking.start_date, booking.end_date)}</div>
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        <div className="flex flex-wrap gap-1 max-w-[150px]">
+                          {booking.activities.slice(0, 2).map((activity, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">{activity}</Badge>
+                          ))}
+                          {booking.activities.length > 2 && (
+                            <Badge variant="outline" className="text-xs">+{booking.activities.length - 2}</Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {/* Use store action to prepare dialog and fetch guides */}
+                        <Button 
+                          onClick={() => prepareAssignDialog(booking)} 
+                          disabled={isSubmitting}
+                          size="sm"
+                          className="text-xs sm:text-sm"
+                        >
+                          Assign Guide
+                        </Button>
+                      </TableCell>
+                    </TableRow>                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -164,10 +177,10 @@ export default function AssignmentsPage() {
             clearEligibleGuides();
         }
       }}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg mx-2 sm:mx-auto">
           <DialogHeader>
-            <DialogTitle>Assign Tour Guide</DialogTitle>
-            <DialogDescription>Select a tour guide to assign to this booking.</DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">Assign Tour Guide</DialogTitle>
+            <DialogDescription className="text-sm">Select a tour guide to assign to this booking.</DialogDescription>
           </DialogHeader>
 
           {/* Read selectedBooking from store */}
@@ -219,17 +232,17 @@ export default function AssignmentsPage() {
                  {/* Display details of the selected guide */}
                  {selectedGuideId && eligibleGuides.length > 0 && (
                    <div className="p-4 bg-muted rounded-lg">
-                     <h3 className="font-medium mb-2">Guide Details</h3>
+                     <h3 className="font-medium mb-2 text-sm sm:text-base">Guide Details</h3>
                      {/* Find and display selected guide details */}
                      {(() => {
                        const guide = eligibleGuides.find(g => g.id.toString() === selectedGuideId);
                        if (!guide) return null;
                        return (
-                          <div key={guide.id} className="grid grid-cols-2 gap-2 text-sm">
-                            <div><span className="text-muted-foreground">Name:</span> {guide.name}</div>
-                            <div><span className="text-muted-foreground">Location:</span> {guide.location}</div>
-                            <div className="col-span-2"><span className="text-muted-foreground">Expertise:</span> {guide.expertise}</div>
-                            <div className="col-span-2">
+                          <div key={guide.id} className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm">
+                            <div><span className="text-muted-foreground">Name:</span> <span className="break-words">{guide.name}</span></div>
+                            <div><span className="text-muted-foreground">Location:</span> <span className="break-words">{guide.location}</span></div>
+                            <div className="col-span-full"><span className="text-muted-foreground">Expertise:</span> <span className="break-words">{guide.expertise}</span></div>
+                            <div className="col-span-full">
                                 <span className="text-muted-foreground">Availability:</span>{' '}
                                 <Badge variant={guide.available ? "default" : "secondary"} className={guide.available ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}> {/* Adjusted badge colors */}
                                     {guide.available ? "Available" : "Limited Availability"}
@@ -244,10 +257,10 @@ export default function AssignmentsPage() {
             </div>
           )}
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAssignDialogOpen(false)}> Cancel </Button>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsAssignDialogOpen(false)} className="w-full sm:w-auto order-2 sm:order-1"> Cancel </Button>
             {/* Use store action for assigning */}
-            <Button onClick={assignGuide} disabled={isSubmitting || !selectedGuideId || eligibleGuides.length === 0}>
+            <Button onClick={assignGuide} disabled={isSubmitting || !selectedGuideId || eligibleGuides.length === 0} className="w-full sm:w-auto order-1 sm:order-2">
               {isSubmitting ? (
                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Assigning...</>
               ) : (

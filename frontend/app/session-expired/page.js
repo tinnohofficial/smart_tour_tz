@@ -46,7 +46,7 @@ export default function SessionExpiredPage() {
         <CardFooter className="flex justify-center border-t pt-6">
           <Button 
             onClick={handleLoginClick}
-            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white"
+            className="w-full sm:w-auto bg-amber-700 hover:bg-amber-800 text-white"
           >
             <LogIn className="mr-2 h-4 w-4" />
             Sign In Again

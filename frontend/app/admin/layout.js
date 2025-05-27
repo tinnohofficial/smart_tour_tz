@@ -69,7 +69,7 @@ export default function AdminLayout({ children }) {
   // Use RouteProtection to protect the entire admin layout
   return (
     <RouteProtection allowedRoles={['admin']}>
-      <div className="h-full -top-5 relative">
+      <div className="fixed inset-0 h-screen w-screen">
         {/* --- Desktop Sidebar --- */}
         <div className="hidden h-full md:flex md:w-72 md:flex-col md:fixed md:inset-y-0 z-[80] bg-amber-900">
           <div className="h-20 flex items-center justify-center border-b border-amber-800">
@@ -109,9 +109,9 @@ export default function AdminLayout({ children }) {
         </div>
 
         {/* --- Main Content Area --- */}
-        <div className="md:pl-72 h-full">
+        <div className="md:pl-72 h-full w-full flex flex-col">
           {/* --- Mobile Header / Trigger --- */}
-          <div className="flex items-center bg-white p-4 md:hidden">
+          <div className="flex items-center bg-white p-4 md:hidden border-b">
             {/* Use Zustand state and action for the Sheet */}
             <Sheet open={isMobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
               <SheetTrigger asChild>
@@ -162,7 +162,7 @@ export default function AdminLayout({ children }) {
           </div>
 
           {/* --- Page Content --- */}
-          <main className="h-full overflow-y-auto p-4 md:p-8">{children}</main>
+          <main className="flex-1 overflow-y-auto p-4 md:p-8">{children}</main>
         </div>
       </div>
     </RouteProtection>

@@ -120,7 +120,7 @@ function LoginForm() {
 
   return (
     <div className="container max-w-md mx-auto py-10">
-      <Card className="border-blue-100 shadow-md">
+      <Card className="border-amber-100 shadow-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">Sign In</CardTitle>
           <CardDescription className="text-gray-500">Enter your credentials to access your account</CardDescription>
@@ -154,7 +154,7 @@ function LoginForm() {
               </div>
 
 
-              <Button type="submit" className="w-full text-white bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
+              <Button type="submit" className="w-full text-white bg-amber-700 hover:bg-amber-800" disabled={isLoading}>
                 {isLoading ? (
                   "Signing in..."
                 ) : (
@@ -168,12 +168,12 @@ function LoginForm() {
         <CardFooter className="flex flex-col space-y-4 border-t pt-6">
           <div className="text-sm text-gray-500 text-center">
             Don&apos;t have an account?{" "}
-            <a href="/register" className="text-blue-600 hover:underline">
+            <a href="/register" className="text-amber-700 hover:underline">
               Create an account
             </a>
           </div>
           <div className="text-sm text-center">
-            <a href="/forgot-password" className="text-blue-600 hover:underline">
+            <a href="/forgot-password" className="text-amber-700 hover:underline">
               Forgot your password?
             </a>
           </div>

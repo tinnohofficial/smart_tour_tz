@@ -6,10 +6,10 @@ import { Bus, Plane, Ship, Train, Car } from "lucide-react";
  * @param {Object} props - Component props
  * @param {string} props.type - Transport type (air, bus, train, ferry, etc.)
  * @param {string} props.className - Additional CSS classes
- * @param {string} props.color - Icon color (default: text-blue-600)
+ * @param {string} props.color - Icon color (default: text-amber-600)
  * @returns {JSX.Element} Transport icon component
  */
-export const TransportIcon = ({ type, className = "h-5 w-5", color = "text-blue-600" }) => {
+export const TransportIcon = ({ type, className = "h-5 w-5", color = "text-amber-600" }) => {
   const iconClass = `${className} ${color}`;
   
   switch (type?.toLowerCase()) {

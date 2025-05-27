@@ -67,7 +67,7 @@ export function FileUploader(props) {
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer transition-colors ${
-          isDragActive ? "border-blue-500 bg-blue-50" : "border-blue-200 hover:border-blue-300"
+          isDragActive ? "border-amber-700 bg-amber-50" : "border-amber-200 hover:border-amber-300"
         }`}
       >
         <input {...getInputProps()} />
@@ -88,11 +88,11 @@ export function FileUploader(props) {
           {files.map((file, index) => (
             <div key={index} className="flex items-center justify-between p-2 border rounded-md bg-background">
               <div className="flex items-center gap-2 truncate">
-                <File className="h-4 w-4 text-blue-600" />
+                <File className="h-4 w-4 text-amber-600" />
                 <span className="text-sm truncate">{file.name}</span>
                 <span className="text-xs text-gray-500">({(file.size / 1024).toFixed(0)} KB)</span>
               </div>
-              <Button type="button" size="icon" onClick={() => removeFile(index)} className="h-6 w-6 text-white bg-blue-600 hover:bg-blue-700">
+              <Button type="button" size="icon" onClick={() => removeFile(index)} className="h-6 w-6 text-white bg-amber-700 hover:bg-amber-800">
                 <X className="h-4 w-4" />
               </Button>
             </div>

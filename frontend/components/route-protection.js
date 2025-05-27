@@ -67,7 +67,7 @@ export function RouteProtection({ allowedRoles = [], children }) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+          <Loader2 className="h-12 w-12 animate-spin text-amber-700" />
           <p className="text-gray-500">Verifying your access...</p>
         </div>
       </div>

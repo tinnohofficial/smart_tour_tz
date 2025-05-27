@@ -134,7 +134,7 @@ export default function DestinationsPage() {
         }}>
           <DialogTrigger asChild>
             {/* Reset form when opening Add dialog */}
-            <Button className="border border-blue-200 hover:bg-blue-50" onClick={() => { resetFormAndFile(); setIsAddDialogOpen(true); }}>
+            <Button className="border border-amber-200 hover:bg-amber-50" onClick={() => { resetFormAndFile(); setIsAddDialogOpen(true); }}>
               <Plus className="mr-2 h-4 w-4" /> Add Destination
             </Button>
           </DialogTrigger>
@@ -194,7 +194,7 @@ export default function DestinationsPage() {
                         <Image src={previewUrl} alt="Preview" className="h-full w-full object-cover" fill />
                       </div>
                     ) : (
-                       <div className="flex h-40 w-full items-center justify-center rounded-md border border-dashed border-blue-200">
+                       <div className="flex h-40 w-full items-center justify-center rounded-md border border-dashed border-amber-200">
                          <div className="flex flex-col items-center gap-1 text-gray-500">
                            <ImageIcon className="h-8 w-8" /> <span className="text-xs">No image selected</span>
                          </div>
@@ -206,8 +206,8 @@ export default function DestinationsPage() {
 
               </div>
               <DialogFooter>
-                <Button type="button" className="border border-blue-200 hover:bg-blue-50" variant="outline" onClick={() => setIsAddDialogOpen(false)}> Cancel </Button>
-                <Button type="submit" className="border border-blue-200 hover:bg-blue-50" disabled={isSubmitting || isUploading}>
+                <Button type="button" className="border border-amber-200 hover:bg-amber-50" variant="outline" onClick={() => setIsAddDialogOpen(false)}> Cancel </Button>
+                <Button type="submit" className="border border-amber-200 hover:bg-amber-50" disabled={isSubmitting || isUploading}>
                   {isUploading ? 'Uploading...' : isSubmitting ? 'Saving...' : 'Save Destination'}
                 </Button>
               </DialogFooter>
@@ -224,7 +224,7 @@ export default function DestinationsPage() {
         <CardContent>
           {/* Loading State */}
           {isLoading ? (
-             <div className="flex items-center justify-center p-8"><div className="flex flex-col items-center gap-2"><div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div><p className="text-sm text-gray-500">Loading destinations...</p></div></div>
+             <div className="flex items-center justify-center p-8"><div className="flex flex-col items-center gap-2"><div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-600 border-t-transparent"></div><p className="text-sm text-gray-500">Loading destinations...</p></div></div>
           ) : /* Empty State */
           filteredDestinations.length === 0 ? (
              <div className="flex flex-col items-center justify-center p-8 text-center"><MapPin className="h-10 w-10 text-gray-500 mb-2" /><h3 className="font-medium">No destinations found</h3><p className="text-sm text-gray-500 mt-1">{searchTerm ? "Try a different search term" : "Add your first destination to get started"}</p></div>
@@ -264,9 +264,9 @@ export default function DestinationsPage() {
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         {/* Edit Button */}
-                        <Button key={`edit-${destination.id}`} variant="outline" className="hover:bg-blue-50" size="sm" onClick={() => onEditClick(destination)}> <Edit className="h-4 w-4" /> </Button>
+                        <Button key={`edit-${destination.id}`} variant="outline" className="hover:bg-amber-50" size="sm" onClick={() => onEditClick(destination)}> <Edit className="h-4 w-4" /> </Button>
                         {/* Delete Button */}
-                        <Button key={`delete-${destination.id}`} variant="outline" className="hover:bg-blue-50" size="sm" onClick={() => onDeleteClick(destination)}> <Trash className="h-4 w-4" /> </Button>
+                        <Button key={`delete-${destination.id}`} variant="outline" className="hover:bg-amber-50" size="sm" onClick={() => onDeleteClick(destination)}> <Trash className="h-4 w-4" /> </Button>
                       </div>
                     </TableCell>
                   </TableRow>

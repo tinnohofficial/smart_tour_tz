@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import Image from "next/image"
-import { Search, CalendarDays, Users, MapPin, Star } from "lucide-react"
+import { Search, CalendarDays, Users, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -38,7 +38,7 @@ export default function TourGuideBookings() {
     return (
       <div className="flex h-[80vh] items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-600 mx-auto"></div>
           <p className="mt-4 text-muted-foreground">Loading your tours...</p>
         </div>
       </div>
@@ -78,8 +78,8 @@ export default function TourGuideBookings() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-blue-100 rounded-full">
-                  <CalendarDays className="h-4 w-4 text-blue-600" />
+                <div className="p-2 bg-amber-100 rounded-full">
+                  <CalendarDays className="h-4 w-4 text-amber-600" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{tours.length}</p>
@@ -141,14 +141,14 @@ export default function TourGuideBookings() {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-6">
+                <div className="grid grid-cols-1 gap-4 sm:gap-6">
                   {filteredTours.map((tour) => (
                     <div
                       key={tour.id}
-                      className="flex flex-col md:flex-row gap-6 p-4 rounded-lg border bg-card text-card-foreground shadow-sm"
+                      className="flex flex-col lg:flex-row gap-4 sm:gap-6 p-4 sm:p-6 rounded-lg border bg-card text-card-foreground shadow-sm"
                     >
                       {/* Tour Image */}
-                      <div className="w-full md:w-48 h-48 md:h-full relative rounded-md overflow-hidden">
+                      <div className="w-full lg:w-48 h-48 lg:h-full relative rounded-md overflow-hidden flex-shrink-0">
                         <Image
                           src={tour.image}
                           alt={tour.destination}
@@ -158,38 +158,32 @@ export default function TourGuideBookings() {
                       </div>
 
                       {/* Tour Details */}
-                      <div className="flex-1 flex flex-col">
-                        <div className="flex flex-col md:flex-row justify-between gap-4">
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <MapPin className="h-4 w-4 text-muted-foreground" />
-                              <h3 className="font-semibold text-lg">{tour.destination}</h3>
-                              <Badge variant={tour.status === 'upcoming' ? 'default' : 'secondary'}>
+                      <div className="flex-1 flex flex-col min-w-0">
+                        <div className="flex flex-col xl:flex-row justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mb-2">
+                              <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5 sm:mt-0" />
+                              <h3 className="font-semibold text-base sm:text-lg truncate">{tour.destination}</h3>
+                              <Badge variant={tour.status === 'upcoming' ? 'default' : 'secondary'} className="text-xs whitespace-nowrap">
                                 {tour.status === 'upcoming' ? 'Upcoming' : 'Completed'}
                               </Badge>
                             </div>
                             <div className="flex flex-col gap-1 text-sm text-muted-foreground">
                               <div className="flex items-center gap-2">
-                                <CalendarDays className="h-4 w-4" />
-                                <span>
+                                <CalendarDays className="h-4 w-4 flex-shrink-0" />
+                                <span className="truncate">
                                   {format(new Date(tour.startDate), 'PPP')} -{' '}
                                   {format(new Date(tour.endDate), 'PPP')}
                                 </span>
                               </div>
                               <div className="flex items-center gap-2">
-                                <Users className="h-4 w-4" />
+                                <Users className="h-4 w-4 flex-shrink-0" />
                                 <span>{tour.touristCount} tourists</span>
                               </div>
-                              {tour.rating && (
-                                <div className="flex items-center gap-2">
-                                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                                  <span>{tour.rating.toFixed(1)} rating</span>
-                                </div>
-                              )}
                             </div>
                           </div>
-                          <div className="flex flex-col items-end gap-2">
-                            <Badge variant={tour.paymentStatus === 'paid' ? 'outline' : 'destructive'}>
+                          <div className="flex flex-row xl:flex-col items-start xl:items-end gap-2 xl:gap-2">
+                            <Badge variant={tour.paymentStatus === 'paid' ? 'outline' : 'destructive'} className="text-xs">
                               {tour.paymentStatus === 'paid' ? 'Paid' : 'Payment Pending'}
                             </Badge>
                             <p className="text-lg font-bold">${tour.amount}</p>
@@ -205,12 +199,12 @@ export default function TourGuideBookings() {
                                 key={index}
                                 className="flex items-center gap-2 bg-muted/50 px-2 py-1 rounded-md"
                               >
-                                <Avatar className="h-6 w-6">
+                                <Avatar className="h-5 w-5 sm:h-6 sm:w-6">
                                   <AvatarFallback className="text-xs">
                                     {name.charAt(0)}
                                   </AvatarFallback>
                                 </Avatar>
-                                <span className="text-sm">{name}</span>
+                                <span className="text-xs sm:text-sm truncate max-w-24 sm:max-w-none">{name}</span>
                               </div>
                             ))}
                           </div>
@@ -218,19 +212,19 @@ export default function TourGuideBookings() {
 
                         {/* Actions */}
                         <div className="mt-4 pt-4 border-t flex flex-wrap gap-2">
-                          <Button size="sm">View Details</Button>
+                          <Button size="sm" className="text-xs sm:text-sm">View Details</Button>
                           {tour.status === 'upcoming' && (
                             <>
-                              <Button size="sm" variant="outline">
+                              <Button size="sm" variant="outline" className="text-xs sm:text-sm">
                                 Contact Tourists
                               </Button>
-                              <Button size="sm" variant="outline">
+                              <Button size="sm" variant="outline" className="text-xs sm:text-sm hidden sm:block">
                                 View Itinerary
                               </Button>
                             </>
                           )}
                           {tour.status === 'completed' && tour.feedback && (
-                            <Button size="sm" variant="outline">
+                            <Button size="sm" variant="outline" className="text-xs sm:text-sm">
                               View Feedback
                             </Button>
                           )}

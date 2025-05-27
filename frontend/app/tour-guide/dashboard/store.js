@@ -31,7 +31,6 @@ export const useDashboardStore = create((set) => ({
             expertise: typeof data.expertise === 'object' 
               ? data.expertise 
               : { general: data.expertise || "", activities: [] },
-            rating: data.rating || 4.5,
             reviewCount: data.review_count || 0,
             isAvailable: data.available || false,
             status: data.status

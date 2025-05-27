@@ -74,27 +74,27 @@ export default function TravelAgentDashboard() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+    <div className="container mx-auto px-2 sm:px-4 lg:px-6 py-4 sm:py-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
         <Button 
           onClick={() => router.push('/travel-agent/routes')}
-          className="text-white bg-amber-700 hover:bg-amber-800">
+          className="text-white bg-amber-700 hover:bg-amber-800 w-full sm:w-auto">
           Manage Routes
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
         {/* Stats Cards */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Pending Bookings</CardTitle>
             <div className="bg-orange-100 p-2 rounded-md">
-              <Calendar className="h-4 w-4 text-orange-500" />
+              <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-orange-500" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{isLoading ? "..." : stats.pendingBookings}</div>
+            <div className="text-xl sm:text-2xl font-bold">{isLoading ? "..." : stats.pendingBookings}</div>
             <p className="text-xs text-gray-500 mt-1">Need your attention</p>
           </CardContent>
         </Card>
@@ -103,11 +103,11 @@ export default function TravelAgentDashboard() {
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Completed Bookings</CardTitle>
             <div className="bg-green-100 p-2 rounded-md">
-              <Users className="h-4 w-4 text-green-500" />
+              <Users className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{isLoading ? "..." : stats.completedBookings}</div>
+            <div className="text-xl sm:text-2xl font-bold">{isLoading ? "..." : stats.completedBookings}</div>
             <p className="text-xs text-gray-500 mt-1">Successfully processed</p>
           </CardContent>
         </Card>
@@ -116,11 +116,11 @@ export default function TravelAgentDashboard() {
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Total Routes</CardTitle>
             <div className="bg-amber-100 p-2 rounded-md">
-              <Car className="h-4 w-4 text-amber-700" />
+              <Car className="h-3 w-3 sm:h-4 sm:w-4 text-amber-700" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{isLoading ? "..." : stats.totalRoutes}</div>
+            <div className="text-xl sm:text-2xl font-bold">{isLoading ? "..." : stats.totalRoutes}</div>
             <p className="text-xs text-gray-500 mt-1">Active transport routes</p>
           </CardContent>
         </Card>
@@ -129,27 +129,27 @@ export default function TravelAgentDashboard() {
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
             <div className="bg-purple-100 p-2 rounded-md">
-              <BarChart className="h-4 w-4 text-purple-500" />
+              <BarChart className="h-3 w-3 sm:h-4 sm:w-4 text-purple-500" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${isLoading ? "..." : stats.monthlyRevenue.toFixed(2)}</div>
+            <div className="text-xl sm:text-2xl font-bold">${isLoading ? "..." : stats.monthlyRevenue.toFixed(2)}</div>
             <p className="text-xs text-gray-500 mt-1">From confirmed bookings</p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
 
         {/* Recent Bookings */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <div className="space-y-2">
               <CardTitle>Recent Bookings</CardTitle>
               <CardDescription>Latest transport bookings to process</CardDescription>
             </div>
             <Link href="/travel-agent/bookings">
-              <Button variant="outline" className="h-8">View All</Button>
+              <Button variant="outline" className="h-8 w-full sm:w-auto">View All</Button>
             </Link>
           </CardHeader>
           <CardContent>
@@ -160,9 +160,9 @@ export default function TravelAgentDashboard() {
             ) : stats.pendingBookings > 0 ? (
               <div className="space-y-4">
                 {Array(Math.min(stats.pendingBookings, 3)).fill(0).map((_, i) => (
-                  <div key={i} className="flex items-center justify-between border-b pb-3">
+                  <div key={i} className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b pb-3 gap-3">
                     <div className="flex items-center">
-                      <div className="bg-gray-100 rounded-full p-2 mr-3">
+                      <div className="bg-gray-100 rounded-full p-2 mr-3 flex-shrink-0">
                         <Car className="h-4 w-4 text-gray-600" />
                       </div>
                       <div>
@@ -171,7 +171,7 @@ export default function TravelAgentDashboard() {
                       </div>
                     </div>
                     <Link href="/travel-agent/bookings">
-                      <Button variant="ghost" size="sm">Process</Button>
+                      <Button variant="ghost" size="sm" className="w-full sm:w-auto">Process</Button>
                     </Link>
                   </div>
                 ))}

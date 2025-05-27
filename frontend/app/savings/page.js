@@ -57,7 +57,7 @@ export default function Savings() {
   return (
     <div className="container mx-auto py-8 space-y-8">
       {/* Hero Section with Current Balance */}
-      <div className="relative overflow-hidden rounded-lg bg-gradient-to-r from-blue-600 to-blue-400 p-8 text-white shadow-lg">
+      <div className="relative overflow-hidden rounded-lg bg-gradient-to-r from-amber-700 to-amber-500 p-8 text-white shadow-lg">
         <div className="relative z-10">
           <div className="flex items-center justify-between">
             <h1 className="text-4xl font-bold">Your Travel Savings</h1>
@@ -77,24 +77,24 @@ export default function Savings() {
             </span>
           </div>
           <div className="mt-6 space-y-4">
-            <p className="text-lg font-medium text-blue-100">Progress to Goal</p>
+            <p className="text-lg font-medium text-amber-100">Progress to Goal</p>
             <div className="relative pt-2">
-              <div className="overflow-hidden h-3 mb-4 text-xs flex rounded-full bg-blue-300/30 backdrop-blur-sm">
+              <div className="overflow-hidden h-3 mb-4 text-xs flex rounded-full bg-amber-300/30 backdrop-blur-sm">
                 <div
                   style={{ width: `${Math.min(100, progress)}%` }}
                   className={`
                     animate-pulse shadow-none flex flex-col text-center whitespace-nowrap 
-                    text-white justify-center bg-gradient-to-r from-white to-blue-100
+                    text-white justify-center bg-gradient-to-r from-white to-amber-100
                     transition-all duration-500 ease-in-out
                   `}
                 />
               </div>
               <div className="flex justify-between mt-2">
-                <span className="text-sm text-blue-100">${balance.toFixed(2)}</span>
-                <span className="text-sm text-blue-100">${targetAmount.toFixed(2)}</span>
+                <span className="text-sm text-amber-100">${balance.toFixed(2)}</span>
+                <span className="text-sm text-amber-100">${targetAmount.toFixed(2)}</span>
               </div>
               <div className="absolute -right-2 -top-2">
-                <div className="bg-white text-blue-600 text-xs font-bold px-2 py-1 rounded-full shadow-lg">
+                <div className="bg-white text-amber-700 text-xs font-bold px-2 py-1 rounded-full shadow-lg">
                   {progress.toFixed(1)}%
                 </div>
               </div>
@@ -119,8 +119,8 @@ export default function Savings() {
         </Card>
         <Card>
           <CardContent className="flex items-center gap-4 pt-6">
-            <div className="rounded-full bg-blue-100 p-3">
-              <Clock className="h-6 w-6 text-blue-600" />
+            <div className="rounded-full bg-amber-100 p-3">
+              <Clock className="h-6 w-6 text-amber-700" />
             </div>
             <div>
               <p className="text-sm font-medium text-gray-500">Saving Duration</p>
@@ -144,7 +144,7 @@ export default function Savings() {
       {/* Deposit Dialog */}
       <Dialog>
         <DialogTrigger asChild>
-          <Button size="lg" className="gap-2 text-white bg-blue-600 hover:bg-blue-700">
+          <Button size="lg" className="gap-2 text-white bg-amber-700 hover:bg-amber-800">
             <BanknoteIcon className="h-5 w-5" />
             Deposit Funds
           </Button>
@@ -194,7 +194,7 @@ export default function Savings() {
                     onChange={(e) => setDepositAmount(e.target.value)}
                   />
                 </div>
-                <Button type="submit" className="w-full text-white bg-blue-600 hover:bg-blue-700" disabled={isDepositing}>
+                <Button type="submit" className="w-full text-white bg-amber-700 hover:bg-amber-800" disabled={isDepositing}>
                   {isDepositing ? "Processing..." : "Deposit Funds"}
                 </Button>
               </form>
@@ -216,7 +216,7 @@ export default function Savings() {
                     onChange={(e) => setDepositAmount(e.target.value)}
                   />
                 </div>
-                <Button type="submit" className="w-full text-white bg-blue-600 hover:bg-blue-700" disabled={isDepositing}>
+                <Button type="submit" className="w-full text-white bg-amber-700 hover:bg-amber-800" disabled={isDepositing}>
                   {isDepositing ? "Processing..." : "Deposit Funds"}
                 </Button>
               </form>

@@ -29,19 +29,19 @@ export default function HotelManagerDashboard() {
   }
 
   return (
-    <div className="container px-1">
+    <div className="container px-2 sm:px-4 mx-auto max-w-7xl">
       {/* Page Header */}
-      <div className="bg-amber-700 p-4 rounded-lg mb-6">
+      <div className="bg-amber-700 p-4 sm:p-6 rounded-lg mb-4 sm:mb-6">
         <div className="flex flex-col md:flex-row justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-white">Dashboard</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-white">Dashboard</h1>
             <p className="text-amber-100 text-sm">Welcome to your hotel management dashboard</p>
           </div>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-4 sm:mb-6">
         {/* Pending Bookings Card */}
         <Card className="relative overflow-hidden">
           <CardHeader className="pb-2">
@@ -49,11 +49,11 @@ export default function HotelManagerDashboard() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center">
-              <div className="mr-4 rounded-full bg-yellow-100 p-2">
-                <Clock className="h-4 w-4 text-yellow-600" />
+              <div className="mr-3 sm:mr-4 rounded-full bg-yellow-100 p-2">
+                <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-600" />
               </div>
               <div>
-                <div className="text-2xl font-bold">{stats.pendingBookings}</div>
+                <div className="text-xl sm:text-2xl font-bold">{stats.pendingBookings}</div>
                 <div className="text-xs text-gray-500">Awaiting room assignment</div>
               </div>
             </div>
@@ -68,11 +68,11 @@ export default function HotelManagerDashboard() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center">
-              <div className="mr-4 rounded-full bg-emerald-100 p-2">
-                <Percent className="h-4 w-4 text-emerald-600" />
+              <div className="mr-3 sm:mr-4 rounded-full bg-emerald-100 p-2">
+                <Percent className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-600" />
               </div>
               <div>
-                <div className="text-2xl font-bold">{stats.occupancyRate}%</div>
+                <div className="text-xl sm:text-2xl font-bold">{stats.occupancyRate}%</div>
                 <div className="text-xs text-gray-500">{stats.currentOccupancy} of {stats.currentOccupancy + (stats.occupancyRate > 0 ? Math.round(stats.currentOccupancy * (100 / stats.occupancyRate) - stats.currentOccupancy) : 0)} rooms</div>
               </div>
             </div>
@@ -87,16 +87,35 @@ export default function HotelManagerDashboard() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center">
-              <div className="mr-4 rounded-full bg-amber-100 p-2">
-                <Calendar className="h-4 w-4 text-amber-700" />
+              <div className="mr-3 sm:mr-4 rounded-full bg-amber-100 p-2">
+                <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-amber-700" />
               </div>
               <div>
-                <div className="text-2xl font-bold">{stats.totalBookings}</div>
+                <div className="text-xl sm:text-2xl font-bold">{stats.totalBookings}</div>
                 <div className="text-xs text-gray-500">{stats.confirmedBookings} confirmed</div>
               </div>
             </div>
           </CardContent>
           <div className="absolute right-0 top-0 h-full w-1.5 bg-amber-700" />
+        </Card>
+
+        {/* Monthly Revenue Card */}
+        <Card className="relative overflow-hidden">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500">Monthly Revenue</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center">
+              <div className="mr-3 sm:mr-4 rounded-full bg-blue-100 p-2">
+                <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
+              </div>
+              <div>
+                <div className="text-xl sm:text-2xl font-bold">${stats.monthlyRevenue}</div>
+                <div className="text-xs text-gray-500">Current month</div>
+              </div>
+            </div>
+          </CardContent>
+          <div className="absolute right-0 top-0 h-full w-1.5 bg-blue-500" />
         </Card>
 
         {/* Monthly Revenue Card */}

@@ -55,10 +55,10 @@ export default function ApplicationsPage() {
 
   // --- Render Logic ---
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Account Applications</h1>
-        <p className="text-gray-500">Review and manage account applications.</p>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Account Applications</h1>
+        <p className="text-gray-500 text-sm sm:text-base">Review and manage account applications.</p>
       </div>
 
       {/* Error Display (reads from store state) */}
@@ -70,18 +70,18 @@ export default function ApplicationsPage() {
         </Alert>
       )}
 
-      <div className="flex items-center">
-        <div className="relative flex-1">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+        <div className="relative flex-1 w-full">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
             placeholder="Search by name, email, or role..."
-            className="pl-8"
+            className="pl-8 text-sm"
             value={searchTerm} // Read from store
             onChange={(e) => setSearchTerm(e.target.value)} // Use store action
           />
         </div>
-        <Button variant="outline" className="ml-2" onClick={fetchApplications} disabled={isLoading}>
+        <Button variant="outline" className="w-full sm:w-auto" onClick={fetchApplications} disabled={isLoading}>
           Refresh
         </Button>
       </div>
@@ -110,65 +110,62 @@ export default function ApplicationsPage() {
               </p>
             </div>
           ) : (
-            /* Data Table */
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Submitted</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredApplications.map((application) => (
-                  <TableRow key={application.id}>
-                    <TableCell className="font-medium">{application.name}</TableCell>
-                    <TableCell>{application.email}</TableCell>
-                    <TableCell><RoleBadge role={application.role} /></TableCell>
-                    <TableCell>{formatDate(application.submitted_at)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        {/* Use store action to open details */}
-                        <Button variant="outline" className="hover:bg-amber-50" size="sm" onClick={() => viewApplicationDetails(application)}>
-                          View Details
-                        </Button>
-                        {/* Use store action for reject */}
-                        <Button
-                          variant="outline"
-                          className="hover:bg-amber-50"
-                          size="sm"
-                          onClick={() => rejectApplication(application.id)}
-                          disabled={isProcessing} // Read from store
-                        >
-                          <X className="mr-1 h-4 w-4" /> Reject
-                        </Button>
-                        {/* Use store action for approve */}
-                        <Button
-                          className="text-white bg-amber-700 hover:bg-amber-800"
-                          size="sm"
-                          onClick={() => approveApplication(application.id)}
-                          disabled={isProcessing} // Read from store
-                        >
-                          <CheckCircle className="mr-1 h-4 w-4" /> Approve
-                        </Button>
-                      </div>
-                    </TableCell>
+            /* Data Table - Make responsive */
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[120px]">Name</TableHead>
+                    <TableHead className="min-w-[180px]">Email</TableHead>
+                    <TableHead className="min-w-[100px]">Role</TableHead>
+                    <TableHead className="min-w-[120px] hidden sm:table-cell">Submitted</TableHead>
+                    <TableHead className="text-right min-w-[200px]">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredApplications.map((application) => (
+                    <TableRow key={application.id}>
+                      <TableCell className="font-medium">
+                        <div className="truncate max-w-[120px]">{application.name}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="truncate max-w-[180px]">{application.email}</div>
+                      </TableCell>
+                      <TableCell><RoleBadge role={application.role} /></TableCell>
+                      <TableCell className="hidden sm:table-cell">{formatDate(application.submitted_at)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex flex-col sm:flex-row justify-end gap-1 sm:gap-2">
+                          {/* Use store action to open details */}
+                          <Button variant="outline" className="hover:bg-amber-50 text-xs sm:text-sm" size="sm" onClick={() => viewApplicationDetails(application)}>
+                            View Details
+                          </Button>
+                          {/* Use store action for reject */}
+                          <Button
+                            variant="outline"
+                            className="hover:bg-amber-50 text-xs sm:text-sm"
+                            size="sm"
+                            onClick={() => rejectApplication(application.id)}
+                            disabled={isProcessing} // Read from store
+                          >
+                            <CheckCircle className="mr-1 h-3 w-3 sm:h-4 sm:w-4" /> Approve
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
 
       {/* Application Details Dialog */}
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto mx-2 sm:mx-auto">
           <DialogHeader>
-            <DialogTitle>Application Details</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">Application Details</DialogTitle>
+            <DialogDescription className="text-sm">
               Review all information provided by the applicant before making a decision.
             </DialogDescription>
           </DialogHeader>
@@ -176,10 +173,10 @@ export default function ApplicationsPage() {
           {/* Read selectedApplication from store */}
           {selectedApplication && (
             <div className="py-4">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
                 <div>
                   <h3 className="text-lg font-semibold">{selectedApplication.name}</h3>
-                  <p className="text-gray-500">{selectedApplication.email}</p>
+                  <p className="text-gray-500 break-all">{selectedApplication.email}</p>
                 </div>
                 <div><RoleBadge role={selectedApplication.role} /></div>
               </div>
@@ -188,12 +185,12 @@ export default function ApplicationsPage() {
                 {/* Tour Guide Details */}
                 {selectedApplication.role === "tour_guide" && selectedApplication.details && (
                   <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                       <div><h4 className="text-sm font-medium text-gray-500 mb-1">Full Name</h4><p>{selectedApplication.details.full_name}</p></div>
-                       <div><h4 className="text-sm font-medium text-gray-500 mb-1">Phone Number</h4><p>{selectedApplication.phone_number}</p></div>
-                       <div><h4 className="text-sm font-medium text-gray-500 mb-1">Location</h4><p>{selectedApplication.details.location}</p></div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                       <div><h4 className="text-sm font-medium text-gray-500 mb-1">Full Name</h4><p className="break-words">{selectedApplication.details.full_name}</p></div>
+                       <div><h4 className="text-sm font-medium text-gray-500 mb-1">Phone Number</h4><p className="break-words">{selectedApplication.phone_number}</p></div>
+                       <div><h4 className="text-sm font-medium text-gray-500 mb-1">Location</h4><p className="break-words">{selectedApplication.details.location}</p></div>
                     </div>
-                    <div><h4 className="text-sm font-medium text-gray-500 mb-1">Areas of Expertise</h4><p>{selectedApplication.details.expertise}</p></div>
+                    <div><h4 className="text-sm font-medium text-gray-500 mb-1">Areas of Expertise</h4><p className="break-words">{selectedApplication.details.expertise}</p></div>
                     <div>
                       <h4 className="text-sm font-medium text-gray-500 mb-1">License Document</h4>
                       <div className="mt-2">

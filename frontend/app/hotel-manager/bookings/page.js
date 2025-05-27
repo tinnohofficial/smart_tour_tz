@@ -60,11 +60,11 @@ export default function HotelManagerBookings() {
   return (
     <div className="container px-1">
       {/* Page Header */}
-      <div className="bg-blue-600 p-4 rounded-lg mb-6">
+      <div className="bg-amber-700 p-4 rounded-lg mb-6">
         <div className="flex flex-col md:flex-row justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-white">Bookings Management</h1>
-            <p className="text-blue-100 text-sm">Manage guest bookings and assign rooms</p>
+            <p className="text-amber-100 text-sm">Manage guest bookings and assign rooms</p>
           </div>
           
           {/* Search */}
@@ -74,7 +74,7 @@ export default function HotelManagerBookings() {
               <Input
                 type="search"
                 placeholder="Search by guest email or booking ID"
-                className="bg-blue-700/40 border-blue-500/50 pl-9 text-white placeholder:text-white/70"
+                className="bg-amber-700/40 border-amber-500/50 pl-9 text-white placeholder:text-white/70"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -101,7 +101,7 @@ export default function HotelManagerBookings() {
                   </div>
                   <Button 
                     onClick={() => handleOpenRoomDialog(booking)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    className="bg-amber-700 hover:bg-amber-800 text-white"
                   >
                     Assign Room
                   </Button>
@@ -247,7 +247,7 @@ export default function HotelManagerBookings() {
               Cancel
             </Button>
             <Button 
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-amber-700 hover:bg-amber-800"
               onClick={() => selectedBooking && confirmRoom(selectedBooking.id)}
             >
               Confirm Room

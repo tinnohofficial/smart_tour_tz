@@ -31,7 +31,6 @@ export const useBookingsStore = create((set) => ({
           image: booking.image || "/placeholder.svg",
           paymentStatus: booking.payment_status || 'paid',
           amount: booking.cost || 0,
-          rating: booking.rating,
           feedback: booking.feedback,
           details: booking.item_details || {}
         }))

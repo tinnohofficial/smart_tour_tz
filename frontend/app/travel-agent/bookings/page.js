@@ -98,18 +98,21 @@ export default function TravelAgentBookings() {
 
   const renderBookingCard = (booking, isCompleted = false) => (
     <Card key={booking.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-lg overflow-hidden">
-      <CardHeader className={cn("pb-3", isCompleted ? "bg-green-50" : "bg-blue-50")}>
-        <div className="flex justify-between items-start">
-          <div>
+      <CardHeader className={cn("pb-3", isCompleted ? "bg-green-50" : "bg-amber-50")}>
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
+          <div className="flex-1 min-w-0">
             <Badge variant="secondary" className="mb-1 text-xs">Booking #{booking.id}</Badge>
-            <CardTitle className="text-lg font-semibold text-gray-800">
+            <CardTitle className="text-base sm:text-lg font-semibold text-gray-800 truncate">
               {booking.origin} to {booking.destination}
             </CardTitle>
             <CardDescription className="text-xs text-gray-500">
               Created: {formatDate(booking.created_at)}
             </CardDescription>
           </div>
-          <Badge variant={isCompleted ? "default" : "outline"} className={cn(isCompleted ? "bg-green-600 text-white" : "border-yellow-500 text-yellow-700 bg-yellow-50")}>
+          <Badge variant={isCompleted ? "default" : "outline"} className={cn(
+            "flex-shrink-0",
+            isCompleted ? "bg-green-600 text-white" : "border-yellow-500 text-yellow-700 bg-yellow-50"
+          )}>
             {isCompleted ? <Check className="h-3 w-3 mr-1" /> : <Clock className="h-3 w-3 mr-1" />}
             {isCompleted ? "Completed" : "Pending"}
           </Badge>
@@ -119,16 +122,16 @@ export default function TravelAgentBookings() {
       <CardContent className="pt-4 space-y-3">
         <div className="flex items-center">
           <TransportIcon type={booking.transportation_type} />
-          <div>
-            <p className="text-sm font-medium text-gray-700">{booking.transportation_type || "Transport"}</p>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-gray-700 truncate">{booking.transportation_type || "Transport"}</p>
             <p className="text-xs text-gray-500">Type of transport</p>
           </div>
         </div>
 
         <div className="flex items-center">
-          <Users className="h-5 w-5 text-gray-500 mr-3" />
-          <div>
-            <p className="text-sm font-medium text-gray-700">{booking.tourist_email || "Customer"}</p>
+          <Users className="h-5 w-5 text-gray-500 mr-3 flex-shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-gray-700 truncate">{booking.tourist_email || "Customer"}</p>
             <p className="text-xs text-gray-500">Tourist Email</p>
           </div>
         </div>
@@ -138,11 +141,13 @@ export default function TravelAgentBookings() {
             <Separator />
             <div className="space-y-2 text-xs">
               <h4 className="font-medium text-gray-600 mb-1">Ticket Information:</h4>
-              <p><span className="font-semibold">Departure:</span> {formatDate(booking.item_details.departure_date)}</p>
-              {booking.item_details.arrival_date && <p><span className="font-semibold">Arrival:</span> {formatDate(booking.item_details.arrival_date)}</p>}
-              <p><span className="font-semibold">Ticket No:</span> {booking.item_details.ticket_number}</p>
-              {booking.item_details.seat_number && <p><span className="font-semibold">Seat:</span> {booking.item_details.seat_number}</p>}
-              {booking.item_details.additional_info && <p><span className="font-semibold">Notes:</span> {booking.item_details.additional_info}</p>}
+              <div className="space-y-1">
+                <p><span className="font-semibold">Departure:</span> {formatDate(booking.item_details.departure_date)}</p>
+                {booking.item_details.arrival_date && <p><span className="font-semibold">Arrival:</span> {formatDate(booking.item_details.arrival_date)}</p>}
+                <p className="truncate"><span className="font-semibold">Ticket No:</span> {booking.item_details.ticket_number}</p>
+                {booking.item_details.seat_number && <p><span className="font-semibold">Seat:</span> {booking.item_details.seat_number}</p>}
+                {booking.item_details.additional_info && <p className="break-words"><span className="font-semibold">Notes:</span> {booking.item_details.additional_info}</p>}
+              </div>
             </div>
           </>
         )}
@@ -153,7 +158,7 @@ export default function TravelAgentBookings() {
         <CardFooter className="border-t pt-4 flex justify-end bg-gray-50">
           <Button
             onClick={() => openTicketDialog(booking)}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            className="bg-amber-700 hover:bg-amber-800 text-white"
             size="sm"
           >
             <Ticket className="h-4 w-4 mr-2" />
@@ -185,17 +190,17 @@ export default function TravelAgentBookings() {
   );
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
-        <h1 className="text-3xl font-bold text-gray-800">Manage Transport Bookings</h1>
+    <div className="container mx-auto px-2 sm:px-4 lg:px-6 py-4 sm:py-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Manage Transport Bookings</h1>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-2 bg-gray-100 rounded-lg p-1">
-          <TabsTrigger value="pending" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md">
+          <TabsTrigger value="pending" className="data-[state=active]:bg-amber-700 data-[state=active]:text-white rounded-md text-xs sm:text-sm">
             Pending ({pendingBookings.length})
           </TabsTrigger>
-          <TabsTrigger value="completed" className="data-[state=active]:bg-green-600 data-[state=active]:text-white rounded-md">
+          <TabsTrigger value="completed" className="data-[state=active]:bg-green-600 data-[state=active]:text-white rounded-md text-xs sm:text-sm">
             Completed ({completedBookings.length})
           </TabsTrigger>
         </TabsList>
@@ -204,7 +209,7 @@ export default function TravelAgentBookings() {
           {isLoading && pendingBookings.length === 0 ? (
             <CompactLoader message="Loading pending bookings..." />
           ) : pendingBookings.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {pendingBookings.map(booking => renderBookingCard(booking, false))}
             </div>
           ) : (
@@ -216,7 +221,7 @@ export default function TravelAgentBookings() {
           {isLoading && completedBookings.length === 0 ? (
             <CompactLoader message="Loading completed bookings..." />
           ) : completedBookings.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {completedBookings.map(booking => renderBookingCard(booking, true))}
             </div>
           ) : (
@@ -226,31 +231,33 @@ export default function TravelAgentBookings() {
       </Tabs>
 
       <Dialog open={isDialogOpen} onOpenChange={closeTicketDialog}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">Assign Transport Ticket</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl font-semibold">Assign Transport Ticket</DialogTitle>
+            <DialogDescription className="text-sm">
               Provide ticket details for Booking #{selectedBooking?.id} ({selectedBooking?.origin} to {selectedBooking?.destination}).
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="departure_date" className="font-medium">Departure Date*</Label>
+                <Label htmlFor="departure_date" className="font-medium text-sm">Departure Date*</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-full justify-start text-left font-normal",
+                        "w-full justify-start text-left font-normal text-sm",
                         !ticketDetails.departure_date && "text-muted-foreground"
                       )}
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {ticketDetails.departure_date
-                        ? format(ticketDetails.departure_date, "PPP")
-                        : "Select date"}
+                      <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
+                      <span className="truncate">
+                        {ticketDetails.departure_date
+                          ? format(ticketDetails.departure_date, "PPP")
+                          : "Select date"}
+                      </span>
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
@@ -268,20 +275,22 @@ export default function TravelAgentBookings() {
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="arrival_date" className="font-medium">Arrival Date</Label>
+                <Label htmlFor="arrival_date" className="font-medium text-sm">Arrival Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className={cn(
-                        "w-full justify-start text-left font-normal",
+                        "w-full justify-start text-left font-normal text-sm",
                         !ticketDetails.arrival_date && "text-muted-foreground"
                       )}
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {ticketDetails.arrival_date
-                        ? format(ticketDetails.arrival_date, "PPP")
-                        : "Select date"}
+                      <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
+                      <span className="truncate">
+                        {ticketDetails.arrival_date
+                          ? format(ticketDetails.arrival_date, "PPP")
+                          : "Select date"}
+                      </span>
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
@@ -300,7 +309,7 @@ export default function TravelAgentBookings() {
             </div>
             
             <div className="grid gap-2">
-              <Label htmlFor="ticket_number" className="font-medium">Ticket Number*</Label>
+              <Label htmlFor="ticket_number" className="font-medium text-sm">Ticket Number*</Label>
               <Input
                 id="ticket_number"
                 value={ticketDetails.ticket_number}
@@ -313,7 +322,7 @@ export default function TravelAgentBookings() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="seat_number" className="font-medium">Seat/Cabin Number</Label>
+              <Label htmlFor="seat_number" className="font-medium text-sm">Seat/Cabin Number</Label>
               <Input
                 id="seat_number"
                 value={ticketDetails.seat_number}
@@ -326,7 +335,7 @@ export default function TravelAgentBookings() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="additional_info" className="font-medium">Additional Information</Label>
+              <Label htmlFor="additional_info" className="font-medium text-sm">Additional Information</Label>
               <Input
                 id="additional_info"
                 value={ticketDetails.additional_info}
@@ -339,19 +348,19 @@ export default function TravelAgentBookings() {
             </div>
           </div>
 
-          <DialogFooter className="sm:justify-between">
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:justify-between">
              <Button
               type="button"
               variant="outline"
               onClick={closeTicketDialog}
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto order-2 sm:order-1"
             >
               Cancel
             </Button>
             <Button
               onClick={handleAssignTicket}
               disabled={isLoading}
-              className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto"
+              className="bg-amber-700 hover:bg-amber-800 text-white w-full sm:w-auto order-1 sm:order-2"
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Assign Ticket

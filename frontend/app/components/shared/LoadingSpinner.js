@@ -17,7 +17,7 @@ export const LoadingSpinner = ({
   return (
     <div className={className}>
       <div className="text-center">
-        <Loader2 className={`${size} animate-spin text-blue-600 mx-auto`} />
+        <Loader2 className={`${size} animate-spin text-amber-600 mx-auto`} />
         <p className="mt-4 text-gray-600">{message}</p>
       </div>
     </div>
@@ -33,7 +33,7 @@ export const LoadingSpinner = ({
 export const CompactLoader = ({ message }) => {
   return (
     <div className="flex items-center justify-center p-4">
-      <Loader2 className="h-4 w-4 animate-spin text-blue-600 mr-2" />
+      <Loader2 className="h-4 w-4 animate-spin text-amber-600 mr-2" />
       {message && <span className="text-sm text-gray-600">{message}</span>}
     </div>
   );

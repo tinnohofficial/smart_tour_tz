@@ -146,7 +146,7 @@ export default function TourGuideLayout({ children }) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
@@ -249,7 +249,7 @@ export default function TourGuideLayout({ children }) {
                       <p className="text-gray-500 mb-6">Your profile is currently under review and cannot be modified. You will be able to access your profile again once it&apos;s approved.</p>
                       <Button 
                         onClick={() => router.push('/tour-guide/dashboard')}
-                        className="bg-blue-600 hover:bg-blue-700"
+                        className="bg-amber-700 hover:bg-amber-800"
                       >
                         Go to Dashboard
                       </Button>
@@ -263,7 +263,7 @@ export default function TourGuideLayout({ children }) {
                       {userStatus !== 'pending_approval' && (
                         <Button 
                           onClick={() => router.push('/tour-guide/profile')}
-                          className="bg-blue-600 hover:bg-blue-700"
+                          className="bg-amber-700 hover:bg-amber-800"
                         >
                           Complete Profile
                         </Button>
