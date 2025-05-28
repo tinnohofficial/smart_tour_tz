@@ -1,6 +1,6 @@
 // src/store/bookingStore.js
 import { create } from 'zustand'
-import { destinationsService, transportService, activitiesService, apiUtils, bookingCreationService } from '@/app/services/api'
+import { destinationsService, transportService, activitiesService, apiUtils, bookingCreationService, transportOriginsService } from '@/app/services/api'
 
 // Helper function to calculate nights
 const calculateNights = (startDate, endDate) => {
@@ -20,6 +20,7 @@ export const useBookingStore = create((set, get) => ({
   step: 1,
   startDate: "",
   endDate: "",
+  selectedOrigin: "", // New: User's selected origin location
   selectedTransportRoute: "",
   selectedHotel: "",
   selectedActivities: [],
@@ -42,17 +43,20 @@ export const useBookingStore = create((set, get) => ({
   
   // API data
   destination: null,
+  transportOrigins: [], // New: Available origins
   transportRoutes: [],
   hotels: [],
   activities: [],
   isLoading: {
     destination: false,
+    origins: false, // New: Loading state for origins
     transports: false,
     hotels: false,
     activities: false
   },
   error: {
     destination: null,
+    origins: null, // New: Error state for origins
     transports: null,
     hotels: null,
     activities: null
@@ -82,20 +86,37 @@ export const useBookingStore = create((set, get) => ({
     )
   },
 
-  fetchTransportRoutes: async (originOrDestination) => {
+  fetchTransportOrigins: async () => {
     return apiUtils.withLoadingAndError(
       async () => {
-        const data = await transportService.getAllRoutes()
-        // Filter routes by origin or destination if provided
-        let filteredData = data
-        if (originOrDestination) {
-          filteredData = data.filter(route => 
-            route.origin?.toLowerCase().includes(originOrDestination.toLowerCase()) ||
-            route.destination?.toLowerCase().includes(originOrDestination.toLowerCase())
-          )
+        const data = await transportOriginsService.getAllOrigins()
+        set({ transportOrigins: data })
+        return data
+      },
+      {
+        setLoading: (loading) => set(state => ({
+          isLoading: { ...state.isLoading, origins: loading }
+        })),
+        setError: (error) => set(state => ({
+          error: { ...state.error, origins: error }
+        })),
+        onError: (error) => {
+          console.error('Error fetching transport origins:', error)
         }
-        set({ transportRoutes: filteredData })
-        return filteredData
+      }
+    )
+  },
+
+  fetchTransportRoutes: async (originId = null, destinationId = null) => {
+    return apiUtils.withLoadingAndError(
+      async () => {
+        const params = {}
+        if (originId) params.origin_id = originId
+        if (destinationId) params.destination_id = destinationId
+        
+        const data = await transportService.getAllRoutes(params)
+        set({ transportRoutes: data })
+        return data
       },
       {
         setLoading: (loading) => set(state => ({
@@ -212,6 +233,7 @@ export const useBookingStore = create((set, get) => ({
   setStep: (step) => set({ step }),
   setStartDate: (date) => set({ startDate: date, errors: {} }),
   setEndDate: (date) => set({ endDate: date, errors: {} }),
+  setSelectedOrigin: (originId) => set({ selectedOrigin: originId, errors: {} }),
   setSelectedTransportRoute: (routeId) => set({ selectedTransportRoute: routeId, errors: {} }),
   setSelectedHotel: (hotelId) => set({ selectedHotel: hotelId, errors: {} }),
   toggleActivity: (activityId) => set((state) => ({

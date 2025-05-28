@@ -11,8 +11,9 @@ import { Badge } from "@/components/ui/badge"
 import { FileUploader } from "../../components/file-uploader"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
+import { transportOriginsService, destinationsService } from "@/app/services/api"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
@@ -27,14 +28,41 @@ export default function TravelAgentProfile() {
   const [name, setName] = useState("")
   const [routes, setRoutes] = useState([])
   const [isApproved, setIsApproved] = useState(false)
+  
+  // New state for origins and destinations
+  const [origins, setOrigins] = useState([])
+  const [destinations, setDestinations] = useState([])
+  const [isLoadingData, setIsLoadingData] = useState(true)
 
   const [newRoute, setNewRoute] = useState({
-    origin: '',
-    destination: '',
+    origin_id: '',
+    destination_id: '',
     transport_type: 'bus',
     price: '',
     description: ''
   })
+
+  // Fetch origins and destinations on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoadingData(true)
+      try {
+        const [originsData, destinationsData] = await Promise.all([
+          transportOriginsService.getAllOrigins(),
+          destinationsService.getAllDestinations()
+        ])
+        setOrigins(originsData)
+        setDestinations(destinationsData)
+      } catch (error) {
+        console.error('Error fetching origins and destinations:', error)
+        toast.error('Failed to load origins and destinations')
+      } finally {
+        setIsLoadingData(false)
+      }
+    }
+    
+    fetchData()
+  }, [])
 
   useEffect(() => {
     fetchProfile()
@@ -203,8 +231,13 @@ export default function TravelAgentProfile() {
   }
 
   const handleAddRoute = () => {
-    if (!newRoute.origin || !newRoute.destination || !newRoute.price) {
+    if (!newRoute.origin_id || !newRoute.destination_id || !newRoute.price) {
       toast.error("Origin, destination, and price are required for a route")
+      return
+    }
+
+    if (newRoute.origin_id === newRoute.destination_id) {
+      toast.error("Origin and destination cannot be the same")
       return
     }
 
@@ -214,10 +247,16 @@ export default function TravelAgentProfile() {
       return
     }
 
+    // Find origin and destination names for display
+    const originName = origins.find(o => o.id.toString() === newRoute.origin_id)?.name || 'Unknown'
+    const destinationName = destinations.find(d => d.id.toString() === newRoute.destination_id)?.name || 'Unknown'
+
     setRoutes([
       ...routes,
       {
         ...newRoute,
+        origin: originName, // Keep for display compatibility
+        destination: destinationName, // Keep for display compatibility
         price: parseFloat(newRoute.price),
         // Add empty schedule_details_formatted to maintain consistent structure
         schedule_details_formatted: ''
@@ -226,8 +265,8 @@ export default function TravelAgentProfile() {
 
     // Reset the form
     setNewRoute({
-      origin: '',
-      destination: '',
+      origin_id: '',
+      destination_id: '',
       transport_type: 'bus',
       price: '',
       description: ''
@@ -483,21 +522,45 @@ export default function TravelAgentProfile() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div className="space-y-2">
                       <Label htmlFor="origin">Origin*</Label>
-                      <Input
-                        id="origin"
-                        placeholder="e.g., Dar es Salaam"
-                        value={newRoute.origin}
-                        onChange={(e) => setNewRoute({...newRoute, origin: e.target.value})}
-                      />
+                      <Select
+                        value={newRoute.origin_id}
+                        onValueChange={(value) => setNewRoute({...newRoute, origin_id: value})}
+                        disabled={isLoadingData}
+                      >
+                        <SelectTrigger id="origin">
+                          <SelectValue placeholder={isLoadingData ? "Loading origins..." : "Select origin location"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            {origins.map((origin) => (
+                              <SelectItem key={origin.id} value={origin.id.toString()}>
+                                {origin.name}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="destination">Destination*</Label>
-                      <Input
-                        id="destination"
-                        placeholder="e.g., Zanzibar"
-                        value={newRoute.destination}
-                        onChange={(e) => setNewRoute({...newRoute, destination: e.target.value})}
-                      />
+                      <Select
+                        value={newRoute.destination_id}
+                        onValueChange={(value) => setNewRoute({...newRoute, destination_id: value})}
+                        disabled={isLoadingData}
+                      >
+                        <SelectTrigger id="destination">
+                          <SelectValue placeholder={isLoadingData ? "Loading destinations..." : "Select destination"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            {destinations.map((destination) => (
+                              <SelectItem key={destination.id} value={destination.id.toString()}>
+                                {destination.name}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                   

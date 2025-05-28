@@ -15,6 +15,7 @@ const transportsRouter = require("./routes/transportsRouter");
 const savingsRouter = require("./routes/savingsRouter");
 const applicationsRouter = require("./routes/applicationsRouter");
 const cartRouter = require("./routes/cartRouter");
+const transportOriginsRouter = require("./routes/transportOriginsRouter");
 
 const PORT = process.env.PORT;
 
@@ -37,6 +38,7 @@ router.use("/transports", transportsRouter);
 router.use("/savings", savingsRouter);
 router.use("/applications", applicationsRouter);
 router.use("/cart", cartRouter);
+router.use("/transport-origins", transportOriginsRouter);
 
 app.use("/api", router);
 
@@ -54,3 +56,4 @@ async function startServer() {
 }
 
 startServer();
+

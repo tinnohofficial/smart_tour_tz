@@ -67,6 +67,7 @@ function BookLocation({ params }) {
     step,
     startDate,
     endDate,
+    selectedOrigin,
     selectedTransportRoute,
     selectedHotel,
     selectedActivities,
@@ -82,6 +83,7 @@ function BookLocation({ params }) {
     isConnectingWallet,
     setStartDate,
     setEndDate,
+    setSelectedOrigin,
     setSelectedTransportRoute,
     setSelectedHotel,
     toggleActivity,
@@ -101,12 +103,14 @@ function BookLocation({ params }) {
     
     // API-related state and actions
     destination,
+    transportOrigins,
     transportRoutes,
     hotels,
     activities: apiActivities,
     isLoading,
     error,
     fetchDestination,
+    fetchTransportOrigins,
     fetchTransportRoutes,
     fetchHotels,
     fetchActivities,
@@ -162,15 +166,14 @@ function BookLocation({ params }) {
     if (destinationId) {
       fetchDestination(destinationId);
     }
+    // Fetch transport origins for origin selection
+    fetchTransportOrigins();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [destinationId]); 
 
   // Fetch related data when destination is loaded
   useEffect(() => {
     if (destination) {
-      // Fetch transport routes relevant to this destination
-      fetchTransportRoutes(destination.name || destination.region);
-      
       // Fetch hotels in this location - prioritize using the region
       fetchHotels(destination.region || destination.name);
       
@@ -179,6 +182,14 @@ function BookLocation({ params }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [destination]);
+
+  // Fetch transport routes when origin is selected and destination is available
+  useEffect(() => {
+    if (selectedOrigin && destination) {
+      fetchTransportRoutes(selectedOrigin, destination.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedOrigin, destination]);
 
   // For now, still using mock activities data - will be replaced in a future update
   const selectedActivitiesObj = useMemo(() => {

@@ -331,6 +331,7 @@ Use standardized conventions here is what i mean;
 
 ## More instructions in random order (pay close attention to these):
 Sorry if these instructions may be repetitive but pay close attention, i just want to put a lot of emphasis that why I insisting so much;
+- Use mariadb instead of mysql always, also for any command if you get promped the password maybe when using commands like `sudo` the password for my macbook is `agus`
 - Plz study and understand the whole codebase carefully, before implementing any feature so that u understand all the business flows at a very deep level.
 - When u want to run the backend, use `nodemon index.js` in the `backend` directory so that the server restarts automatically on changes.
 - Additionally, when u make edits to the schema.sql, don't use sth like ALTER TABLE, instead just drop everything using the teardownDb.js script, so that the changes are reflected in the database. so that when u re run nodemon index.js, everything is created from scratch.

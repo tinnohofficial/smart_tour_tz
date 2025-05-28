@@ -22,6 +22,7 @@ import { useRoutesStore } from "./store"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { formatTZS } from "@/app/utils/currency"
+import { transportOriginsService, destinationsService } from "@/app/services/api"
 
 export default function TravelAgentRoutes() {
   const router = useRouter()
@@ -34,29 +35,63 @@ export default function TravelAgentRoutes() {
     deleteRoute
   } = useRoutesStore()
   
+  // New state for origins and destinations
+  const [origins, setOrigins] = useState([])
+  const [destinations, setDestinations] = useState([])
+  const [isLoadingData, setIsLoadingData] = useState(true)
+  
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedRoute, setSelectedRoute] = useState(null)
   const [routeForm, setRouteForm] = useState({
-    origin: "",
-    destination: "",
+    origin_id: "",
+    destination_id: "",
     transportation_type: "bus",
     cost: "",
-    description: ""
+    description: "",
+    route_details: {
+      departure_times: [],
+      booking_info: "",
+      contact_details: ""
+    }
   })
 
+  // Fetch origins and destinations on component mount
   useEffect(() => {
+    const fetchData = async () => {
+      setIsLoadingData(true)
+      try {
+        const [originsData, destinationsData] = await Promise.all([
+          transportOriginsService.getAllOrigins(),
+          destinationsService.getAllDestinations()
+        ])
+        setOrigins(originsData)
+        setDestinations(destinationsData)
+      } catch (error) {
+        console.error('Error fetching origins and destinations:', error)
+        toast.error('Failed to load origins and destinations')
+      } finally {
+        setIsLoadingData(false)
+      }
+    }
+    
+    fetchData()
     fetchRoutes()
   }, [fetchRoutes])
 
   const handleOpenCreateDialog = () => {
     setRouteForm({
-      origin: "",
-      destination: "",
+      origin_id: "",
+      destination_id: "",
       transportation_type: "bus",
       cost: "",
-      description: ""
+      description: "",
+      route_details: {
+        departure_times: [],
+        booking_info: "",
+        contact_details: ""
+      }
     })
     setIsCreateDialogOpen(true)
   }
@@ -64,11 +99,16 @@ export default function TravelAgentRoutes() {
   const handleOpenEditDialog = (route) => {
     setSelectedRoute(route)
     setRouteForm({
-      origin: route.origin,
-      destination: route.destination,
+      origin_id: route.origin_id?.toString() || "",
+      destination_id: route.destination_id?.toString() || "",
       transportation_type: route.transportation_type || "bus",
       cost: route.cost.toString(),
-      description: route.description || ""
+      description: route.description || "",
+      route_details: route.route_details || {
+        departure_times: [],
+        booking_info: "",
+        contact_details: ""
+      }
     })
     setIsEditDialogOpen(true)
   }
@@ -79,15 +119,24 @@ export default function TravelAgentRoutes() {
   }
 
   const handleCreateRoute = async () => {
-    if (!routeForm.origin || !routeForm.destination || !routeForm.cost) {
+    if (!routeForm.origin_id || !routeForm.destination_id || !routeForm.cost) {
       toast.error("Please fill in all required fields")
+      return
+    }
+
+    if (routeForm.origin_id === routeForm.destination_id) {
+      toast.error("Origin and destination cannot be the same")
       return
     }
 
     try {
       await createRoute({
-        ...routeForm,
-        cost: parseFloat(routeForm.cost)
+        origin_id: parseInt(routeForm.origin_id),
+        destination_id: parseInt(routeForm.destination_id),
+        transportation_type: routeForm.transportation_type,
+        cost: parseFloat(routeForm.cost),
+        description: routeForm.description,
+        route_details: routeForm.route_details
       })
       toast.success("Route created successfully")
       setIsCreateDialogOpen(false)
@@ -97,15 +146,24 @@ export default function TravelAgentRoutes() {
   }
 
   const handleUpdateRoute = async () => {
-    if (!routeForm.origin || !routeForm.destination || !routeForm.cost) {
+    if (!routeForm.origin_id || !routeForm.destination_id || !routeForm.cost) {
       toast.error("Please fill in all required fields")
+      return
+    }
+
+    if (routeForm.origin_id === routeForm.destination_id) {
+      toast.error("Origin and destination cannot be the same")
       return
     }
 
     try {
       await updateRoute(selectedRoute.id, {
-        ...routeForm,
-        cost: parseFloat(routeForm.cost)
+        origin_id: parseInt(routeForm.origin_id),
+        destination_id: parseInt(routeForm.destination_id),
+        transportation_type: routeForm.transportation_type,
+        cost: parseFloat(routeForm.cost),
+        description: routeForm.description,
+        route_details: routeForm.route_details
       })
       toast.success("Route updated successfully")
       setIsEditDialogOpen(false)
@@ -179,6 +237,17 @@ export default function TravelAgentRoutes() {
     )
   }
 
+  if (isLoadingData) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center py-10">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-amber-700 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading transport data...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-8">
@@ -200,51 +269,48 @@ export default function TravelAgentRoutes() {
           {routes.map((route) => (
             <Card key={route.id} className="overflow-hidden">
               <CardHeader className="pb-3">
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center">
-                    <div className="p-2 bg-amber-50 rounded-md mr-3">
-                      {getTransportIcon(route.transportation_type)}
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg">{route.origin} to {route.destination}</CardTitle>
-                      <CardDescription className="mt-1">
-                        {getTransportTypeBadge(route.transportation_type)}
-                      </CardDescription>
-                    </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    {getTransportIcon(route.transportation_type)}
+                    <CardTitle className="text-lg truncate">
+                      {route.origin_name || route.from_location} → {route.destination_name || route.to_location}
+                    </CardTitle>
                   </div>
+                  {getTransportTypeBadge(route.transportation_type)}
                 </div>
               </CardHeader>
               
-              <CardContent>
+              <CardContent className="pt-0">
                 <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-500">Price:</span>
-                    <span className="font-semibold">{formatTZS(parseFloat(route.cost))}</span>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Cost:</span>
+                    <span className="font-semibold">{formatTZS(route.cost)}</span>
                   </div>
                   
-                  {/* Use the helper function to safely render description */}
-                  {(route.description || route.schedule_details) && (
-                    <div>
-                      <span className="text-gray-500">Details:</span>
-                      <p className="text-sm mt-1">{renderDescription(route)}</p>
+                  {renderDescription(route) && (
+                    <div className="mt-3 p-2 bg-gray-50 rounded text-sm">
+                      <span className="text-gray-600">Details: </span>
+                      <span>{renderDescription(route)}</span>
                     </div>
                   )}
                 </div>
               </CardContent>
-
-              <CardFooter className="border-t pt-4 flex justify-end gap-2 bg-gray-50">
+              
+              <CardFooter className="pt-3 gap-2">
                 <Button 
-                  variant="outline" 
                   size="sm" 
-                  onClick={() => handleOpenEditDialog(route)}>
-                  <PenLine className="h-4 w-4 mr-1" /> Edit
+                  variant="outline" 
+                  onClick={() => handleOpenEditDialog(route)}
+                  className="flex-1">
+                  <PenLine className="h-4 w-4 mr-1" />
+                  Edit
                 </Button>
                 <Button 
+                  size="sm" 
                   variant="outline" 
-                  size="sm"
-                  className="text-red-600 hover:bg-red-50"
-                  onClick={() => handleOpenDeleteDialog(route)}>
-                  <Trash2 className="h-4 w-4 mr-1" /> Delete
+                  onClick={() => handleOpenDeleteDialog(route)}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </CardFooter>
             </Card>
@@ -265,7 +331,7 @@ export default function TravelAgentRoutes() {
 
       {/* Create Route Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Create New Transport Route</DialogTitle>
             <DialogDescription>
@@ -277,21 +343,43 @@ export default function TravelAgentRoutes() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="origin">Origin*</Label>
-                <Input
-                  id="origin"
-                  value={routeForm.origin}
-                  onChange={(e) => setRouteForm({...routeForm, origin: e.target.value})}
-                  placeholder="e.g., Dar es Salaam"
-                />
+                <Select
+                  value={routeForm.origin_id}
+                  onValueChange={(value) => setRouteForm({...routeForm, origin_id: value})}
+                >
+                  <SelectTrigger id="origin">
+                    <SelectValue placeholder="Select origin location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {origins.map((origin) => (
+                        <SelectItem key={origin.id} value={origin.id.toString()}>
+                          {origin.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="destination">Destination*</Label>
-                <Input
-                  id="destination"
-                  value={routeForm.destination}
-                  onChange={(e) => setRouteForm({...routeForm, destination: e.target.value})}
-                  placeholder="e.g., Zanzibar"
-                />
+                <Select
+                  value={routeForm.destination_id}
+                  onValueChange={(value) => setRouteForm({...routeForm, destination_id: value})}
+                >
+                  <SelectTrigger id="destination">
+                    <SelectValue placeholder="Select destination" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {destinations.map((destination) => (
+                        <SelectItem key={destination.id} value={destination.id.toString()}>
+                          {destination.name} {destination.region && `(${destination.region})`}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -329,14 +417,47 @@ export default function TravelAgentRoutes() {
             </div>
 
             <div>
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">Route Description</Label>
               <Textarea
                 id="description"
                 value={routeForm.description}
                 onChange={(e) => setRouteForm({...routeForm, description: e.target.value})}
-                placeholder="Additional information about this transport route"
+                placeholder="Additional information about this transport route, schedule details, etc."
                 rows={3}
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="booking_info">Booking Information</Label>
+                <Input
+                  id="booking_info"
+                  value={routeForm.route_details.booking_info}
+                  onChange={(e) => setRouteForm({
+                    ...routeForm, 
+                    route_details: {
+                      ...routeForm.route_details,
+                      booking_info: e.target.value
+                    }
+                  })}
+                  placeholder="How customers can book tickets"
+                />
+              </div>
+              <div>
+                <Label htmlFor="contact_details">Contact Details</Label>
+                <Input
+                  id="contact_details"
+                  value={routeForm.route_details.contact_details}
+                  onChange={(e) => setRouteForm({
+                    ...routeForm, 
+                    route_details: {
+                      ...routeForm.route_details,
+                      contact_details: e.target.value
+                    }
+                  })}
+                  placeholder="Phone number or contact info"
+                />
+              </div>
             </div>
           </div>
 
@@ -358,7 +479,7 @@ export default function TravelAgentRoutes() {
 
       {/* Edit Route Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Edit Transport Route</DialogTitle>
             <DialogDescription>
@@ -370,19 +491,43 @@ export default function TravelAgentRoutes() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-origin">Origin*</Label>
-                <Input
-                  id="edit-origin"
-                  value={routeForm.origin}
-                  onChange={(e) => setRouteForm({...routeForm, origin: e.target.value})}
-                />
+                <Select
+                  value={routeForm.origin_id}
+                  onValueChange={(value) => setRouteForm({...routeForm, origin_id: value})}
+                >
+                  <SelectTrigger id="edit-origin">
+                    <SelectValue placeholder="Select origin location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {origins.map((origin) => (
+                        <SelectItem key={origin.id} value={origin.id.toString()}>
+                          {origin.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="edit-destination">Destination*</Label>
-                <Input
-                  id="edit-destination"
-                  value={routeForm.destination}
-                  onChange={(e) => setRouteForm({...routeForm, destination: e.target.value})}
-                />
+                <Select
+                  value={routeForm.destination_id}
+                  onValueChange={(value) => setRouteForm({...routeForm, destination_id: value})}
+                >
+                  <SelectTrigger id="edit-destination">
+                    <SelectValue placeholder="Select destination" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {destinations.map((destination) => (
+                        <SelectItem key={destination.id} value={destination.id.toString()}>
+                          {destination.name} {destination.region && `(${destination.region})`}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -419,13 +564,46 @@ export default function TravelAgentRoutes() {
             </div>
 
             <div>
-              <Label htmlFor="edit-description">Description</Label>
+              <Label htmlFor="edit-description">Route Description</Label>
               <Textarea
                 id="edit-description"
                 value={routeForm.description}
                 onChange={(e) => setRouteForm({...routeForm, description: e.target.value})}
                 rows={3}
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-booking_info">Booking Information</Label>
+                <Input
+                  id="edit-booking_info"
+                  value={routeForm.route_details.booking_info}
+                  onChange={(e) => setRouteForm({
+                    ...routeForm, 
+                    route_details: {
+                      ...routeForm.route_details,
+                      booking_info: e.target.value
+                    }
+                  })}
+                  placeholder="How customers can book tickets"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-contact_details">Contact Details</Label>
+                <Input
+                  id="edit-contact_details"
+                  value={routeForm.route_details.contact_details}
+                  onChange={(e) => setRouteForm({
+                    ...routeForm, 
+                    route_details: {
+                      ...routeForm.route_details,
+                      contact_details: e.target.value
+                    }
+                  })}
+                  placeholder="Phone number or contact info"
+                />
+              </div>
             </div>
           </div>
 
@@ -451,11 +629,24 @@ export default function TravelAgentRoutes() {
           <DialogHeader>
             <DialogTitle>Delete Transport Route</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this route from {selectedRoute?.origin} to {selectedRoute?.destination}? This action cannot be undone.
+              Are you sure you want to delete this transport route? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
+          
+          {selectedRoute && (
+            <div className="py-4">
+              <div className="bg-gray-50 p-3 rounded-md">
+                <p className="font-medium">
+                  {selectedRoute.origin_name || selectedRoute.from_location} → {selectedRoute.destination_name || selectedRoute.to_location}
+                </p>
+                <p className="text-sm text-gray-600">
+                  {selectedRoute.transportation_type} • {formatTZS(selectedRoute.cost)}
+                </p>
+              </div>
+            </div>
+          )}
 
-          <DialogFooter className="mt-4">
+          <DialogFooter>
             <Button 
               type="button" 
               variant="outline" 

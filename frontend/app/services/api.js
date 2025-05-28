@@ -313,12 +313,17 @@ export const hotelBookingsService = {
 
 // Transport Service
 export const transportService = {
-  async getAllRoutes() {
-    return apiRequest('/transports')
+  async getAllRoutes(params = {}) {
+    const queryString = new URLSearchParams(params).toString()
+    return apiRequest(`/transports${queryString ? `?${queryString}` : ''}`)
   },
 
   async getRouteById(routeId) {
     return apiRequest(`/transports/${routeId}`)
+  },
+
+  async getAgencyRoutes() {
+    return apiRequest('/transports/my-routes')
   },
 
   async createRoute(routeData) {
@@ -337,6 +342,37 @@ export const transportService = {
 
   async deleteRoute(routeId) {
     return apiRequest(`/transports/${routeId}`, {
+      method: 'DELETE'
+    })
+  }
+}
+
+// Transport Origins Service
+export const transportOriginsService = {
+  async getAllOrigins() {
+    return apiRequest('/transport-origins')
+  },
+
+  async getOriginById(originId) {
+    return apiRequest(`/transport-origins/${originId}`)
+  },
+
+  async createOrigin(originData) {
+    return apiRequest('/transport-origins', {
+      method: 'POST',
+      body: JSON.stringify(originData)
+    })
+  },
+
+  async updateOrigin(originId, originData) {
+    return apiRequest(`/transport-origins/${originId}`, {
+      method: 'PUT',
+      body: JSON.stringify(originData)
+    })
+  },
+
+  async deleteOrigin(originId) {
+    return apiRequest(`/transport-origins/${originId}`, {
       method: 'DELETE'
     })
   }

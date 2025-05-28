@@ -88,19 +88,34 @@ CREATE TABLE activities (
     FOREIGN KEY (guide_user_id) REFERENCES tour_guides (user_id) ON DELETE SET NULL
 );
 
+-- Table to track available origins/locations for transport routes
+CREATE TABLE transport_origins (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    description TEXT,
+    country VARCHAR(100) DEFAULT 'Tanzania',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_origins_name (name)
+);
+
 CREATE TABLE transports (
     id INT AUTO_INCREMENT PRIMARY KEY,
     agency_id INT NOT NULL,
-    origin VARCHAR(255) NOT NULL,
-    destination VARCHAR(255) NOT NULL,
+    origin_id INT NOT NULL, -- Reference to transport_origins table
+    destination_id INT NOT NULL, -- Reference to destinations table
     transportation_type VARCHAR(100), -- e.g., Bus, Plane, Shuttle
     cost DECIMAL(10, 2) NOT NULL CHECK (cost > 0),
     description TEXT,
+    route_details JSON, -- Detailed route information: stops, times, ticket info, etc.
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (agency_id) REFERENCES travel_agencies (id) ON DELETE CASCADE,
-    INDEX idx_transports_origin (origin),
-    INDEX idx_transports_destination (destination)
+    FOREIGN KEY (origin_id) REFERENCES transport_origins (id) ON DELETE CASCADE,
+    FOREIGN KEY (destination_id) REFERENCES destinations (id) ON DELETE CASCADE,
+    INDEX idx_transports_origin (origin_id),
+    INDEX idx_transports_destination (destination_id),
+    INDEX idx_transports_origin_destination (origin_id, destination_id)
 );
 
 -- Multi-destination booking carts

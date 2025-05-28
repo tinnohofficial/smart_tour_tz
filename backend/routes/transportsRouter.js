@@ -7,6 +7,14 @@ const checkRole = require("../middleware/checkRole");
 // Get all transports
 router.get("/", transportsController.getTransports);
 
+// Get routes for authenticated travel agent
+router.get(
+  "/my-routes",
+  authenticateToken,
+  checkRole("travel_agent"),
+  transportsController.getAgencyRoutes
+);
+
 // Get transport by ID
 router.get("/:transportId", transportsController.getTransportById);
 
