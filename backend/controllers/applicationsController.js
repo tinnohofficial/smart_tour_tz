@@ -36,7 +36,7 @@ exports.getPendingApplications = async (req, res) => {
           }
 
           case "hotel_manager": {
-            // Get hotel manager specific details
+            // Get hotel manager specific details - the hotel id is the same as user id
             const [hotelDetails] = await db.query(
               `SELECT id, name, location, description, capacity, base_price_per_night, images
                FROM hotels
@@ -75,7 +75,7 @@ exports.getPendingApplications = async (req, res) => {
                 `SELECT id, origin, destination, transportation_type, cost, description
                  FROM transports
                  WHERE agency_id = ?`,
-                [agencyDetails[0].id], // Use the agency ID from agencyDetails
+                [user.id], // Use user.id directly since agency id = user id
               );
 
               profileDetails.routes = routesDetails;
@@ -93,10 +93,12 @@ exports.getPendingApplications = async (req, res) => {
           }
         }
 
-        // Return user with their profile details
+        // Return user with their profile details - map to 'details' for frontend compatibility
         return {
           ...user,
-          profileDetails,
+          user_id: user.id, // Add user_id field for frontend compatibility
+          name: profileDetails.full_name || profileDetails.name || user.email.split('@')[0], // Try to get a display name
+          details: profileDetails,
         };
       }),
     );

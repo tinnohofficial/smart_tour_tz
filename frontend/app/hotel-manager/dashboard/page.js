@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useDashboardStore } from "./store"
 import { format } from "date-fns"
 import { formatDateWithFormat } from "@/app/utils/dateUtils"
+import { formatTZS } from "@/app/utils/currency"
 import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner"
 
 export default function HotelManagerDashboard() {
@@ -110,7 +111,7 @@ export default function HotelManagerDashboard() {
                 <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
               </div>
               <div>
-                <div className="text-xl sm:text-2xl font-bold">${stats.monthlyRevenue}</div>
+                <div className="text-xl sm:text-2xl font-bold">{formatTZS(stats.monthlyRevenue)}</div>
                 <div className="text-xs text-gray-500">Current month</div>
               </div>
             </div>
@@ -129,7 +130,7 @@ export default function HotelManagerDashboard() {
                 <DollarSign className="h-4 w-4 text-purple-600" />
               </div>
               <div>
-                <div className="text-2xl font-bold">${stats.revenueThisMonth}</div>
+                <div className="text-2xl font-bold">{formatTZS(stats.revenueThisMonth)}</div>
                 <div className="text-xs text-gray-500">This month</div>
               </div>
             </div>
@@ -178,7 +179,7 @@ export default function HotelManagerDashboard() {
                     <TableCell>{booking.roomType}</TableCell>
                     <TableCell>{formatDate(booking.checkIn)}</TableCell>
                     <TableCell>{formatDate(booking.checkOut)}</TableCell>
-                    <TableCell className="text-right">${booking.amount}</TableCell>
+                    <TableCell className="text-right">{formatTZS(booking.amount)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

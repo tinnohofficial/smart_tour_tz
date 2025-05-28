@@ -35,6 +35,11 @@ export const useBookingStore = create((set, get) => ({
   isPaymentDialogOpen: false,
   savingsBalance: 2000, // Mock savings balance
   
+  // Crypto payment state
+  walletAddress: null,
+  isWalletConnected: false,
+  isConnectingWallet: false,
+  
   // API data
   destination: null,
   transportRoutes: [],
@@ -242,6 +247,36 @@ export const useBookingStore = create((set, get) => ({
   setAgreedToTerms: (agreed) => set({ agreedToTerms: agreed, errors: {} }),
   setPaymentMethod: (method) => set({ paymentMethod: method }),
   setIsPaymentDialogOpen: (isOpen) => set({ isPaymentDialogOpen: isOpen }),
+
+  // Crypto wallet actions
+  connectWallet: async () => {
+    set({ isConnectingWallet: true });
+    try {
+      if (typeof window !== 'undefined' && window.ethereum) {
+        const accounts = await window.ethereum.request({ 
+          method: 'eth_requestAccounts' 
+        });
+        if (accounts.length > 0) {
+          set({ 
+            walletAddress: accounts[0], 
+            isWalletConnected: true,
+            isConnectingWallet: false 
+          });
+          return { success: true, address: accounts[0] };
+        }
+      } else {
+        throw new Error('MetaMask not found');
+      }
+    } catch (error) {
+      set({ isConnectingWallet: false });
+      return { success: false, error: error.message };
+    }
+  },
+
+  disconnectWallet: () => set({ 
+    walletAddress: null, 
+    isWalletConnected: false 
+  }),
 
   resetBooking: () => set({
     step: 1,

@@ -139,12 +139,12 @@ export default function ApplicationsPage() {
                           <Button variant="outline" className="hover:bg-amber-50 text-xs sm:text-sm" size="sm" onClick={() => viewApplicationDetails(application)}>
                             View Details
                           </Button>
-                          {/* Use store action for reject */}
+                          {/* Use store action for approve */}
                           <Button
                             variant="outline"
                             className="hover:bg-amber-50 text-xs sm:text-sm"
                             size="sm"
-                            onClick={() => rejectApplication(application.id)}
+                            onClick={() => approveApplication(application.user_id)}
                             disabled={isProcessing} // Read from store
                           >
                             <CheckCircle className="mr-1 h-3 w-3 sm:h-4 sm:w-4" /> Approve
@@ -232,34 +232,48 @@ export default function ApplicationsPage() {
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                        <div><h4 className="text-sm font-medium text-gray-500 mb-1">Agency Name</h4><p>{selectedApplication.details.name}</p></div>
                        <div><h4 className="text-sm font-medium text-gray-500 mb-1">Phone Number</h4><p>{selectedApplication.phone_number}</p></div>
+                       <div><h4 className="text-sm font-medium text-gray-500 mb-1">Contact Email</h4><p>{selectedApplication.details.contact_email}</p></div>
+                       <div><h4 className="text-sm font-medium text-gray-500 mb-1">Contact Phone</h4><p>{selectedApplication.details.contact_phone}</p></div>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-500 mb-1">Travel Routes</h4>
-                      <div className="mt-2 space-y-4">
-                        {selectedApplication.details.routes && selectedApplication.details.routes.map((route, index) => ( // Removed types
-                          <div key={index} className="p-4 border rounded-md">
-                             <div className="flex justify-between mb-2"><span className="font-medium">{route.origin} to {route.destination}</span><Badge>{route.transport_type}</Badge></div>
-                             <div className="text-sm">
-                               <p><span className="text-gray-500">Price:</span> ${route.price}</p>
-                               {route.schedule_details && (
-                                 <p>
-                                   <span className="text-gray-500">Schedule:</span> {route.schedule_details.frequency || 'N/A'}, 
-                                   departing at {route.schedule_details.departure_time || 'N/A'}
-                                 </p>
-                               )}
-                             </div>
-                          </div>
-                        ))}
+                    {selectedApplication.details.routes && selectedApplication.details.routes.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-500 mb-1">Transport Routes</h4>
+                        <div className="mt-2 space-y-4">
+                          {selectedApplication.details.routes.map((route, index) => (
+                            <div key={index} className="p-4 border rounded-md">
+                               <div className="flex justify-between mb-2">
+                                 <span className="font-medium">{route.origin} to {route.destination}</span>
+                                 <Badge>{route.transportation_type}</Badge>
+                               </div>
+                               <div className="text-sm">
+                                 <p><span className="text-gray-500">Cost:</span> ${route.cost}</p>
+                                 {route.description && (
+                                   <p><span className="text-gray-500">Description:</span> {route.description}</p>
+                                 )}
+                               </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-500 mb-1">License Document</h4>
-                      <div className="mt-2">
-                        <a href={selectedApplication.details.document_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-primary hover:underline">
-                          <FileText className="h-4 w-4" /> View License Document
-                        </a>
+                    )}
+                    {selectedApplication.details.document_url && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-500 mb-1">License Document</h4>
+                        <div className="mt-2">
+                          {Array.isArray(selectedApplication.details.document_url) ? (
+                            selectedApplication.details.document_url.map((doc, index) => (
+                              <a key={index} href={doc} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-primary hover:underline">
+                                <FileText className="h-4 w-4" /> View Document {index + 1}
+                              </a>
+                            ))
+                          ) : (
+                            <a href={selectedApplication.details.document_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-primary hover:underline">
+                              <FileText className="h-4 w-4" /> View License Document
+                            </a>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </>
                 )}
               </div>

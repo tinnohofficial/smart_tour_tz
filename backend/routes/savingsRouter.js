@@ -12,12 +12,28 @@ router.post(
   savingsController.depositFunds,
 );
 
+// Confirm Stripe payment
+router.post(
+  "/confirm-payment",
+  authenticateToken,
+  checkRole("tourist"),
+  savingsController.confirmStripePayment,
+);
+
 // Get savings balance
 router.get(
   "/balance",
   authenticateToken,
   checkRole("tourist"),
   savingsController.getSavingsBalance,
+);
+
+// Get live blockchain balance
+router.get(
+  "/live-balance",
+  authenticateToken,
+  checkRole("tourist"),
+  savingsController.getLiveBlockchainBalance,
 );
 
 module.exports = router;

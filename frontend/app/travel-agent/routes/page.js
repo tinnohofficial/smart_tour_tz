@@ -21,6 +21,7 @@ import { toast } from "sonner"
 import { useRoutesStore } from "./store"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import { formatTZS } from "@/app/utils/currency"
 
 export default function TravelAgentRoutes() {
   const router = useRouter()
@@ -218,7 +219,7 @@ export default function TravelAgentRoutes() {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-500">Price:</span>
-                    <span className="font-semibold">${parseFloat(route.cost).toFixed(2)}</span>
+                    <span className="font-semibold">{formatTZS(parseFloat(route.cost))}</span>
                   </div>
                   
                   {/* Use the helper function to safely render description */}
@@ -316,13 +317,13 @@ export default function TravelAgentRoutes() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="cost">Cost (USD)*</Label>
+                <Label htmlFor="cost">Cost (TZS)*</Label>
                 <Input
                   id="cost"
                   type="number"
                   value={routeForm.cost}
                   onChange={(e) => setRouteForm({...routeForm, cost: e.target.value})}
-                  placeholder="e.g., 50"
+                  placeholder="e.g., 120000"
                 />
               </div>
             </div>
@@ -407,7 +408,7 @@ export default function TravelAgentRoutes() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="edit-cost">Cost (USD)*</Label>
+                <Label htmlFor="edit-cost">Cost (TZS)*</Label>
                 <Input
                   id="edit-cost"
                   type="number"

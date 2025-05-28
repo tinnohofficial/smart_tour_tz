@@ -13,6 +13,7 @@ import { format } from "date-fns"
 import { useBookingsStore } from "./store"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import { formatDateWithFormat } from "@/app/utils/dateUtils"
+import { formatTZS } from "@/app/utils/currency"
 import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner"
 
 export default function HotelManagerBookings() {
@@ -130,10 +131,9 @@ export default function HotelManagerBookings() {
                   <div className="flex items-start gap-2">
                     <FileText className="h-4 w-4 text-gray-500 mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium">Booking Cost</p>
-                      <p className="text-sm text-gray-500">
-                        ${Number(booking.cost).toFixed(2)}
-                      </p>
+                      <p className="text-sm font-medium">Booking Cost</p>                <p className="text-sm text-gray-500">
+                  {formatTZS(Number(booking.cost))}
+                </p>
                     </div>
                   </div>
                 </div>

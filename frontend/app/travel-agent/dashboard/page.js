@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useDashboardStore } from "./dashboardStore"
+import { formatTZS } from "@/app/utils/currency"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
@@ -133,7 +134,7 @@ export default function TravelAgentDashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-xl sm:text-2xl font-bold">${isLoading ? "..." : stats.monthlyRevenue.toFixed(2)}</div>
+            <div className="text-xl sm:text-2xl font-bold">{formatTZS(isLoading ? 0 : stats.monthlyRevenue)}</div>
             <p className="text-xs text-gray-500 mt-1">From confirmed bookings</p>
           </CardContent>
         </Card>

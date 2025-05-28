@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { PhoneInput } from "@/components/ui/phone-input"
 import { toast } from "sonner"
 import { ChevronRight } from "lucide-react"
 import { useRegisterStore } from "./registerStore"
@@ -63,8 +64,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
       return;
     }
 
-    if (phoneNumber.length < 10) {
-      toast.error("Please enter a valid phone number.");
+    if (phoneNumber.length !== 13 || !phoneNumber.match(/^\+255\d{9}$/)) {
+      toast.error("Please enter a valid Tanzanian phone number (+255XXXXXXXXX).");
       return;
     }
 
@@ -168,12 +169,17 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
                 <div className="space-y-2">
                   <label htmlFor="phoneNumber" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Phone Number</label>
-                  <Input
-                    id="phoneNumber"
-                    placeholder="+1 (555) 000-0000"
+                  <PhoneInput
                     value={basicFormData.phoneNumber}
-                    onChange={(e) => setBasicFormData({ phoneNumber: e.target.value })}
+                    onChange={(value) => setBasicFormData({ phoneNumber: value || '' })}
+                    defaultCountry="TZ"
+                    placeholder="744 117 544"
+                    international
+                    withCountryCallingCode
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Format: +255 followed by 9 digits (e.g., +255744117544)
+                  </p>
                 </div>
 
                 <div className="space-y-2">

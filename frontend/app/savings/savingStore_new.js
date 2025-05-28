@@ -94,11 +94,11 @@ const useSavingsStore = create((set, get) => ({
     }
   },
 
-  // Fetch live blockchain balance from smart contract
+  // Fetch live blockchain balance
   fetchLiveBlockchainBalance: async () => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) return;
+      if (!token) return { success: false, error: 'Authentication required' };
 
       const response = await fetch('/api/savings/live-balance', {
         headers: {
@@ -118,7 +118,9 @@ const useSavingsStore = create((set, get) => ({
         // Also refresh total balance
         await get().fetchBalance();
         
-        return { success: true, balance: data.balance };
+        return { success: true, balance: data.balance, usdtBalance: data.usdtBalance };
+      } else {
+        throw new Error('Failed to fetch live balance');
       }
     } catch (error) {
       console.error('Failed to fetch live blockchain balance:', error);
@@ -126,21 +128,19 @@ const useSavingsStore = create((set, get) => ({
     }
   },
 
-  // Deposit funds (both fiat via Stripe and crypto via MetaMask)
   depositFunds: async (amount, method, walletAddress = null) => {
     set({ isDepositing: true });
     try {
       const token = localStorage.getItem('token');
-      if (!token) throw new Error('No authentication token');
+      if (!token) throw new Error('Authentication required');
 
-      const payload = {
-        amount: parseFloat(amount),
-        method: method,
+      const requestBody = { 
+        amount: amount, 
+        method: method === 'credit' ? 'stripe' : 'crypto'
       };
-
-      // Add wallet address for crypto deposits
+      
       if (method === 'crypto' && walletAddress) {
-        payload.walletAddress = walletAddress;
+        requestBody.walletAddress = walletAddress;
       }
 
       const response = await fetch('/api/savings/deposit', {
@@ -149,37 +149,31 @@ const useSavingsStore = create((set, get) => ({
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(requestBody)
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        // For Stripe payments, return client secret
-        if (method === 'stripe' && data.clientSecret) {
-          return {
-            success: true,
+        if (method === 'credit' && data.clientSecret) {
+          // Return Stripe client secret for payment processing
+          return { 
+            success: true, 
+            requiresPayment: true, 
             clientSecret: data.clientSecret,
             paymentIntentId: data.paymentIntentId
           };
-        }
-        
-        // For crypto payments, return success with transaction info
-        if (method === 'crypto') {
+        } else {
+          // Crypto payment or successful completion
           await get().fetchBalance(); // Refresh balance
-          return {
-            success: true,
-            message: data.message,
-            transactionHash: data.transactionHash
-          };
+          set({ depositAmount: "" });
+          return { success: true };
         }
-        
-        return { success: true, data };
       } else {
-        return { success: false, error: data.message };
+        throw new Error(data.message || 'Deposit failed');
       }
     } catch (error) {
-      console.error('Deposit failed:', error);
+      console.error("Deposit failed:", error);
       return { success: false, error: error.message };
     } finally {
       set({ isDepositing: false });
@@ -190,7 +184,7 @@ const useSavingsStore = create((set, get) => ({
   confirmStripePayment: async (paymentIntentId) => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) throw new Error('No authentication token');
+      if (!token) throw new Error('Authentication required');
 
       const response = await fetch('/api/savings/confirm-payment', {
         method: 'POST',
@@ -204,14 +198,13 @@ const useSavingsStore = create((set, get) => ({
       const data = await response.json();
 
       if (response.ok) {
-        // Refresh balance after successful payment
-        await get().fetchBalance();
-        return { success: true, data };
+        await get().fetchBalance(); // Refresh balance
+        return { success: true, newBalance: data.newBalance };
       } else {
-        return { success: false, error: data.message };
+        throw new Error(data.message || 'Payment confirmation failed');
       }
     } catch (error) {
-      console.error('Payment confirmation failed:', error);
+      console.error("Payment confirmation failed:", error);
       return { success: false, error: error.message };
     }
   },
@@ -226,44 +219,28 @@ const useSavingsStore = create((set, get) => ({
     const currentMonth = new Date().getMonth();
     const currentMonthDeposits = state.transactions
       .filter((t) => {
-        const transactionMonth = new Date(t.date).getMonth();
-        return transactionMonth === currentMonth;
+        const depositMonth = new Date(t.date).getMonth();
+        return t.type === "deposit" && depositMonth === currentMonth;
       })
       .reduce((sum, t) => sum + t.amount, 0);
 
-    const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-    const previousMonthDeposits = state.transactions
+    const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const lastMonthDeposits = state.transactions
       .filter((t) => {
-        const transactionMonth = new Date(t.date).getMonth();
-        return transactionMonth === previousMonth;
+        const depositMonth = new Date(t.date).getMonth();
+        return t.type === "deposit" && depositMonth === lastMonth;
       })
       .reduce((sum, t) => sum + t.amount, 0);
 
-    if (previousMonthDeposits === 0) return 0;
-    return ((currentMonthDeposits - previousMonthDeposits) / previousMonthDeposits) * 100;
+    if (lastMonthDeposits === 0) return 0;
+    return ((currentMonthDeposits - lastMonthDeposits) / lastMonthDeposits) * 100;
   },
 
   getLastDeposit: () => {
     const state = get();
-    return state.transactions[0]?.amount || 0;
+    const deposits = state.transactions.filter((t) => t.type === "deposit");
+    return deposits.length > 0 ? deposits[deposits.length - 1] : null;
   },
-
-  // Reset store
-  reset: () => {
-    set({
-      balance: 0,
-      blockchainBalance: 0,
-      walletAddress: null,
-      savingDuration: 30,
-      depositAmount: "",
-      isDepositing: false,
-      isBalanceVisible: false,
-      isWalletConnected: false,
-      isConnectingWallet: false,
-      targetAmount: 13000000,
-      transactions: []
-    });
-  }
 }));
 
-export { useSavingsStore };
+export default useSavingsStore;

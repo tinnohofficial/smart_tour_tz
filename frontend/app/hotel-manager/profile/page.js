@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { FileUploader } from "../../components/file-uploader"
 import { useProfileStore } from "./store"
+import { formatTZS } from "@/app/utils/currency"
 
 export default function HotelManagerProfile() {
   const {
@@ -123,7 +124,7 @@ export default function HotelManagerProfile() {
                   <div className="flex items-center gap-2 py-2 border-t">
                     <Hotel className="h-4 w-4 text-green-600" />
                     <span className="text-sm font-medium">Price per night:</span>
-                    <span className="text-sm text-gray-600">${accommodationCosts || '0'}</span>
+                    <span className="text-sm text-gray-600">{formatTZS(accommodationCosts || 0)}</span>
                   </div>
                 </div>
               </div>
@@ -184,15 +185,15 @@ export default function HotelManagerProfile() {
                     </div>
 
                     <div className="space-y-2">
-                      <label htmlFor="accommodationCosts" className="text-sm font-medium text-gray-700">Price Per Night ($)</label>
+                      <label htmlFor="accommodationCosts" className="text-sm font-medium text-gray-700">Price Per Night (TZS)</label>
                       <Input
                         id="accommodationCosts"
                         name="accommodationCosts"
                         type="number"
                         min="0"
-                        step="0.01"
+                        step="1"
                         defaultValue={accommodationCosts}
-                        placeholder="99.99"
+                        placeholder="240000"
                         className="border-gray-300 focus:border-amber-600"
                       />
                     </div>

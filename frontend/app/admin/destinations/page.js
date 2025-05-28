@@ -31,6 +31,7 @@ import {
 import { Search, Plus, Edit, Trash, AlertTriangle, Loader2, MapPin, ImageIcon } from "lucide-react"
 import { useDestinationsStore } from "./destinationsStore";
 import { formatDate } from "@/app/utils/dateUtils" 
+import { formatTZS } from "@/app/utils/currency" 
 
 export default function DestinationsPage() {
   // Select state and actions from the Zustand store
@@ -160,14 +161,14 @@ export default function DestinationsPage() {
                  </div>
                  {/* Cost Input */}
                  <div className="grid grid-cols-4 items-center gap-4">
-                   <Label htmlFor="cost" className="text-right"> Cost (USD) </Label>
+                   <Label htmlFor="cost" className="text-right"> Cost (TZS) </Label>
                    <Input 
                      id="cost" 
                      name="cost" 
                      type="number" 
                      min="0"
-                     step="0.01"
-                     placeholder="0.00"
+                     step="1"
+                     placeholder="0"
                      value={formData.cost} 
                      onChange={onInputChange} 
                      className="col-span-3" 
@@ -237,7 +238,7 @@ export default function DestinationsPage() {
                   <TableHead>Name</TableHead>
                   {/* <TableHead>Region</TableHead> */}
                   <TableHead>Description</TableHead>
-                  <TableHead>Cost (USD)</TableHead>
+                  <TableHead>Cost (TZS)</TableHead>
                   {/* <TableHead>Created</TableHead> */}
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -259,7 +260,7 @@ export default function DestinationsPage() {
                     <TableCell className="font-medium">{destination.name}</TableCell>
                     {/* <TableCell>{destination.region}</TableCell> */}
                     <TableCell className="max-w-xs truncate">{destination.description}</TableCell>
-                    <TableCell>${destination.cost ? parseFloat(destination.cost).toFixed(2) : '0.00'}</TableCell>
+                    <TableCell>{formatTZS(destination.cost ? parseFloat(destination.cost) : 0)}</TableCell>
                     {/* <TableCell>{formatDate(destination.created_at)}</TableCell> */}
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
@@ -302,14 +303,14 @@ export default function DestinationsPage() {
                </div>
                {/* Cost Input */}
                <div className="grid grid-cols-4 items-center gap-4">
-                 <Label htmlFor="edit-cost" className="text-right"> Cost (USD) </Label>
+                 <Label htmlFor="edit-cost" className="text-right"> Cost (TZS) </Label>
                  <Input 
                    id="edit-cost" 
                    name="cost" 
                    type="number" 
                    min="0"
-                   step="0.01"
-                   placeholder="0.00"
+                   step="1"
+                   placeholder="0"
                    value={formData.cost} 
                    onChange={onInputChange} 
                    className="col-span-3" 

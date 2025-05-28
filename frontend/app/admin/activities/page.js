@@ -32,6 +32,7 @@ import {
 import { Search, Plus, Edit, Trash, AlertTriangle, Loader2, MapPin } from "lucide-react"
 import { useActivitiesStore } from "./activitiesStore" 
 import { formatDate } from "@/app/utils/dateUtils" 
+import { formatTZS } from "@/app/utils/currency" 
 
 export default function ActivitiesPage() {
   const {
@@ -170,7 +171,7 @@ export default function ActivitiesPage() {
                   </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="price" className="text-right"> Price ($) </Label>
+                  <Label htmlFor="price" className="text-right"> Price (TZS) </Label>
                   <Input id="price" name="price" type="number" min="0" step="0.01" value={formData.price} onChange={handleInputChange} className="col-span-3"/>
                 </div>
                 <div className="grid grid-cols-4 items-start gap-4">
@@ -231,7 +232,7 @@ export default function ActivitiesPage() {
                     <TableCell className="font-medium">{activity.name}</TableCell>
                     <TableCell>{getDestinationName(activity.destination_id)}</TableCell>
                     <TableCell>
-                      ${activity.price ? Number(activity.price).toFixed(2) : '0.00'}
+                      {formatTZS(activity.price ? Number(activity.price) : 0)}
                     </TableCell>
                     <TableCell className="max-w-xs truncate">{activity.description}</TableCell>
                     <TableCell>{formatDate(activity.created_at)}</TableCell>
@@ -276,7 +277,7 @@ export default function ActivitiesPage() {
                  <Input id="edit-destination-display" value={selectedActivity ? getDestinationName(selectedActivity.destination_id) : ''} className="col-span-3" disabled />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-price" className="text-right"> Price ($) </Label>
+                <Label htmlFor="edit-price" className="text-right"> Price (TZS) </Label>
                 <Input id="edit-price" name="price" type="number" min="0" step="0.01" value={formData.price} onChange={handleInputChange} className="col-span-3"/>
               </div>
               <div className="grid grid-cols-4 items-start gap-4">

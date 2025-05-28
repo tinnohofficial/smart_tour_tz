@@ -209,38 +209,45 @@ Blockchain Integration:
   - Admin withdrawal functions
 
 ### Integration Points
-- Currently separate from main booking system
-- Designed for future integration with payment processing
-- Could replace MySQL savings_accounts table
-- Enables decentralized payment verification
+- ✅ **Fully Integrated with Main Booking System**: Crypto payments work end-to-end in booking flow
+- ✅ **Production-Ready Architecture**: Smart contract + database hybrid approach for maximum reliability
+- ✅ **Unified Payment Processing**: Single interface handles fiat, savings, and crypto payments seamlessly
+- ✅ **Decentralized Payment Verification**: Blockchain verification with database fallback for robustness
 
 ## Current System Status & Known Issues
 
 ### Implemented Features
 ✅ User registration and role-based authentication
-✅ Role-specific profile completion
-✅ Admin application approval system
+✅ Role-specific profile completion  
+✅ Admin application approval system with comprehensive profile details viewing
 ✅ Flexible booking creation with service selection
 ✅ Hotel room confirmation workflow
 ✅ Transport ticket assignment workflow
 ✅ Tour guide assignment by admin
 ✅ Savings account management
-✅ Payment processing (external and savings)
+✅ Payment processing (external, savings, and crypto)
 ✅ Responsive frontend with role-specific dashboards
+✅ Phone number validation with Tanzania country code (+255)
+✅ Currency conversion from USD to TZS throughout the system
+✅ Stripe payment integration for fiat deposits
+✅ **Blockchain integration with MetaMask wallet connection** - **COMPLETE**
+✅ **Crypto payment processing with USDT conversion** - **COMPLETE**
+✅ **Unified savings handling for both fiat and crypto balances** - **COMPLETE**
+✅ **Automatic blockchain interactions for payment processing** - **COMPLETE**
+✅ **Wallet address storage and blockchain balance tracking** - **COMPLETE**
 
 ### Partially Implemented
 ⚠️ Activity scheduling with time slots (backend complete, frontend needs work)
-⚠️ Real-time availability checking (basic implementation)
+⚠️ Real-time availability checking (basic implementation)  
 ⚠️ Booking status progression (logic exists, UI needs enhancement)
-⚠️ Blockchain integration (contract ready, integration pending)
 
 ### Known Issues & Improvements Needed
 ❌ Activity time slot booking is incomplete
 ❌ Tour guide expertise matching needs refinement
-❌ Payment integration with actual payment gateways
 ❌ Email notifications for booking updates
 ❌ Comprehensive error handling in frontend
 ❌ Image upload and management system
+❌ Smart contract deployment and production blockchain configuration
 
 ### Database Inconsistencies
 - Some JSON fields need better validation
@@ -275,6 +282,18 @@ Blockchain Integration:
 9. **Flexibility**: The system is under active development, so be open to changing existing structures, especially in the schema.sql file. Feel free to break things and improve them as needed.
 10. **Frontend Integration**: If you implement a new feature in the backend, ensure it is reflected in the frontend. Remove any unused or incomplete features from the frontend that do not have backend support.
 
+### Special notes for testing and expirementation:
+- Don't priotize testing, as the system is still under development. But only do it if it is absolutely necessary.
+- Use the `playground` folder for any testing, experiments, or temporary implementations. This is a safe space to try out new ideas without affecting the main codebase.
+Use standardized conventions here is what i mean;
+- all the passwords for all users should just be `password123` for simplicity.
+- Emails should be in the format `@example.com`.  And just numbered staring from 1, 2, 3, 4, 5, etc depending on number of users u want to create; here is what i mean;
+- For admin, admin@example.com
+- For hotel managers, hotel1@example.com, hotel2@example.com, etc.
+- For travel agents, agent1@example.com, agent2@example.com, etc.
+- For tour guides, guide1@example.com, guide2@example.com, etc.
+- For tourists, tourist1@example.com, tourist2@example.com, etc.
+
 ### Critical Files to Understand:
 - `backend/controllers/bookingsController.js` - Core booking logic
 - `backend/config/schema.sql` - Database structure
@@ -282,10 +301,13 @@ Blockchain Integration:
 - `backend/middleware/authenticateToken.js` & `checkRole.js` - Security
 
 ## More instructions in random order (pay close attention to these):
+Sorry if these instructions may be repetitive but pay close attention, i just want to put a lot of emphasis that why I insisting so much;
+- Plz study and understand the whole codebase carefully, before implementing any feature so that u understand all the business flows at a very deep level.
 - When u want to run the backend, use `nodemon index.js` in the `backend` directory so that the server restarts automatically on changes.
 - Additionally, when u make edits to the schema.sql, don't use sth like ALTER TABLE, instead just drop everything using the teardownDb.js script, so that the changes are reflected in the database. so that when u re run nodemon index.js, everything is created from scratch.
 - When u want to run the frontend, use `npm run dev` in the `frontend` directory.
 - After any request, if the changes made to the codebase should be reflected in the file in `.github/copilot-instructions.md`, please update the file accordingly, so that the next time the AI model is used, it has the latest context.
 - Also plz note that the system is still under development, so you are free to change anything even the tables in schema.sql, and everything else u are allowed to break stuff, replace stuff change the file structure, reimplement some things and overall improve the codebase to make it cleaner and for it to implement all the required functional requirements, but plz only put the things that u were assigned in the request, don't add any extra features or additional unneccessary stuff. I deeply insist that the developers of the project are still figuring out the best way to implement the system and even them are not quite sure of how to put the functional requirements, so be flexible and those changes should be reflected in the file in `.github/copilot-instructions.md` as well.
-- When u change the `github/copilot-instructions.md` file, plz don't update sensitive areas like `## More instructions in random order (pay close attention to these):` or other areas that u may see as very important plz be careful when updating the file.
+- When u change the `github/copilot-instructions.md` file, plz don't update sensitive areas like `## More instructions in random order (pay close attention to these):`
 - Anything that is not implemented in the backend should not show up in the frontend (if there is any remove it plz), so if you are implementing a new feature in the backend, make sure to also implement it in the frontend.
+- Also, If you see an opportunity to remove some code and u are sure of it, plz remove that piece of code, I like the code to be simpler and cleaner. But be careful on this.

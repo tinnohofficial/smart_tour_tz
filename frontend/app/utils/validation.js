@@ -12,8 +12,8 @@ export const PASSWORD_RULES = {
   hasSpecialChar: /.*[!@#$%^&*(),.?":{}|<>].*/
 }
 
-// Phone number validation
-export const PHONE_REGEX = /^\d{10,}$/
+// Phone number validation for Tanzanian numbers
+export const PHONE_REGEX = /^\+255\d{9}$/
 
 // Zod schemas for reusable validation
 export const emailSchema = z.string()
@@ -22,14 +22,15 @@ export const emailSchema = z.string()
 
 export const passwordSchema = z.string()
   .min(PASSWORD_RULES.minLength, `Password must be at least ${PASSWORD_RULES.minLength} characters`)
-  .regex(PASSWORD_RULES.hasUppercase, "Password must contain at least one uppercase letter")
+  // .regex(PASSWORD_RULES.hasUppercase, "Password must contain at least one uppercase letter")
   .regex(PASSWORD_RULES.hasLowercase, "Password must contain at least one lowercase letter") 
   .regex(PASSWORD_RULES.hasNumber, "Password must contain at least one number")
   .regex(PASSWORD_RULES.hasSpecialChar, "Password must contain at least one special character")
 
 export const phoneSchema = z.string()
-  .min(10, "Phone number must be at least 10 digits")
-  .regex(PHONE_REGEX, "Please enter a valid phone number")
+  .min(13, "Phone number must be +255 followed by 9 digits")
+  .max(13, "Phone number must be +255 followed by 9 digits")
+  .regex(PHONE_REGEX, "Please enter a valid Tanzanian phone number (+255XXXXXXXXX)")
 
 // Password change schema
 export const passwordChangeSchema = z
@@ -73,9 +74,9 @@ export const validatePassword = (password) => {
   if (password.length < PASSWORD_RULES.minLength) {
     return `Password must be at least ${PASSWORD_RULES.minLength} characters long`
   }
-  if (!PASSWORD_RULES.hasUppercase.test(password)) {
-    return "Password must contain at least one uppercase letter"
-  }
+  // if (!PASSWORD_RULES.hasUppercase.test(password)) {
+  //   return "Password must contain at least one uppercase letter"
+  // }
   if (!PASSWORD_RULES.hasLowercase.test(password)) {
     return "Password must contain at least one lowercase letter"
   }
@@ -95,7 +96,7 @@ export const validatePasswordMatch = (password, confirmPassword) => {
 
 export const validatePhone = (phone) => {
   if (!phone) return "Phone number is required"
-  if (phone.length < 10) return "Phone number must be at least 10 digits"
-  if (!PHONE_REGEX.test(phone)) return "Please enter a valid phone number"
+  if (phone.length !== 13) return "Phone number must be +255 followed by 9 digits"
+  if (!PHONE_REGEX.test(phone)) return "Please enter a valid Tanzanian phone number (+255XXXXXXXXX)"
   return null
 }

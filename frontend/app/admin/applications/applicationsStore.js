@@ -35,9 +35,11 @@ export const useApplicationsStore = create((set, get) => ({
       set({
         filteredApplications: applications.filter(
           (app) =>
-            app.name.toLowerCase().includes(lowerSearchTerm) ||
+            (app.name && app.name.toLowerCase().includes(lowerSearchTerm)) ||
             app.email.toLowerCase().includes(lowerSearchTerm) ||
-            app.role.toLowerCase().includes(lowerSearchTerm)
+            app.role.toLowerCase().includes(lowerSearchTerm) ||
+            (app.details && app.details.full_name && app.details.full_name.toLowerCase().includes(lowerSearchTerm)) ||
+            (app.details && app.details.name && app.details.name.toLowerCase().includes(lowerSearchTerm))
         ),
       });
     } else {

@@ -45,7 +45,10 @@ import { RouteProtection } from "@/components/route-protection"
 // Import shared utilities
 import { formatBookingDate } from "@/app/utils/dateUtils"
 import { TransportIcon } from "@/app/components/shared/TransportIcon"
+import { formatTZS } from "@/app/utils/currency"
 import { debounce } from "lodash"
+import { toast } from "sonner"
+import { bookingCreationService } from "@/app/services/api"
 
 function BookLocation({ params }) {
   const { id } = React.use(params) // Unwrap the params Promise
@@ -68,6 +71,9 @@ function BookLocation({ params }) {
     paymentMethod,
     isPaymentDialogOpen,
     savingsBalance,
+    walletAddress,
+    isWalletConnected,
+    isConnectingWallet,
     setStartDate,
     setEndDate,
     setSelectedTransportRoute,
@@ -84,6 +90,8 @@ function BookLocation({ params }) {
     setErrors,
     createBooking,
     checkActivityAvailability,
+    connectWallet,
+    disconnectWallet,
     
     // API-related state and actions
     destination,
@@ -231,23 +239,101 @@ function BookLocation({ params }) {
     }, [agreedToTerms, setIsPaymentDialogOpen, setErrors]
   )
 
-  const processPayment = useCallback(() => {
+  const processPayment = useCallback(async () => {
     if (!paymentMethod) {
-      return
+      toast.error("Please select a payment method");
+      return;
     }
 
-    alert(
-      `Booking confirmed for ${destination?.name}. Payment processed via ${paymentMethod === "credit" ? "credit card" : paymentMethod === "savings" ? "savings account" : "crypto"}.`
-    )
-    setIsPaymentDialogOpen(false)
-    resetBooking()
-    router.push("/")
+    // Validation based on payment method
+    if (paymentMethod === "crypto" && !isWalletConnected) {
+      toast.error("Please connect your wallet for crypto payments");
+      return;
+    }
+
+    if (paymentMethod === "savings" && savingsBalance < totalPrice) {
+      toast.error("Insufficient funds in savings account");
+      return;
+    }
+
+    try {
+      // Create booking first
+      const bookingData = {
+        destinationId: parseInt(id, 10),
+        startDate,
+        endDate,
+        transportRoute: selectedTransportRoute,
+        hotel: selectedHotel,
+        activities: selectedActivities,
+        activitySchedules,
+        flexibleOptions,
+        totalPrice
+      };
+
+      const booking = await createBooking(bookingData);
+      
+      if (!booking.success) {
+        toast.error(booking.error || "Failed to create booking");
+        return;
+      }
+
+      // Process payment based on method
+      let paymentResult;
+      
+      switch (paymentMethod) {
+        case "crypto":
+          // For crypto payments, we need the wallet address
+          paymentResult = await bookingCreationService.processPayment(booking.bookingId, {
+            paymentMethod: "crypto",
+            walletAddress: walletAddress
+          });
+          break;
+          
+        case "savings":
+          paymentResult = await bookingCreationService.processPayment(booking.bookingId, {
+            paymentMethod: "savings"
+          });
+          break;
+          
+        case "credit":
+        default:
+          paymentResult = await bookingCreationService.processPayment(booking.bookingId, {
+            paymentMethod: "external"
+          });
+          break;
+      }
+
+      if (paymentResult && !paymentResult.error) {
+        toast.success(`Booking confirmed! Payment of ${formatTZS(totalPrice)} processed successfully.`);
+        setIsPaymentDialogOpen(false);
+        resetBooking();
+        router.push("/my-bookings");
+      } else {
+        toast.error(paymentResult?.error || "Payment processing failed");
+      }
+      
+    } catch (error) {
+      console.error("Error processing payment:", error);
+      toast.error("Failed to process payment. Please try again.");
+    }
   }, [
-    destination?.name,
     paymentMethod,
-    router,
+    isWalletConnected,
+    savingsBalance,
+    totalPrice,
+    id,
+    startDate,
+    endDate,
+    selectedTransportRoute,
+    selectedHotel,
+    selectedActivities,
+    activitySchedules,
+    flexibleOptions,
+    walletAddress,
+    createBooking,
     setIsPaymentDialogOpen,
-    resetBooking
+    resetBooking,
+    router
   ])
 
   const formatDate = formatBookingDate;
@@ -1405,7 +1491,7 @@ function BookLocation({ params }) {
                           <div className="flex justify-between text-sm">
                             <span className="text-gray-600">Destination Fee</span>
                             <span className="font-medium">
-                              ${parseFloat(destination.cost || 0).toFixed(2)}
+                              {formatTZS(parseFloat(destination.cost || 0))}
                             </span>
                           </div>
 
@@ -1413,7 +1499,7 @@ function BookLocation({ params }) {
                             <div className="flex justify-between text-sm">
                               <span className="text-gray-600">Accommodation ({nights} {nights === 1 ? "night" : "nights"})</span>
                               <span className="font-medium">
-                                ${(selectedHotelObj.base_price_per_night * nights).toFixed(2)}
+                                {formatTZS(selectedHotelObj.base_price_per_night * nights)}
                               </span>
                             </div>
                           )}
@@ -1422,7 +1508,7 @@ function BookLocation({ params }) {
                             <div className="flex justify-between text-sm">
                               <span className="text-gray-600">Transport</span>
                               <span className="font-medium">
-                                ${parseFloat(selectedRoute.cost).toFixed(2)}
+                                {formatTZS(parseFloat(selectedRoute.cost))}
                               </span>
                             </div>
                           )}
@@ -1431,7 +1517,7 @@ function BookLocation({ params }) {
                             <div className="flex justify-between text-sm">
                               <span className="text-gray-600">Activities ({selectedActivitiesObj.length})</span>
                               <span className="font-medium">
-                                ${selectedActivitiesObj.reduce((sum, act) => sum + parseFloat(act.price || 0), 0).toFixed(2)}
+                                {formatTZS(selectedActivitiesObj.reduce((sum, act) => sum + parseFloat(act.price || 0), 0))}
                               </span>
                             </div>
                           )}
@@ -1440,7 +1526,7 @@ function BookLocation({ params }) {
                           
                           <div className="flex justify-between text-base font-bold">
                             <span>Total</span>
-                            <span className="text-amber-700">${totalPrice.toFixed(2)}</span>
+                            <span className="text-amber-700">{formatTZS(totalPrice)}</span>
                           </div>
                         </div>
 
@@ -1466,7 +1552,7 @@ function BookLocation({ params }) {
                             disabled={!agreedToTerms}
                           >
                             <CreditCard className="mr-2 h-4 w-4" />
-                            Pay ${totalPrice.toFixed(2)}
+                            Pay {formatTZS(totalPrice)}
                           </Button>
                           
                           <Button
@@ -1549,11 +1635,11 @@ function BookLocation({ params }) {
               <div className="p-4 bg-amber-50 rounded-lg">
                 <div className="flex justify-between items-center mb-2">
                   <span>Available Balance:</span>
-                  <span className="font-semibold">${savingsBalance.toFixed(2)}</span>
+                  <span className="font-semibold">{formatTZS(savingsBalance)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span>Required:</span>
-                  <span className="font-semibold">${totalPrice.toFixed(2)}</span>
+                  <span className="font-semibold">{formatTZS(totalPrice)}</span>
                 </div>
                 <Separator className="my-2" />
                 <div className="flex justify-between items-center font-medium">
@@ -1561,7 +1647,7 @@ function BookLocation({ params }) {
                   <span
                     className={savingsBalance >= totalPrice ? "text-green-600" : "text-red-600"}
                   >
-                    ${(savingsBalance - totalPrice).toFixed(2)}
+                    {formatTZS(savingsBalance - totalPrice)}
                   </span>
                 </div>
                 {savingsBalance < totalPrice && (
@@ -1577,77 +1663,72 @@ function BookLocation({ params }) {
             </TabsContent>
             
             <TabsContent value="crypto" className="space-y-4">
-              <div className="p-4 bg-amber-50 rounded-lg">
-                <div className="flex justify-between items-center mb-2">
-                  <span>Equivalent in ETH:</span>
-                  <span className="font-semibold">{(totalPrice / 3500).toFixed(6)} ETH</span>
+              {!isWalletConnected ? (
+                <div className="text-center p-6 bg-gray-50 rounded-lg">
+                  <Wallet className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+                  <p className="text-gray-600 mb-4">Connect your MetaMask wallet to pay with cryptocurrency</p>
+                  <Button 
+                    onClick={async () => {
+                      const result = await connectWallet();
+                      if (result.success) {
+                        toast.success("Wallet connected successfully!");
+                      } else {
+                        toast.error(result.error || "Failed to connect wallet");
+                      }
+                    }} 
+                    disabled={isConnectingWallet}
+                    className="text-white bg-amber-700 hover:bg-amber-800"
+                  >
+                    {isConnectingWallet ? "Connecting..." : "Connect MetaMask"}
+                  </Button>
                 </div>
-                
-                <div className="mt-4">
-                  <Label htmlFor="cryptoWallet">Your Wallet Address</Label>
-                  <div className="mt-1 relative">
-                    <Input 
-                      id="cryptoWallet" 
-                      type="text" 
-                      placeholder="0x..." 
-                      className="pr-20" 
-                    />
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
-                      size="sm" 
-                      className="absolute right-1 top-1 h-7 text-xs text-amber-600"
-                      onClick={() => {
-                        if (window.ethereum) {
-                          window.ethereum.request({ method: 'eth_requestAccounts' })
-                            .then(accounts => {
-                              document.getElementById('cryptoWallet').value = accounts[0];
-                            })
-                            .catch(error => {
-                              console.error(error);
-                            });
-                        } else {
-                          alert("MetaMask or another web3 wallet is required for crypto payments");
-                        }
-                      }}
-                    >
-                      Connect wallet
-                    </Button>
+              ) : (
+                <div className="p-4 bg-amber-50 rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <span>Equivalent in ETH:</span>
+                    <span className="font-semibold">{(totalPrice / 9100000).toFixed(6)} ETH</span>
                   </div>
-                </div>
-                
-                <div className="mt-4">
-                  <Label className="mb-2 block">Select Cryptocurrency</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="flex items-center space-x-2 border rounded-md p-2 cursor-pointer bg-white hover:bg-amber-50 hover:border-amber-300">
-                      <svg className="h-5 w-5 text-amber-600" viewBox="0 0 24 24" fill="none">
-                        <path d="M11.767 19.089c4.924.868 6.14-6.025 1.216-6.894m-1.216 6.894L5.86 18.047m5.908 1.042-.347 1.97m1.563-8.864c4.924.869 6.14-6.025 1.215-6.893m-1.215 6.893-3.94-.694m3.94.694-.347 1.97M7.116 5.137l-1.257-.221 1.437 8.148" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      <div>
-                        <p className="font-medium">Bitcoin</p>
-                        <p className="text-xs text-gray-500">BTC</p>
-                      </div>
+                  
+                  <div className="mt-4">
+                    <Label htmlFor="cryptoWallet">Connected Wallet Address</Label>
+                    <div className="mt-1">
+                      <Input 
+                        id="cryptoWallet" 
+                        type="text" 
+                        value={walletAddress || ""}
+                        disabled
+                        className="font-mono text-xs bg-gray-50"
+                      />
                     </div>
-                    <div className="flex items-center space-x-2 border rounded-md p-2 cursor-pointer bg-white hover:bg-amber-50 hover:border-amber-300">
-                      <svg className="h-5 w-5 text-amber-600" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 2L5.25 12.05L12 15.85V2ZM12 15.85L18.75 12.05L12 2V15.85Z" fill="currentColor" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" />
-                        <path d="M12 22L5.25 12.5L12 16.3V22ZM12 16.3L18.75 12.5L12 22V16.3Z" fill="currentColor" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      <div>
-                        <p className="font-medium">Ethereum</p>
-                        <p className="text-xs text-gray-500">ETH</p>
+                  </div>
+                  
+                  <div className="mt-4">
+                    <Label className="mb-2 block">Payment Currency</Label>
+                    <div className="grid grid-cols-1 gap-2">
+                      <div className="flex items-center space-x-3 border rounded-md p-3 bg-white border-amber-300">
+                        <svg className="h-6 w-6 text-amber-600" viewBox="0 0 24 24" fill="none">
+                          <path d="M12 2L5.25 12.05L12 15.85V2ZM12 15.85L18.75 12.05L12 2V15.85Z" fill="currentColor" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M12 22L5.25 12.5L12 16.3V22ZM12 16.3L18.75 12.5L12 22V16.3Z" fill="currentColor" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <div className="flex-1">
+                          <p className="font-medium">USDT (via Smart Contract)</p>
+                          <p className="text-xs text-gray-500">Recommended - {(totalPrice / 2600).toFixed(2)} USDT</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium">{formatTZS(totalPrice)}</p>
+                        </div>
                       </div>
                     </div>
                   </div>
+                  
+                  <Alert className="mt-4 bg-yellow-50 border border-yellow-200 text-yellow-800">
+                    <AlertCircle className="h-4 w-4 text-yellow-600" />
+                    <AlertDescription className="text-sm">
+                      Payment will be processed through Smart Tour TZ blockchain vault. Send USDT to the contract and confirm your transaction.
+                    </AlertDescription>
+                  </Alert>
                 </div>
-                
-                <Alert className="mt-4 bg-yellow-50 border border-yellow-200 text-yellow-800">
-                  <AlertCircle className="h-4 w-4 text-yellow-600" />
-                  <AlertDescription className="text-sm">
-                    Crypto payment will connect to Smart Tour TZ blockchain vault. Current exchange rate applies at time of payment.
-                  </AlertDescription>
-                </Alert>
-              </div>
+              )}
             </TabsContent>
           </Tabs>
 
@@ -1659,10 +1740,11 @@ function BookLocation({ params }) {
               onClick={processPayment}
               disabled={
                 (paymentMethod === "savings" && savingsBalance < totalPrice) ||
+                (paymentMethod === "crypto" && !isWalletConnected) ||
                 !paymentMethod
               }
             >
-              Pay ${totalPrice.toFixed(2)}
+              Pay {formatTZS(totalPrice)}
             </Button>
           </DialogFooter>
         </DialogContent>

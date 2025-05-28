@@ -264,11 +264,10 @@ exports.updatePhone = async (req, res) => {
     });
   }
 
-  // Simple phone validation - can be enhanced with more specific regex
-  // based on country requirements
-  if (phone_number.length < 8) {
+  // Simple phone validation for Tanzanian numbers (+255XXXXXXXXX)
+  if (phone_number && (phone_number.length !== 13 || !phone_number.match(/^\+255\d{9}$/))) {
     return res.status(400).json({
-      message: "Please provide a valid phone number",
+      message: "Please provide a valid Tanzanian phone number (+255XXXXXXXXX)",
     });
   }
 

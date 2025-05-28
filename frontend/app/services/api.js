@@ -349,14 +349,16 @@ export const applicationsService = {
   },
 
   async approveApplication(userId) {
-    return apiRequest(`/applications/${userId}/approve`, {
-      method: 'POST'
+    return apiRequest(`/applications/${userId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ newStatus: 'active' })
     })
   },
 
   async rejectApplication(userId) {
-    return apiRequest(`/applications/${userId}/reject`, {
-      method: 'POST'
+    return apiRequest(`/applications/${userId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ newStatus: 'rejected' })
     })
   }
 }
@@ -420,10 +422,10 @@ export const bookingCreationService = {
     })
   },
 
-  async processPayment(bookingId, paymentMethod) {
+  async processPayment(bookingId, paymentData) {
     return apiRequest(`/bookings/${bookingId}/pay`, {
       method: 'POST',
-      body: JSON.stringify({ paymentMethod })
+      body: JSON.stringify(paymentData)
     })
   },
 

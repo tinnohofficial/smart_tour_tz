@@ -65,11 +65,11 @@ export const APPLICATION_STATUS = {
 export const VALIDATION_RULES = {
   EMAIL_REGEX: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   PASSWORD_MIN_LENGTH: 8,
-  PHONE_REGEX: /^[+]?[\d\s\-\(\)]+$/,
+  PHONE_REGEX: /^\+255\d{9}$/,
   REQUIRED_FIELD_MESSAGE: 'This field is required',
   INVALID_EMAIL_MESSAGE: 'Please enter a valid email address',
   PASSWORD_MIN_LENGTH_MESSAGE: 'Password must be at least 8 characters long',
-  INVALID_PHONE_MESSAGE: 'Please enter a valid phone number'
+  INVALID_PHONE_MESSAGE: 'Please enter a valid Tanzanian phone number (+255XXXXXXXXX)'
 }
 
 // Common UI constants

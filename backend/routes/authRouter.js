@@ -18,8 +18,10 @@ validateRegistration = [
 
   body("phone_number")
     .optional({ checkFalsy: true })
-    .isMobilePhone()
-    .withMessage("Please provide a valid phone number"),
+    .isLength({ min: 13, max: 13 })
+    .withMessage("Phone number must be in format +255XXXXXXXXX (13 characters)")
+    .matches(/^\+255\d{9}$/)
+    .withMessage("Phone number must start with +255 followed by 9 digits"),
 
   body("role")
     .isIn(["tourist", "tour_guide", "hotel_manager", "travel_agent"])
