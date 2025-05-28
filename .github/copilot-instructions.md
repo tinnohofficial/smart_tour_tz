@@ -161,6 +161,7 @@ Blockchain Integration:
 - `/api/applications` - Admin application approval
 - `/api/savings` - Savings account management
 - `/api/transports` - Transport route management
+- `/api/transport-origins` - Transport origins management (admin-only for create/update/delete)
 
 ## Frontend Structure
 
@@ -259,6 +260,11 @@ Blockchain Integration:
 ✅ **Admin tour guide assignment interface with booking search and filtering** - **COMPLETE**
 ✅ **Tour guide booking management with tourist contact details** - **COMPLETE**
 ✅ **Cart persistence across browser sessions with intelligent sync** - **COMPLETE**
+✅ **Location-based transport filtering with origin selection** - **COMPLETE**
+✅ **Transport origins management system with 20 seeded Tanzania locations** - **COMPLETE**
+✅ **Travel agent forms using destination/origin select dropdowns instead of text inputs** - **COMPLETE**
+✅ **Booking flow with origin selection before transport route filtering** - **COMPLETE**
+✅ **Database schema with transport_origins table and proper foreign key relationships** - **COMPLETE**
 
 ### Partially Implemented
 ⚠️ Activity scheduling with time slots (backend complete, frontend needs work)

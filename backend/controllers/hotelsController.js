@@ -8,7 +8,7 @@ exports.getAllHotels = async (req, res) => {
             SELECT h.* 
             FROM hotels h
             JOIN users u ON h.id = u.id
-            WHERE u.status = 'active'
+            WHERE u.status = 'active' AND h.is_available = TRUE
         `;
         
         const params = [];

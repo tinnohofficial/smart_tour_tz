@@ -44,11 +44,13 @@ CREATE TABLE hotels (
     images TEXT, -- JSON array of image URLs
     capacity INT,
     base_price_per_night DECIMAL(10, 2) CHECK (base_price_per_night > 0),
+    is_available BOOLEAN DEFAULT TRUE, -- Hotel availability status for bookings
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (id) REFERENCES users (id) ON DELETE CASCADE,
     INDEX idx_hotels_location (location),
-    INDEX idx_hotels_name (name)
+    INDEX idx_hotels_name (name),
+    INDEX idx_hotels_availability (is_available)
 );
 
 CREATE TABLE travel_agencies (

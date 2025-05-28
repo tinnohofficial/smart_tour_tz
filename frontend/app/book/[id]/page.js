@@ -751,12 +751,37 @@ function BookLocation({ params }) {
             </div>
           )}
 
-          {step === 2 && ( /* Step 2 - Travel Dates */
+          {step === 2 && ( /* Step 2 - Travel Dates and Origin */
             <div className="space-y-8">
               <div>
                 <h3 className="text-xl font-semibold flex items-center gap-2 mb-6">
-                  <Calendar className="h-5 w-5 text-amber-600" /> Select Your Travel Dates
+                  <Calendar className="h-5 w-5 text-amber-600" /> Select Your Travel Details
                 </h3>
+
+                {/* Origin Selection - only show if transport is included */}
+                {flexibleOptions.includeTransport && (
+                  <div className="mb-8">
+                    <Label htmlFor="origin" className="text-base mb-2 block">
+                      Departure Location
+                    </Label>
+                    <select
+                      id="origin"
+                      value={selectedOrigin || ""}
+                      onChange={(e) => setSelectedOrigin(e.target.value)}
+                      className={`w-full h-12 text-base px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 ${
+                        errors.origin ? "border-red-500" : "border-gray-300"
+                      }`}
+                    >
+                      <option value="">Select your departure location</option>
+                      {transportOrigins.map((origin) => (
+                        <option key={origin.id} value={origin.id}>
+                          {origin.name}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.origin && <p className="text-red-500 text-sm mt-1">{errors.origin}</p>}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>

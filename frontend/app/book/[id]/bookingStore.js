@@ -304,6 +304,7 @@ export const useBookingStore = create((set, get) => ({
     step: 1,
     startDate: "",
     endDate: "",
+    selectedOrigin: "",
     selectedTransportRoute: "",
     selectedHotel: "",
     selectedActivities: [],
@@ -331,11 +332,15 @@ export const useBookingStore = create((set, get) => ({
         newErrors.services = "Please select at least one service to continue";
       }
     } else if (step === 2) {
-      // Step 2: Validate dates
+      // Step 2: Validate dates and origin (if transport is included)
       if (!startDate) newErrors.startDate = "Start date is required";
       if (!endDate) newErrors.endDate = "End date is required";
       if (startDate && endDate && new Date(startDate) >= new Date(endDate)) {
         newErrors.endDate = "End date must be after start date";
+      }
+      // Validate origin selection if transport is included
+      if (flexibleOptions.includeTransport && !selectedOrigin) {
+        newErrors.origin = "Please select a departure location";
       }
     } else if (step === 3) {
       // Step 3: Validate transport if included
