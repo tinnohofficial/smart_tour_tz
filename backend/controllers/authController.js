@@ -176,7 +176,7 @@ exports.updatePassword = async (req, res) => {
 
     // Update password
     await db.query(
-      "UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      "UPDATE users SET password_hash = ? WHERE id = ?",
       [newHash, userId],
     );
 
@@ -241,7 +241,7 @@ exports.updateEmail = async (req, res) => {
 
     // Update email
     await db.query(
-      "UPDATE users SET email = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      "UPDATE users SET email = ? WHERE id = ?",
       [email, userId]
     );
 
@@ -305,7 +305,7 @@ exports.updatePhone = async (req, res) => {
 
     // Update phone number
     await db.query(
-      "UPDATE users SET phone_number = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      "UPDATE users SET phone_number = ? WHERE id = ?",
       [phone_number, userId]
     );
 

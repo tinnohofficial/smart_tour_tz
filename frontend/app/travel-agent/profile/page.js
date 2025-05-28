@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-import { transportOriginsService, destinationsService } from "@/app/services/api"
+import { transportOriginsService, destinationsService, uploadService } from "@/app/services/api"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
@@ -154,20 +154,7 @@ export default function TravelAgentProfile() {
       for (const docFile of documentUrl) {
         if (docFile instanceof File) {
           try {
-            const formData = new FormData()
-            formData.append("file", docFile)
-            
-            const response = await fetch("/api/upload-url", {
-              method: "POST",
-              body: formData,
-            })
-
-            if (!response.ok) {
-              const errorData = await response.json()
-              throw new Error(errorData.message || "Failed to upload file")
-            }
-
-            const { url } = await response.json()
+            const { url } = await uploadService.uploadDocument(docFile)
             uploadedDocUrls.push(url)
           } catch (error) {
             console.error('Upload Error:', error)

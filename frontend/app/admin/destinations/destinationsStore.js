@@ -56,6 +56,12 @@ export const useDestinationsStore = create((set, get) => ({
     }
   },
 
+  // Handle FileUploader array-based file changes
+  handleFileUploaderChange: (files) => {
+    const file = files[0]; // Take the first file since we only allow one image
+    get().handleFileChange(file);
+  },
+
   // Reset Form and File State
   resetFormAndFile: () => set({
     formData: { name: "", description: "", region: "", image_url: "", cost: "" },
@@ -120,11 +126,26 @@ export const useDestinationsStore = create((set, get) => ({
           if (!imageUrl) throw new Error("Image upload failed, cannot proceed."); // Stop if upload fails
         }
 
-        const destinationData = { ...formData, image_url: imageUrl };
+        const destinationData = { 
+          ...formData, 
+          image_url: imageUrl,
+          cost: formData.cost === "" ? 0 : parseFloat(formData.cost) || 0
+        };
         const newDestination = await destinationsService.createDestination(destinationData)
 
-        set((state) => ({ destinations: [...state.destinations, newDestination] }));
-        toast.success("Destination added successfully!");
+        // Ensure the new destination has a valid ID before adding to state
+        if (newDestination && newDestination.id) {
+          set((state) => ({ 
+            destinations: [...state.destinations.filter(d => d.id !== newDestination.id), newDestination] 
+          }));
+          toast.success("Destination added successfully!");
+        } else {
+          console.error("Invalid destination data received:", newDestination);
+          // Refetch destinations to ensure consistency
+          await get().fetchDestinations();
+          toast.success("Destination added successfully!");
+        }
+        
         get().resetFormAndFile();
         set({ isAddDialogOpen: false });
 
@@ -153,7 +174,7 @@ export const useDestinationsStore = create((set, get) => ({
         description: destination.description,
         region: destination.region,
         image_url: destination.image_url || "", // Ensure empty string if null/undefined
-        cost: destination.cost || "", // Added cost field
+        cost: destination.cost || "0", // Added cost field with default 0
       },
       previewUrl: destination.image_url || null, // Set initial preview
       selectedFile: null, // Clear any previously selected file
@@ -185,23 +206,32 @@ export const useDestinationsStore = create((set, get) => ({
            if (!imageUrl) throw new Error("Image upload failed, cannot proceed."); // Stop if upload fails
         }
 
-        const destinationData = { ...formData, image_url: imageUrl };
+        const destinationData = { 
+          ...formData, 
+          image_url: imageUrl,
+          cost: formData.cost === "" ? 0 : parseFloat(formData.cost) || 0
+        };
         const response = await destinationsService.updateDestination(selectedDestination.id, destinationData);
         
         // Extract the updated destination from the response
         // The controller now returns all fields of the destination
-        if (response) {
+        if (response && response.id) {
           set((state) => ({
             destinations: state.destinations.map((dest) =>
               dest.id === selectedDestination.id ? response : dest
             ),
           }));
           toast.success("Destination updated successfully!");
+        } else {
+          console.error("Invalid updated destination data received:", response);
+          // Refetch destinations to ensure consistency
+          await get().fetchDestinations();
+          toast.success("Destination updated successfully!");
         }
         get().resetFormAndFile();
         set({ isEditDialogOpen: false, selectedDestination: null });
 
-        return updatedDestination
+        return response
       },
       {
         setLoading: (loading) => set({ isSubmitting: loading }),

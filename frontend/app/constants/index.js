@@ -2,7 +2,7 @@
 export const API_ENDPOINTS = {
   // Authentication
   LOGIN: '/auth/login',
-  CHANGE_PASSWORD: '/users/change-password',
+  CHANGE_PASSWORD: '/auth/password',
 
   // User profiles
   TRAVEL_AGENT_PROFILE: '/travel-agents/profile',

@@ -397,7 +397,7 @@ exports.getAgencyRoutes = async (req, res) => {
       JOIN transport_origins to_orig ON t.origin_id = to_orig.id
       JOIN destinations d ON t.destination_id = d.id
       WHERE t.agency_id = ?
-      ORDER BY t.created_at DESC
+      ORDER BY t.id DESC
     `, [agency_id]);
     
     // Parse route_details JSON field if it exists

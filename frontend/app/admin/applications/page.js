@@ -20,7 +20,6 @@ import { CheckCircle, X, AlertTriangle, User, Hotel, Briefcase, FileText } from 
 
 // Import the Zustand store
 import { useApplicationsStore } from "./applicationsStore"; // Adjust path if needed
-import { formatDate } from "@/app/utils/dateUtils";
 import { RoleBadge } from "@/app/components/shared/RoleBadge";
 
 export default function ApplicationsPage() {
@@ -106,7 +105,7 @@ export default function ApplicationsPage() {
                     <TableHead className="min-w-[120px]">Name</TableHead>
                     <TableHead className="min-w-[180px]">Email</TableHead>
                     <TableHead className="min-w-[100px]">Role</TableHead>
-                    <TableHead className="min-w-[120px] hidden sm:table-cell">Submitted</TableHead>
+                    <TableHead className="min-w-[120px] hidden sm:table-cell">Status</TableHead>
                     <TableHead className="text-right min-w-[200px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -120,7 +119,11 @@ export default function ApplicationsPage() {
                         <div className="truncate max-w-[180px]">{application.email}</div>
                       </TableCell>
                       <TableCell><RoleBadge role={application.role} /></TableCell>
-                      <TableCell className="hidden sm:table-cell">{formatDate(application.submitted_at)}</TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        <Badge variant="outline" className="text-xs">
+                          Pending Review
+                        </Badge>
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex flex-col sm:flex-row justify-end gap-1 sm:gap-2">
                           {/* Use store action to open details */}

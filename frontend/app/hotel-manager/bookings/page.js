@@ -95,9 +95,9 @@ export default function HotelManagerBookings() {
                   <div className="flex items-start gap-2">
                     <Calendar className="h-4 w-4 text-gray-500 mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium">Booking Date</p>
+                      <p className="text-sm font-medium">Check-in/out</p>
                       <p className="text-sm text-gray-500">
-                        {formatDate(booking.created_at)}
+                        {booking.start_date ? formatDate(booking.start_date) : 'Not specified'} - {booking.end_date ? formatDate(booking.end_date) : 'Not specified'}
                       </p>
                     </div>
                   </div>

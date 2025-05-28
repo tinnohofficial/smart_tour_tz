@@ -132,8 +132,8 @@ export const useActivitiesStore = create((set, get) => ({
         formData: {
             name: activity.name,
             description: activity.description,
-            destination_id: activity.destination_id.toString(), // Store ID as string for Select compatibility
-            price: activity.price.toString(),
+            destination_id: activity.destination_id?.toString() || "", // Store ID as string for Select compatibility
+            price: activity.price !== undefined && activity.price !== null ? activity.price.toString() : "0",
         },
         isEditDialogOpen: true,
         error: null // Clear previous errors

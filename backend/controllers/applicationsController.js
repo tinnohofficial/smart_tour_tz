@@ -4,7 +4,7 @@ exports.getPendingApplications = async (req, res) => {
   try {
     // First, get all users with pending approval status
     const [users] = await db.query(
-      `SELECT id, email, phone_number, role, created_at, status
+      `SELECT id, email, phone_number, role, status
        FROM users
        WHERE status = 'pending_approval'`,
     );
@@ -72,9 +72,12 @@ exports.getPendingApplications = async (req, res) => {
 
               // Get related transport routes for this agency
               const [routesDetails] = await db.query(
-                `SELECT id, origin, destination, transportation_type, cost, description
-                 FROM transports
-                 WHERE agency_id = ?`,
+                `SELECT t.id, to_orig.name as origin, d.name as destination, 
+                        t.transportation_type, t.cost, t.description
+                 FROM transports t
+                 JOIN transport_origins to_orig ON t.origin_id = to_orig.id
+                 JOIN destinations d ON t.destination_id = d.id
+                 WHERE t.agency_id = ?`,
                 [user.id], // Use user.id directly since agency id = user id
               );
 
@@ -124,7 +127,7 @@ exports.updateApplicationStatus = async (req, res) => {
 
   try {
     const [result] = await db.query(
-      "UPDATE users SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = ?",
+      "UPDATE users SET status = ? WHERE id = ? AND status = ?",
       [newStatus, userId, "pending_approval"],
     );
 

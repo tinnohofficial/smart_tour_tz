@@ -105,9 +105,6 @@ export default function TravelAgentBookings() {
             <CardTitle className="text-base sm:text-lg font-semibold text-gray-800 truncate">
               {booking.origin} to {booking.destination}
             </CardTitle>
-            <CardDescription className="text-xs text-gray-500">
-              Created: {formatDate(booking.created_at)}
-            </CardDescription>
           </div>
           <Badge variant={isCompleted ? "default" : "outline"} className={cn(
             "flex-shrink-0",

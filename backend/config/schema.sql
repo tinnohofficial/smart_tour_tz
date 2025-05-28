@@ -18,7 +18,6 @@ CREATE TABLE users (
         'rejected',
         'inactive'
     ) NOT NULL DEFAULT 'pending_profile',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
@@ -29,7 +28,6 @@ CREATE TABLE tour_guides (
     location VARCHAR(255),
     expertise TEXT, -- JSON object with expertise details
     available BOOLEAN DEFAULT TRUE, -- Whether the tour guide is available for new assignments
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
     INDEX idx_tour_guides_location (location),
@@ -45,12 +43,9 @@ CREATE TABLE hotels (
     capacity INT,
     base_price_per_night DECIMAL(10, 2) CHECK (base_price_per_night > 0),
     is_available BOOLEAN DEFAULT TRUE, -- Hotel availability status for bookings
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (id) REFERENCES users (id) ON DELETE CASCADE,
     INDEX idx_hotels_location (location),
-    INDEX idx_hotels_name (name),
-    INDEX idx_hotels_availability (is_available)
+    INDEX idx_hotels_name (name)
 );
 
 CREATE TABLE travel_agencies (
@@ -59,8 +54,6 @@ CREATE TABLE travel_agencies (
     document_url VARCHAR(512),
     contact_email VARCHAR(255),
     contact_phone VARCHAR(20),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (id) REFERENCES users (id) ON DELETE CASCADE
 );
 
@@ -70,9 +63,7 @@ CREATE TABLE destinations (
     description TEXT,
     region VARCHAR(255), -- e.g., Region, Coordinates
     image_url VARCHAR(512),
-    cost DECIMAL(10, 2) DEFAULT 0 CHECK (cost >= 0),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    cost DECIMAL(10, 2) DEFAULT 0 CHECK (cost >= 0)
 );
 
 CREATE TABLE activities (
@@ -84,8 +75,10 @@ CREATE TABLE activities (
     guide_user_id INT,
     time_slots JSON, -- Array of time slots: [{"time": "09:00", "duration": 120, "max_participants": 10}, ...]
     available_dates JSON, -- Array of available dates: ["2024-01-01", "2024-01-02", ...]
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    duration_hours DECIMAL(5, 2),
+    max_participants INT,
+    difficulty_level ENUM('beginner', 'intermediate', 'advanced') DEFAULT 'beginner',
+    requirements TEXT,
     FOREIGN KEY (destination_id) REFERENCES destinations (id) ON DELETE SET NULL,
     FOREIGN KEY (guide_user_id) REFERENCES tour_guides (user_id) ON DELETE SET NULL
 );
@@ -96,8 +89,6 @@ CREATE TABLE transport_origins (
     name VARCHAR(255) NOT NULL UNIQUE,
     description TEXT,
     country VARCHAR(100) DEFAULT 'Tanzania',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_origins_name (name)
 );
 
@@ -110,8 +101,6 @@ CREATE TABLE transports (
     cost DECIMAL(10, 2) NOT NULL CHECK (cost > 0),
     description TEXT,
     route_details JSON, -- Detailed route information: stops, times, ticket info, etc.
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (agency_id) REFERENCES travel_agencies (id) ON DELETE CASCADE,
     FOREIGN KEY (origin_id) REFERENCES transport_origins (id) ON DELETE CASCADE,
     FOREIGN KEY (destination_id) REFERENCES destinations (id) ON DELETE CASCADE,
@@ -127,13 +116,10 @@ CREATE TABLE booking_carts (
     total_cost DECIMAL(12, 2) DEFAULT 0.00,
     status ENUM (
         'active',
-        'pending_payment',
-        'confirmed',
         'completed',
         'cancelled'
     ) NOT NULL DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (tourist_user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
@@ -156,7 +142,6 @@ CREATE TABLE bookings (
         'cancelled'
     ) NOT NULL DEFAULT 'in_cart',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (cart_id) REFERENCES booking_carts (id) ON DELETE SET NULL,
     FOREIGN KEY (tourist_user_id) REFERENCES users (id) ON DELETE CASCADE,
     FOREIGN KEY (destination_id) REFERENCES destinations (id) ON DELETE SET NULL
@@ -178,8 +163,6 @@ CREATE TABLE savings_accounts (
     balance DECIMAL(12, 2) DEFAULT 0.00,
     currency VARCHAR(10) DEFAULT 'TZS', -- TZS for Tanzanian Shilling
     blockchain_balance DECIMAL(12, 2) DEFAULT 0.00, -- USDT equivalent from blockchain
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
@@ -208,11 +191,8 @@ CREATE INDEX idx_users_role_status ON users (role, status);
 CREATE INDEX idx_bookings_tourist_id ON bookings (tourist_user_id);
 CREATE INDEX idx_bookings_cart_id ON bookings (cart_id);
 CREATE INDEX idx_bookings_status ON bookings (status);
-CREATE INDEX idx_bookings_created ON bookings (created_at DESC);
-
 CREATE INDEX idx_booking_carts_tourist_id ON booking_carts (tourist_user_id);
 CREATE INDEX idx_booking_carts_status ON booking_carts (status);
-CREATE INDEX idx_booking_carts_created ON booking_carts (created_at DESC);
 
 CREATE INDEX idx_booking_items_booking_id ON booking_items (booking_id);
 CREATE INDEX idx_booking_items_item ON booking_items (item_type, id);
@@ -222,7 +202,6 @@ CREATE INDEX idx_payments_user_id ON payments (user_id);
 CREATE INDEX idx_payments_cart_id ON payments (cart_id);
 CREATE INDEX idx_payments_booking_id ON payments (booking_id);
 CREATE INDEX idx_payments_status ON payments (status);
-CREATE INDEX idx_payments_created ON payments (created_at DESC);
 
 CREATE INDEX idx_activities_guide_id ON activities (guide_user_id);
 CREATE INDEX idx_activities_destination ON activities (destination_id);

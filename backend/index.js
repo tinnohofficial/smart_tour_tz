@@ -16,6 +16,7 @@ const savingsRouter = require("./routes/savingsRouter");
 const applicationsRouter = require("./routes/applicationsRouter");
 const cartRouter = require("./routes/cartRouter");
 const transportOriginsRouter = require("./routes/transportOriginsRouter");
+const uploadRouter = require("./routes/uploadRouter");
 
 const PORT = process.env.PORT;
 
@@ -23,6 +24,9 @@ const PORT = process.env.PORT;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve static files (uploads)
+app.use('/uploads', express.static('uploads'));
 
 router.get("/", (req, res) => {
   res.send("Welcome to the Smart Tour backend!");
@@ -39,6 +43,7 @@ router.use("/savings", savingsRouter);
 router.use("/applications", applicationsRouter);
 router.use("/cart", cartRouter);
 router.use("/transport-origins", transportOriginsRouter);
+router.use("/upload", uploadRouter);
 
 app.use("/api", router);
 

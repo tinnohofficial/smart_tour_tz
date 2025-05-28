@@ -65,6 +65,7 @@ export const useProfileStore = create((set, get) => ({
           set({ isUploading: true })
           const { url } = await uploadService.uploadDocument(get().licenseFile)
           formData.license_document_url = url
+          set({ isUploading: false })
         }
 
         // Format expertise data

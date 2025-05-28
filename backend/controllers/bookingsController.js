@@ -357,7 +357,7 @@ exports.getUserBookings = async (req, res) => {
     const [bookings] = await db.query(
       `SELECT * FROM bookings
        WHERE tourist_user_id = ?
-       ORDER BY created_at DESC`,
+       ORDER BY id DESC`,
       [userId],
     );
 
@@ -369,13 +369,15 @@ exports.getUserBookings = async (req, res) => {
       `SELECT bi.*,
        CASE
          WHEN bi.item_type = 'hotel' THEN h.name
-         WHEN bi.item_type = 'transport' THEN CONCAT(tr.origin, ' to ', tr.destination)
+         WHEN bi.item_type = 'transport' THEN CONCAT(to_orig.name, ' to ', d.name)
          WHEN bi.item_type = 'tour_guide' THEN tg.full_name
          WHEN bi.item_type = 'activity' THEN a.name
        END as item_name
        FROM booking_items bi
        LEFT JOIN hotels h ON bi.item_type = 'hotel' AND bi.id = h.id
        LEFT JOIN transports tr ON bi.item_type = 'transport' AND bi.id = tr.id
+       LEFT JOIN transport_origins to_orig ON bi.item_type = 'transport' AND tr.origin_id = to_orig.id
+       LEFT JOIN destinations d ON bi.item_type = 'transport' AND tr.destination_id = d.id
        LEFT JOIN tour_guides tg ON bi.item_type = 'tour_guide' AND bi.id = tg.user_id
        LEFT JOIN activities a ON bi.item_type = 'activity' AND bi.id = a.id
        WHERE bi.booking_id = ?`,
@@ -404,7 +406,7 @@ exports.getTourGuideBookings = async (req, res) => {
   try {
     // Get the booking items
     const [bookingItemsResult] = await db.query(
-      `SELECT bi.*, b.created_at, b.tourist_user_id, b.status,
+      `SELECT bi.*, b.tourist_user_id, b.status,
          u.email as tourist_email
        FROM booking_items bi
        JOIN bookings b ON bi.booking_id = b.id
@@ -412,7 +414,7 @@ exports.getTourGuideBookings = async (req, res) => {
        WHERE bi.item_type = 'tour_guide'
        AND bi.id = ?
        AND b.status = 'confirmed'
-       ORDER BY b.created_at DESC`,
+       ORDER BY b.id DESC`,
       [userId],
     );
 
@@ -439,9 +441,9 @@ exports.getGuideAssignedBookings = async (req, res) => {
     let [rows] = await db.query(
       `SELECT bi.id as booking_item_id, bi.cost, bi.item_details,
               b.id as booking_id, b.total_cost, b.status, b.created_at, b.start_date, b.end_date,
-              u.id as tourist_id, u.email as tourist_email, u.phone as tourist_phone,
+              u.id as tourist_id, u.email as tourist_email, u.phone_number as tourist_phone,
               d.id as destination_id, d.name as destination_name, d.region as destination_region,
-              d.description as destination_description, d.location as destination_location
+              d.description as destination_description
        FROM booking_items bi
        JOIN bookings b ON bi.booking_id = b.id
        JOIN users u ON b.tourist_user_id = u.id
@@ -461,7 +463,7 @@ exports.getGuideAssignedBookings = async (req, res) => {
       
       // Get activities for this booking with schedules
       const [activities] = await db.query(
-        `SELECT a.id, a.name, a.description, a.price, a.time_slots, a.duration,
+        `SELECT a.id, a.name, a.description, a.price, a.time_slots, a.duration_hours,
                 d.name as destination_name, d.region as destination_region,
                 bi.item_details as activity_schedule
          FROM booking_items bi
@@ -477,7 +479,7 @@ exports.getGuideAssignedBookings = async (req, res) => {
       
       // Get hotel information for this booking
       const [hotelResults] = await db.query(
-        `SELECT h.id, h.name, h.location, h.contact_phone, h.contact_email, bi.item_details
+        `SELECT h.id, h.name, h.location, h.description, bi.item_details
          FROM booking_items bi
          JOIN hotels h ON bi.item_type = 'hotel' AND bi.id = h.id
          WHERE bi.booking_id = ?
@@ -491,9 +493,11 @@ exports.getGuideAssignedBookings = async (req, res) => {
       
       // Get transport information for this booking
       const [transportResults] = await db.query(
-        `SELECT t.id, t.from_location, t.to_location, t.duration, t.price, bi.item_details
+        `SELECT t.id, to_orig.name as origin_name, d.name as destination_name, t.cost, bi.item_details
          FROM booking_items bi
          JOIN transports t ON bi.item_type = 'transport' AND bi.id = t.id
+         JOIN transport_origins to_orig ON t.origin_id = to_orig.id
+         JOIN destinations d ON t.destination_id = d.id
          WHERE bi.booking_id = ?
          AND bi.item_type = 'transport'`,
         [rows[i].booking_id]
@@ -543,7 +547,7 @@ exports.getHotelBookingsNeedingAction = async (req, res) => {
 
     // Get bookings that need action
     const [bookingItems] = await db.query(
-      `SELECT bi.*, b.created_at, b.tourist_user_id, u.email as tourist_email
+      `SELECT bi.*, b.tourist_user_id, u.email as tourist_email
        FROM booking_items bi
        JOIN bookings b ON bi.booking_id = b.id
        JOIN users u ON b.tourist_user_id = u.id
@@ -551,7 +555,7 @@ exports.getHotelBookingsNeedingAction = async (req, res) => {
        AND bi.id = ?
        AND bi.provider_status = 'pending'
        AND b.status = 'confirmed'
-       ORDER BY b.created_at DESC`,
+       ORDER BY b.id DESC`,
       [hotelId]
     );
 
@@ -638,16 +642,18 @@ exports.getTransportBookingsNeedingAction = async (req, res) => {
     
     // Get bookings that need action
     const [bookingItems] = await db.query(
-      `SELECT bi.*, tr.origin, tr.destination, tr.transportation_type, 
-              b.created_at, b.tourist_user_id, u.email as tourist_email
+      `SELECT bi.*, to_orig.name as origin_name, d.name as destination_name, tr.transportation_type, 
+              b.tourist_user_id, u.email as tourist_email
        FROM booking_items bi
        JOIN transports tr ON bi.item_type = 'transport' AND bi.id = tr.id
+       JOIN transport_origins to_orig ON tr.origin_id = to_orig.id
+       JOIN destinations d ON tr.destination_id = d.id
        JOIN bookings b ON bi.booking_id = b.id
        JOIN users u ON b.tourist_user_id = u.id
        WHERE tr.agency_id = ?
        AND bi.provider_status = 'pending'
        AND b.status = 'confirmed'
-       ORDER BY b.created_at DESC`,
+       ORDER BY b.id DESC`,
       [agencyId]
     );
     
@@ -864,7 +870,7 @@ exports.getUnassignedBookings = async (req, res) => {
          FROM booking_items 
          WHERE item_type = 'tour_guide'
        )
-       ORDER BY b.created_at DESC`
+       ORDER BY b.id DESC`
     );
     
     // For each booking, get its items (except tour guide which doesn't exist)
@@ -873,7 +879,7 @@ exports.getUnassignedBookings = async (req, res) => {
         `SELECT bi.*,
          CASE
            WHEN bi.item_type = 'hotel' THEN h.name
-           WHEN bi.item_type = 'transport' THEN CONCAT(tr.origin, ' to ', tr.destination)
+           WHEN bi.item_type = 'transport' THEN CONCAT(to_orig.name, ' to ', dest.name)
            WHEN bi.item_type = 'activity' THEN a.name
          END as item_name,
          CASE
@@ -884,8 +890,10 @@ exports.getUnassignedBookings = async (req, res) => {
          FROM booking_items bi
          LEFT JOIN hotels h ON bi.item_type = 'hotel' AND bi.id = h.id
          LEFT JOIN transports tr ON bi.item_type = 'transport' AND bi.id = tr.id
+         LEFT JOIN transport_origins to_orig ON bi.item_type = 'transport' AND tr.origin_id = to_orig.id
+         LEFT JOIN destinations dest ON bi.item_type = 'transport' AND tr.destination_id = dest.id
          LEFT JOIN activities a ON bi.item_type = 'activity' AND bi.id = a.id
-         LEFT JOIN destinations d ON a.destination_id = d.id
+         LEFT JOIN destinations d ON bi.item_type = 'activity' AND a.destination_id = d.id
          WHERE bi.booking_id = ?`,
         [rows[i].id]
       );
@@ -1245,7 +1253,7 @@ exports.getHotelBookingsCompleted = async (req, res) => {
     const [bookingItems] = await db.query(
       `SELECT 
         bi.id, bi.booking_id, bi.item_type, bi.id as hotel_id, bi.cost, bi.item_details,
-        b.start_date, b.end_date, b.created_at, b.status, b.total_cost,
+        b.start_date, b.end_date, b.status, b.total_cost,
         u.email as tourist_email
        FROM booking_items bi
        JOIN bookings b ON bi.booking_id = b.id
@@ -1254,7 +1262,7 @@ exports.getHotelBookingsCompleted = async (req, res) => {
        AND bi.id = ?
        AND bi.item_details IS NOT NULL
        AND JSON_EXTRACT(bi.item_details, '$.room_confirmed') = true
-       ORDER BY b.created_at DESC`,
+       ORDER BY b.id DESC`,
       [hotelId]
     );
 
@@ -1292,18 +1300,20 @@ exports.getTransportBookingsCompleted = async (req, res) => {
     const [bookingItems] = await db.query(
       `SELECT 
         bi.id, bi.booking_id, bi.item_type, bi.id as route_id, bi.cost, bi.item_details,
-        b.start_date, b.end_date, b.created_at, b.status, b.total_cost,
+        b.start_date, b.end_date, b.status, b.total_cost,
         u.email as tourist_email,
-        t.origin, t.destination, t.transportation_type
+        to_orig.name as origin_name, d.name as destination_name, t.transportation_type
        FROM booking_items bi
        JOIN bookings b ON bi.booking_id = b.id
        JOIN users u ON b.tourist_user_id = u.id
        JOIN transports t ON bi.id = t.id
+       JOIN transport_origins to_orig ON t.origin_id = to_orig.id
+       JOIN destinations d ON t.destination_id = d.id
        WHERE bi.item_type = 'transport' 
        AND bi.id IN (${placeholders})
        AND bi.item_details IS NOT NULL
        AND JSON_EXTRACT(bi.item_details, '$.ticket_assigned') = true
-       ORDER BY b.created_at DESC`,
+       ORDER BY b.id DESC`,
       routeIds
     );
 
@@ -1339,10 +1349,10 @@ exports.getGuideBookingDetails = async (req, res) => {
     
     // Get comprehensive booking details
     const [bookingDetails] = await db.query(
-      `SELECT b.id, b.total_cost, b.status, b.created_at, b.start_date, b.end_date,
-              u.id as tourist_id, u.email as tourist_email, u.phone as tourist_phone,
+      `SELECT b.id, b.total_cost, b.status, b.start_date, b.end_date,
+              u.id as tourist_id, u.email as tourist_email, u.phone_number as tourist_phone,
               d.id as destination_id, d.name as destination_name, d.region as destination_region,
-              d.description as destination_description, d.location as destination_location,
+              d.description as destination_description,
               d.cost as destination_cost
        FROM bookings b
        JOIN users u ON b.tourist_user_id = u.id
@@ -1363,21 +1373,23 @@ exports.getGuideBookingDetails = async (req, res) => {
               CASE 
                 WHEN bi.item_type = 'hotel' THEN h.name
                 WHEN bi.item_type = 'activity' THEN a.name
-                WHEN bi.item_type = 'transport' THEN CONCAT(t.from_location, ' to ', t.to_location)
+                WHEN bi.item_type = 'transport' THEN CONCAT(to_orig.name, ' to ', dest.name)
                 WHEN bi.item_type = 'tour_guide' THEN tg.full_name
                 ELSE 'Unknown'
               END as item_name,
               CASE 
                 WHEN bi.item_type = 'hotel' THEN h.location
                 WHEN bi.item_type = 'activity' THEN a.description
-                WHEN bi.item_type = 'transport' THEN t.duration
+                WHEN bi.item_type = 'transport' THEN 'Transport'
                 WHEN bi.item_type = 'tour_guide' THEN tg.location
-                ELSE NULL
-              END as item_details_extra
+                ELSE 'N/A'
+              END as item_description
        FROM booking_items bi
        LEFT JOIN hotels h ON bi.item_type = 'hotel' AND bi.id = h.id
        LEFT JOIN activities a ON bi.item_type = 'activity' AND bi.id = a.id
        LEFT JOIN transports t ON bi.item_type = 'transport' AND bi.id = t.id
+       LEFT JOIN transport_origins to_orig ON bi.item_type = 'transport' AND t.origin_id = to_orig.id
+       LEFT JOIN destinations dest ON bi.item_type = 'transport' AND t.destination_id = dest.id
        LEFT JOIN tour_guides tg ON bi.item_type = 'tour_guide' AND bi.id = tg.user_id
        WHERE bi.booking_id = ?
        ORDER BY bi.item_type`,

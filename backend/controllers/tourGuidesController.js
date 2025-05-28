@@ -68,7 +68,7 @@ exports.submitTourGuideProfile = async (req, res) => {
 
       if (userResult[0].status === "pending_profile") {
         await connection.query(
-          "UPDATE users SET status = 'pending_approval', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+          "UPDATE users SET status = 'pending_approval' WHERE id = ?",
           [userId],
         );
       }

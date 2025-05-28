@@ -21,17 +21,19 @@ export default function ForgotPassword() {
     }
 // i need api for this forgot password (for now it stays as this sample first)
     try {
-      const response = await fetch("/api/forgot-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      })
-      const data = await response.json()
-      if (!response.ok) {
-        toast.error(data.message || "Failed to send reset email.")
-      } else {
-        toast.success("Password reset instructions sent to your email.")
-      }
+      // TODO: Implement forgot password API endpoint
+      // const response = await fetch("/api/forgot-password", {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify({ email }),
+      // })
+      // const data = await response.json()
+      // if (!response.ok) {
+      //   toast.error(data.message || "Failed to send reset email.")
+      // } else {
+      //   toast.success("Password reset instructions sent to your email.")
+      // }
+      toast.error("Forgot password feature not yet implemented.")
     } catch {
       toast.error("Something went wrong. Please try again.")
     } finally {

@@ -75,10 +75,15 @@ exports.createDestination = async (req, res) => {
       [name, description || "", region, image_url || null, destinationCost],
     );
 
+    // Fetch the newly created destination to return
+    const [newDestination] = await db.query(
+      "SELECT * FROM destinations WHERE id = ?",
+      [result.insertId],
+    );
+
     res.status(201).json({
       message: "Destination created successfully.",
-      destinationId: result.insertId,
-      name,
+      ...newDestination[0]
     });
   } catch (error) {
     console.error("Error creating destination:", error);
@@ -155,8 +160,6 @@ exports.updateDestination = async (req, res) => {
       updates.push("cost = ?");
       values.push(cost);
     }
-
-    updates.push("updated_at = CURRENT_TIMESTAMP");
 
     // Add destination ID to values array
     values.push(destinationId);

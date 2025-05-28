@@ -3,6 +3,13 @@ import { persist } from 'zustand/middleware'
 import { toast } from 'sonner'
 import { cartService } from '../services/cartService'
 
+// Helper function to check if current user is a tourist
+const isTourist = () => {
+  if (typeof window === 'undefined') return false
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  return user.role === 'tourist'
+}
+
 export const useCartStore = create(
   persist(
     (set, get) => ({
@@ -24,6 +31,11 @@ export const useCartStore = create(
       
       // Get active cart with sync logic
       fetchCart: async (forceRefresh = false) => {
+        // Only allow cart operations for tourists
+        if (!isTourist()) {
+          return null
+        }
+
         const { lastSyncTimestamp } = get()
         const now = Date.now()
         const fiveMinutes = 5 * 60 * 1000
@@ -56,16 +68,26 @@ export const useCartStore = create(
 
       // Sync cart with server (used when page loads or becomes visible)
       syncCart: async () => {
+        // Only sync for tourists
+        if (!isTourist()) {
+          return
+        }
+        
         try {
           await get().fetchCart(true)
         } catch (error) {
           // Silently handle sync errors
-          console.log('Cart sync failed:', error.message)
+          console.error('Cart sync error:', error)
         }
       },
       
       // Add booking to cart
       addToCart: async (bookingData) => {
+        if (!isTourist()) {
+          toast.error('Cart functionality is only available for tourists')
+          return
+        }
+
         set({ isLoading: true, error: null })
         try {
           const result = await cartService.addToCart(bookingData)
@@ -78,13 +100,18 @@ export const useCartStore = create(
         } catch (error) {
           console.error('Error adding to cart:', error)
           set({ error: error.message, isLoading: false })
-          toast.error(error.message || 'Failed to add to cart')
+          toast.error(error.message)
           throw error
         }
       },
 
       // Remove booking from cart
       removeFromCart: async (bookingId) => {
+        if (!isTourist()) {
+          toast.error('Cart functionality is only available for tourists')
+          return
+        }
+
         set({ isLoading: true, error: null })
         try {
           await cartService.removeFromCart(bookingId)
@@ -96,13 +123,18 @@ export const useCartStore = create(
         } catch (error) {
           console.error('Error removing from cart:', error)
           set({ error: error.message, isLoading: false })
-          toast.error('Failed to remove from cart')
+          toast.error(error.message)
           throw error
         }
       },
 
       // Checkout cart
       checkoutCart: async (paymentData) => {
+        if (!isTourist()) {
+          toast.error('Cart functionality is only available for tourists')
+          return
+        }
+
         set({ isLoading: true, error: null })
         try {
           const result = await cartService.checkoutCart(paymentData)
@@ -115,13 +147,18 @@ export const useCartStore = create(
         } catch (error) {
           console.error('Error during checkout:', error)
           set({ error: error.message, isLoading: false })
-          toast.error(error.message || 'Checkout failed')
+          toast.error(error.message)
           throw error
         }
       },
 
       // Clear cart
       clearCart: async () => {
+        if (!isTourist()) {
+          toast.error('Cart functionality is only available for tourists')
+          return
+        }
+
         set({ isLoading: true, error: null })
         try {
           await cartService.clearCart()
@@ -130,19 +167,25 @@ export const useCartStore = create(
         } catch (error) {
           console.error('Error clearing cart:', error)
           set({ error: error.message, isLoading: false })
-          toast.error('Failed to clear cart')
+          toast.error(error.message)
           throw error
         }
       },
 
       // Get cart item count
       getCartItemCount: () => {
+        if (!isTourist()) {
+          return 0
+        }
         const { cart } = get()
         return cart?.bookings?.length || 0
       },
 
       // Get cart total
       getCartTotal: () => {
+        if (!isTourist()) {
+          return 0
+        }
         const { cart } = get()
         return cart?.total_cost || 0
       }
@@ -159,8 +202,8 @@ export const useCartStore = create(
         return persistedState
       },
       onRehydrateStorage: () => (state) => {
-        // Sync cart when store is rehydrated from storage
-        if (state?.cart) {
+        // Sync cart when store is rehydrated from storage (only for tourists)
+        if (state?.cart && isTourist()) {
           // Trigger background sync to ensure cart is up to date
           setTimeout(() => {
             state.syncCart?.()
@@ -174,8 +217,8 @@ export const useCartStore = create(
 // Page visibility API integration for cart syncing
 if (typeof window !== 'undefined') {
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) {
-      // Page became visible, sync cart
+    if (!document.hidden && isTourist()) {
+      // Page became visible, sync cart (only for tourists)
       const store = useCartStore.getState()
       store.syncCart?.()
     }

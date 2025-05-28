@@ -250,11 +250,12 @@ Blockchain Integration:
 ✅ Phone number validation with Tanzania country code (+255)
 ✅ Currency conversion from USD to TZS throughout the system
 ✅ Stripe payment integration for fiat deposits
-✅ **Blockchain integration with MetaMask wallet connection** - **COMPLETE**
-✅ **Crypto payment processing with USDT conversion** - **COMPLETE**
-✅ **Unified savings handling for both fiat and crypto balances** - **COMPLETE**
-✅ **Automatic blockchain interactions for payment processing** - **COMPLETE**
-✅ **Wallet address storage and blockchain balance tracking** - **COMPLETE**
+✅ **Complete file upload and document management system** - **COMPLETE**
+✅ **Unified upload handling across all forms with consistent FileUploader component** - **COMPLETE**
+✅ **Backend upload controller with multer integration and file validation** - **COMPLETE**
+✅ **Automatic file uploads for hotel images, tour guide licenses, and travel agent documents** - **COMPLETE**
+✅ **Static file serving with secure delete functionality** - **COMPLETE**
+✅ **End-to-end upload testing verified with authentication and error handling** - **COMPLETE**
 ✅ **Multi-destination cart system with persistent storage** - **COMPLETE**
 ✅ **Cart checkout workflow with single payment for multiple destinations** - **COMPLETE**
 ✅ **Complete tour guide assignment functionality** - **COMPLETE**
@@ -270,6 +271,7 @@ Blockchain Integration:
 ✅ **Hotels filtered by availability status in booking flow** - **COMPLETE**
 ✅ **Hotel manager availability controls in profile dashboard** - **COMPLETE**
 ✅ **Cart fetch error resolution (environment variable configuration fix)** - **COMPLETE**
+✅ **Cart role protection system for non-tourist users** - **COMPLETE**
 
 ### Partially Implemented
 ⚠️ Activity scheduling with time slots (backend complete, frontend needs work)
@@ -284,9 +286,69 @@ Blockchain Integration:
 ❌ Image upload and management system
 ❌ Smart contract deployment and production blockchain configuration
 
-### Database Inconsistencies
-- Some JSON fields need better validation
-- Foreign key constraints could be stronger
+### Recently Fixed Issues
+✅ **File Upload System Implementation**: Fixed and completed comprehensive upload functionality:
+  - Installed missing multer package for backend file uploads
+  - Verified end-to-end upload workflow (upload → serve → delete)
+  - Updated destinations admin to use consistent FileUploader component
+  - Fixed all upload service methods to use proper backend endpoints with authentication
+  - Removed broken Next.js API routes that used Vercel Blob storage
+  - Tested file upload, static serving, and deletion with proper authentication
+  - All forms now use unified upload service with proper error handling and user feedback
+✅ **React Table Key Warning**: Fixed unique key prop issue in destinations table by ensuring proper data validation and key generation
+✅ **Destination Update Crash**: Fixed undefined variable error in updateDestination function and improved backend response handling
+✅ **Cart Role Protection**: Added comprehensive role checking to prevent cart operations for non-tourist users, including:
+  - Role validation in all cart store methods (fetchCart, addToCart, removeFromCart, checkoutCart, clearCart)
+  - Protected cart synchronization and rehydration processes
+  - Safe getter methods (getCartItemCount, getCartTotal) with role checking
+  - Prevented "Forbidden: Requires role(s) tourist" errors for admin and other non-tourist users
+✅ **Activity Creation Error**: Fixed schema mismatch in activities table by adding missing columns:
+  - Added duration_hours, max_participants, difficulty_level, and requirements columns
+  - Updated schema.sql to include these fields for future database rebuilds
+  - Resolved "Unknown column 'duration_hours' in 'INSERT INTO'" error
+✅ **Activity Edit Price Error**: Fixed undefined value error when editing activities with null price values
+✅ **Database Schema Cleanup**: Removed unnecessary timestamp fields to simplify the database:
+  - Removed unused created_at and updated_at fields from several tables
+  - Updated queries to sort by ID instead of timestamp where needed
+  - Removed "Created" column from activities admin table
+  - Simplified code by reducing timestamp-related operations
+✅ **Frontend UI Timestamp Cleanup**: Cleaned up user interface to remove technical timestamp displays:
+  - Removed duplicate booking ID displays in travel agent bookings
+  - Replaced "Booking Date" with meaningful check-in/out dates in hotel manager interface
+  - Changed admin applications "Submitted" column to show "Status" with pending badges
+  - Removed commented-out timestamp code and unused formatDate imports
+  - Improved user experience by showing relevant business information instead of creation timestamps
+✅ **Backend Query Fixes**: Fixed all SQL queries that referenced removed timestamp fields:
+  - Removed created_at references from applications controller SELECT queries
+  - Removed updated_at references from all UPDATE queries in auth and applications controllers
+  - Fixed booking controller queries to remove created_at selections
+  - Updated tour guides controller to remove timestamp updates
+  - Resolved "Unknown column 'created_at' in 'SELECT'" errors
+✅ **Critical Database Field Mismatches**: Fixed all database schema mismatches between frontend and backend:
+  - Fixed transport table queries to use correct field names (origin_id/destination_id with JOINs instead of non-existent origin/destination fields)
+  - Updated all booking-related queries to properly join transport_origins and destinations tables
+  - Fixed phone field references to use phone_number instead of phone
+  - Removed references to non-existent hotel contact fields (contact_phone, contact_email)
+  - Fixed destination queries to use region instead of non-existent location field
+  - Fixed activity duration field reference (duration_hours instead of duration)
+✅ **Frontend-Backend API Mismatches**: Fixed all API endpoint and method mismatches:
+  - Fixed guide assignment API parameter (guideId instead of guide_id)
+  - Fixed hotel room confirmation and transport ticket assignment HTTP methods (PATCH instead of POST)
+  - Fixed password change API endpoint path (/auth/password instead of /users/change-password)
+  - Removed non-existent API calls (/api/forgot-password, /api/upload-url, /auth/status)
+  - Updated API service methods to match backend routes and parameters
+✅ **Non-Existent Feature Handling**: Properly handled unimplemented features:
+  - Commented out forgot password functionality with proper error message
+  - Disabled file upload features with clear error messages indicating they're not implemented
+  - Removed calls to non-existent upload endpoints in travel agent profile components
+❌ Smart contract deployment and production blockchain configuration
+
+### Database Improvements
+✅ Removed unnecessary timestamp fields from tables that don't need them
+✅ Updated column definitions to use proper data types and constraints
+✅ Streamlined table structure for better performance and readability
+- Some JSON fields still need better validation
+- Foreign key constraints could be further strengthened
 - Index optimization needed for large datasets
 
 ## Development Guidelines for AI Models

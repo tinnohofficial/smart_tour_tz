@@ -87,13 +87,11 @@ export const authService = {
     })
   },
 
-  async getUserStatus() {
-    return apiRequest('/auth/status')
-  },
+  // getUserStatus removed - endpoint doesn't exist in backend
 
   async changePassword(passwordData) {
-    return apiRequest('/users/change-password', {
-      method: 'POST',
+    return apiRequest('/auth/password', {
+      method: 'PUT',
       body: JSON.stringify(passwordData)
     })
   }
@@ -268,7 +266,7 @@ export const bookingsService = {
   async assignGuide(bookingId, guideId) {
     return apiRequest(`/bookings/${bookingId}/assign-guide`, {
       method: 'POST',
-      body: JSON.stringify({ guide_id: guideId })
+      body: JSON.stringify({ guideId: guideId })
     })
   },
 
@@ -293,7 +291,7 @@ export const enhancedBookingsService = {
 
   async assignTransportTicket(itemId, ticketDetails) {
     return apiRequest(`/bookings/items/${itemId}/assign-ticket`, {
-      method: 'POST',
+      method: 'PATCH',
       body: JSON.stringify(ticketDetails)
     })
   }
@@ -311,7 +309,7 @@ export const hotelBookingsService = {
 
   async confirmRoom(itemId, roomDetails) {
     return apiRequest(`/bookings/items/${itemId}/confirm-room`, {
-      method: 'POST',
+      method: 'PATCH',
       body: JSON.stringify(roomDetails)
     })
   }
@@ -415,8 +413,17 @@ export const uploadService = {
     const formData = new FormData()
     formData.append('file', file)
     
-    const response = await fetch('/api/upload-url', {
+    // Get token for authentication
+    const token = localStorage.getItem('token')
+    if (!token) {
+      throw new Error('Authentication required for file upload')
+    }
+    
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload`, {
       method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
       body: formData
     })
 
@@ -432,8 +439,17 @@ export const uploadService = {
     const formData = new FormData()
     formData.append('file', file)
     
-    const response = await fetch('/api/upload-url', {
+    // Get token for authentication
+    const token = localStorage.getItem('token')
+    if (!token) {
+      throw new Error('Authentication required for document upload')
+    }
+    
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload`, {
       method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
       body: formData
     })
 
@@ -443,13 +459,34 @@ export const uploadService = {
     }
 
     return response.json()
+  },
+
+  async deleteFile(filename) {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      throw new Error('Authentication required for file deletion')
+    }
+    
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload/${filename}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Delete failed' }))
+      throw new Error(errorData.message || 'Delete failed')
+    }
+
+    return response.json()
   }
 }
 
 // Password Service
 export const passwordService = {
   async changePassword(currentPassword, newPassword) {
-    return apiRequest('/api/auth/password', {
+    return apiRequest('/auth/password', {
       method: 'PUT',
       body: JSON.stringify({
         currentPassword,

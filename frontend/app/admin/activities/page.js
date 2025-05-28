@@ -31,8 +31,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Plus, Edit, Trash, AlertTriangle, Loader2, MapPin } from "lucide-react"
 import { useActivitiesStore } from "./activitiesStore" 
-import { formatDate } from "@/app/utils/dateUtils" 
-import { formatTZS } from "@/app/utils/currency" 
+import { formatTZS } from "@/app/utils/currency"
 
 export default function ActivitiesPage() {
   const {
@@ -210,7 +209,6 @@ export default function ActivitiesPage() {
                   <TableHead>Destination</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Description</TableHead>
-                  <TableHead>Created</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -223,7 +221,6 @@ export default function ActivitiesPage() {
                       {formatTZS(activity.price ? Number(activity.price) : 0)}
                     </TableCell>
                     <TableCell className="max-w-xs truncate">{activity.description}</TableCell>
-                    <TableCell>{formatDate(activity.created_at)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button variant="outline" className='hover:bg-amber-50' size="sm" onClick={() => handleEditClick(activity)}>

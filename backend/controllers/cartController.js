@@ -60,7 +60,7 @@ exports.getActiveCart = async (req, res) => {
        FROM bookings b
        LEFT JOIN destinations d ON b.destination_id = d.id
        WHERE b.cart_id = ? AND b.status = 'in_cart'
-       ORDER BY b.created_at ASC`,
+       ORDER BY b.id ASC`,
       [cart.id]
     );
 
@@ -70,13 +70,15 @@ exports.getActiveCart = async (req, res) => {
         `SELECT bi.*,
          CASE
            WHEN bi.item_type = 'hotel' THEN h.name
-           WHEN bi.item_type = 'transport' THEN CONCAT(tr.origin, ' to ', tr.destination)
+           WHEN bi.item_type = 'transport' THEN CONCAT(to_orig.name, ' to ', d.name)
            WHEN bi.item_type = 'tour_guide' THEN tg.full_name
            WHEN bi.item_type = 'activity' THEN a.name
          END as item_name
          FROM booking_items bi
          LEFT JOIN hotels h ON bi.item_type = 'hotel' AND bi.id = h.id
          LEFT JOIN transports tr ON bi.item_type = 'transport' AND bi.id = tr.id
+         LEFT JOIN transport_origins to_orig ON bi.item_type = 'transport' AND tr.origin_id = to_orig.id
+         LEFT JOIN destinations d ON bi.item_type = 'transport' AND tr.destination_id = d.id
          LEFT JOIN tour_guides tg ON bi.item_type = 'tour_guide' AND bi.id = tg.user_id
          LEFT JOIN activities a ON bi.item_type = 'activity' AND bi.id = a.id
          WHERE bi.booking_id = ?`,
