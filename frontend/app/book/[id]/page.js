@@ -45,6 +45,7 @@ import { RouteProtection } from "@/components/route-protection"
 // Import shared utilities
 import { formatBookingDate } from "@/app/utils/dateUtils"
 import { TransportIcon } from "@/app/components/shared/TransportIcon"
+import { debounce } from "lodash"
 
 function BookLocation({ params }) {
   const { id } = React.use(params) // Unwrap the params Promise
@@ -60,6 +61,8 @@ function BookLocation({ params }) {
     selectedTransportRoute,
     selectedHotel,
     selectedActivities,
+    activitySchedules,
+    flexibleOptions,
     errors,
     agreedToTerms,
     paymentMethod,
@@ -70,6 +73,8 @@ function BookLocation({ params }) {
     setSelectedTransportRoute,
     setSelectedHotel,
     toggleActivity,
+    setActivitySchedule,
+    setFlexibleOption,
     setAgreedToTerms,
     setPaymentMethod,
     setIsPaymentDialogOpen,
@@ -77,6 +82,8 @@ function BookLocation({ params }) {
     nextStep,
     prevStep,
     setErrors,
+    createBooking,
+    checkActivityAvailability,
     
     // API-related state and actions
     destination,
@@ -90,6 +97,51 @@ function BookLocation({ params }) {
     fetchHotels,
     fetchActivities,
   } = useBookingStore()
+
+  // State for real-time availability checking
+  const [availabilityChecking, setAvailabilityChecking] = React.useState({})
+  const [availabilityData, setAvailabilityData] = React.useState({})
+
+  // Real-time availability checking function with enhanced error handling
+  const checkAvailability = React.useCallback(async (activityId, date, timeSlot) => {
+    if (!activityId || !date || !timeSlot) return null;
+    
+    const key = `${activityId}-${date}-${timeSlot}`;
+    setAvailabilityChecking(prev => ({ ...prev, [key]: true }));
+    
+    try {
+      const availability = await checkActivityAvailability(activityId, date, timeSlot);
+      setAvailabilityData(prev => ({ 
+        ...prev, 
+        [key]: {
+          ...availability,
+          error: false,
+          lastChecked: Date.now()
+        }
+      }));
+      return availability;
+    } catch (error) {
+      console.error('Error checking availability:', error);
+      setAvailabilityData(prev => ({ 
+        ...prev, 
+        [key]: { 
+          available: false, 
+          error: true, 
+          errorMessage: error.message || 'Failed to check availability',
+          lastChecked: Date.now()
+        }
+      }));
+      return { available: false, error: true };
+    } finally {
+      setAvailabilityChecking(prev => ({ ...prev, [key]: false }));
+    }
+  }, [checkActivityAvailability]);
+
+  // Debounced availability checking to avoid too many API calls
+  const debouncedAvailabilityCheck = React.useMemo(
+    () => debounce(checkAvailability, 500),
+    [checkAvailability]
+  );
 
   // Fetch destination data when component mounts
   useEffect(() => {
@@ -138,11 +190,11 @@ function BookLocation({ params }) {
   const totalPrice = useMemo(() => {
     let total = 0
     
-    // Add destination cost if available
-    if (destination && destination.cost) {
-      const destinationCost = parseFloat(destination.cost);
-      if (!isNaN(destinationCost)) {
-        total += destinationCost;
+    // Add destination cost per day if available
+    if (destination && destination.cost && nights > 0) {
+      const destinationCostPerDay = parseFloat(destination.cost);
+      if (!isNaN(destinationCostPerDay)) {
+        total += destinationCostPerDay * nights;
       }
     }
     
@@ -304,25 +356,35 @@ function BookLocation({ params }) {
 
           {/* Progress Bar Logic */}
           <div className="relative">
-            <div className="flex justify-between md:gap-64 gap-6 mb-2 ">
-              <div className="text-center w-full md:w-1/4">
+            <div className="flex justify-between md:gap-12 gap-4 mb-2">
+              <div className="text-center w-full">
                 <span className={`text-sm ${step >= 1 ? "text-amber-700 font-medium" : "text-gray-500"}`}>
+                  Services
+                </span>
+              </div>
+              <div className="text-center w-full">
+                <span className={`text-sm ${step >= 2 ? "text-amber-700 font-medium" : "text-gray-500"}`}>
                   Dates
                 </span>
               </div>
-              <div className="text-center w-full md:w-1/4">
-                <span className={`text-sm ${step >= 2 ? "text-amber-700 font-medium" : "text-gray-500"}`}>
+              <div className="text-center w-full">
+                <span className={`text-sm ${step >= 3 ? "text-amber-700 font-medium" : "text-gray-500"}`}>
                   Transport
                 </span>
               </div>
-              <div className="text-center w-full md:w-1/4">
-                <span className={`text-sm ${step >= 3 ? "text-amber-700 font-medium" : "text-gray-500"}`}>
-                  Accommodations
+              <div className="text-center w-full">
+                <span className={`text-sm ${step >= 4 ? "text-amber-700 font-medium" : "text-gray-500"}`}>
+                  Hotels
                 </span>
               </div>
-              <div className="text-center w-full md:w-1/4">
-                <span className={`text-sm ${step >= 4 ? "text-amber-700 font-medium" : "text-gray-500"}`}>
+              <div className="text-center w-full">
+                <span className={`text-sm ${step >= 5 ? "text-amber-700 font-medium" : "text-gray-500"}`}>
                   Activities
+                </span>
+              </div>
+              <div className="text-center w-full">
+                <span className={`text-sm ${step >= 6 ? "text-amber-700 font-medium" : "text-gray-500"}`}>
+                  Review
                 </span>
               </div>
             </div>
@@ -359,13 +421,234 @@ function BookLocation({ params }) {
               >
                 4
               </div>
+              <div className={`h-1 flex-grow ${step > 4 ? "bg-amber-700" : "bg-amber-100"}`}></div>
+              <div
+                className={`rounded-full h-10 w-10 flex items-center justify-center ${
+                  step >= 5 ? "bg-amber-700 text-white" : "bg-amber-100 text-gray-500"
+                }`}
+              >
+                5
+              </div>
+              <div className={`h-1 flex-grow ${step > 5 ? "bg-amber-700" : "bg-amber-100"}`}></div>
+              <div
+                className={`rounded-full h-10 w-10 flex items-center justify-center ${
+                  step >= 6 ? "bg-amber-700 text-white" : "bg-amber-100 text-gray-500"
+                }`}
+              >
+                6
+              </div>
             </div>
           </div>
         </div>
 
         {/* Use handleBooking for the form submission */}
         <form onSubmit={handleBooking} className="space-y-8">
-          {step === 1 && ( /* Step 1 Content */
+          {step === 1 && ( /* Step 1 - Flexible Service Selection */
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-xl font-semibold flex items-center gap-2 mb-6">
+                  <CreditCard className="h-5 w-5 text-amber-600" /> Choose Your Services
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  Select which services you'd like to include in your booking. You can customize your trip by choosing only the services you need.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Transport Service */}
+                  <Card className={`relative overflow-hidden transition-all duration-200 ${
+                    flexibleOptions.includeTransport 
+                      ? 'ring-2 ring-amber-500 bg-amber-50' 
+                      : 'hover:shadow-md'
+                  }`}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-blue-100">
+                            <Bus className="h-6 w-6 text-blue-600" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-lg">Transport</CardTitle>
+                            <p className="text-sm text-gray-600">Travel arrangements</p>
+                          </div>
+                        </div>
+                        <Checkbox
+                          checked={flexibleOptions.includeTransport}
+                          onCheckedChange={(checked) => setFlexibleOption('includeTransport', checked)}
+                          className="data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600"
+                        />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Check className="h-4 w-4 text-green-500" />
+                          Professional drivers
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Check className="h-4 w-4 text-green-500" />
+                          Multiple transport options
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Check className="h-4 w-4 text-green-500" />
+                          Door-to-door service
+                        </div>
+                      </div>
+                      {!flexibleOptions.includeTransport && (
+                        <div className="mt-3 p-2 bg-yellow-50 rounded text-sm text-yellow-700">
+                          You'll arrange your own transport
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Hotel Service */}
+                  <Card className={`relative overflow-hidden transition-all duration-200 ${
+                    flexibleOptions.includeHotel 
+                      ? 'ring-2 ring-amber-500 bg-amber-50' 
+                      : 'hover:shadow-md'
+                  }`}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-purple-100">
+                            <Hotel className="h-6 w-6 text-purple-600" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-lg">Accommodation</CardTitle>
+                            <p className="text-sm text-gray-600">Hotel & lodging</p>
+                          </div>
+                        </div>
+                        <Checkbox
+                          checked={flexibleOptions.includeHotel}
+                          onCheckedChange={(checked) => setFlexibleOption('includeHotel', checked)}
+                          className="data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600"
+                        />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Check className="h-4 w-4 text-green-500" />
+                          Verified accommodations
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Check className="h-4 w-4 text-green-500" />
+                          Best location access
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Check className="h-4 w-4 text-green-500" />
+                          24/7 support
+                        </div>
+                      </div>
+                      {!flexibleOptions.includeHotel && (
+                        <div className="mt-3 p-2 bg-yellow-50 rounded text-sm text-yellow-700">
+                          You'll arrange your own accommodation
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Activities Service */}
+                  <Card className={`relative overflow-hidden transition-all duration-200 ${
+                    flexibleOptions.includeActivities 
+                      ? 'ring-2 ring-amber-500 bg-amber-50' 
+                      : 'hover:shadow-md'
+                  }`}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-green-100">
+                            <MapPin className="h-6 w-6 text-green-600" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-lg">Activities</CardTitle>
+                            <p className="text-sm text-gray-600">Tours & experiences</p>
+                          </div>
+                        </div>
+                        <Checkbox
+                          checked={flexibleOptions.includeActivities}
+                          onCheckedChange={(checked) => setFlexibleOption('includeActivities', checked)}
+                          className="data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600"
+                        />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Check className="h-4 w-4 text-green-500" />
+                          Expert tour guides
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Check className="h-4 w-4 text-green-500" />
+                          Unique experiences
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Check className="h-4 w-4 text-green-500" />
+                          Cultural immersion
+                        </div>
+                      </div>
+                      {!flexibleOptions.includeActivities && (
+                        <div className="mt-3 p-2 bg-yellow-50 rounded text-sm text-yellow-700">
+                          You'll explore independently
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Service Selection Validation */}
+                {!flexibleOptions.includeTransport && !flexibleOptions.includeHotel && !flexibleOptions.includeActivities && (
+                  <Alert className="mt-6">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Please select at least one service to continue with your booking.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Selected Services Summary */}
+                {(flexibleOptions.includeTransport || flexibleOptions.includeHotel || flexibleOptions.includeActivities) && (
+                  <div className="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                    <h4 className="font-medium text-amber-800 mb-2">Selected Services:</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {flexibleOptions.includeTransport && (
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                          <Bus className="h-3 w-3 mr-1" />
+                          Transport
+                        </Badge>
+                      )}
+                      {flexibleOptions.includeHotel && (
+                        <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                          <Hotel className="h-3 w-3 mr-1" />
+                          Accommodation
+                        </Badge>
+                      )}
+                      {flexibleOptions.includeActivities && (
+                        <Badge variant="secondary" className="bg-green-100 text-green-700">
+                          <MapPin className="h-3 w-3 mr-1" />
+                          Activities
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end">
+                <Button 
+                  type="button" 
+                  onClick={nextStep}
+                  disabled={!flexibleOptions.includeTransport && !flexibleOptions.includeHotel && !flexibleOptions.includeActivities}
+                  className="bg-amber-700 hover:bg-amber-800 text-white px-8"
+                >
+                  Continue to Dates
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {step === 2 && ( /* Step 2 - Travel Dates */
             <div className="space-y-8">
               <div>
                 <h3 className="text-xl font-semibold flex items-center gap-2 mb-6">
@@ -429,32 +712,31 @@ function BookLocation({ params }) {
                 )}
               </div>
 
-              <div className="flex justify-end">
-                <Button 
-                  type="button" 
-                  onClick={nextStep} 
-                  className="w-full md:w-auto text-white bg-amber-700 hover:bg-amber-800 h-12"
-                >
-                  Continue <ArrowRight className="ml-2 h-4 w-4" />
+              <div className="flex justify-between">
+                <Button type="button" variant="outline" onClick={prevStep}>
+                  Back to Services
+                </Button>
+                <Button type="button" onClick={nextStep} className="bg-amber-700 hover:bg-amber-800 text-white px-8">
+                  Continue to {flexibleOptions.includeTransport ? 'Transport' : flexibleOptions.includeHotel ? 'Hotels' : 'Activities'}
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             </div>
           )}
 
-          {step === 2 && (  /* Step 2 Content */
+          {step === 3 && flexibleOptions.includeTransport && (  /* Step 3 - Transport Selection */
             <div className="space-y-8">
               <div>
                 <h3 className="text-xl font-semibold flex items-center gap-2 mb-6">
-                  <Bus className="h-5 w-5 text-amber-600" /> Select Transport Route
+                  <Bus className="h-5 w-5 text-amber-600" /> Select Transport
                 </h3>
-
-                <div className="space-y-8">
+                <div className="space-y-4">
                   <div>
-                    <Label htmlFor="transportRoute" className="text-base mb-2 block">
+                    <Label htmlFor="transport" className="text-base mb-2 block">
                       Transport Route
                     </Label>
                     
-                    {/* Show loading state */}
+                    {/* Show loading state for transport routes */}
                     {isLoading.transports ? (
                       <div className="flex justify-center items-center py-8">
                         <Loader2 className="h-8 w-8 text-amber-600 animate-spin" />
@@ -471,70 +753,80 @@ function BookLocation({ params }) {
                       <Alert className="mb-4">
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription>
-                          No transport options available for {destination.name}. Please check back later.
+                          No transport routes available to {destination.name}. Please check back later or contact customer service.
                         </AlertDescription>
                       </Alert>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 gap-4">
                         {transportRoutes.map((route) => (
-                          <div
+                          <Card
                             key={route.id}
-                            className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                            className={`cursor-pointer overflow-hidden transition-all duration-200 ${
                               selectedTransportRoute === route.id.toString()
-                                ? "border-amber-600 bg-amber-50"
+                                ? "border-amber-600 ring-2 ring-amber-200"
                                 : "hover:border-amber-300"
                             }`}
                             onClick={() => setSelectedTransportRoute(route.id.toString())}
                           >
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
-                                {getTransportIcon(route.transportation_type)}
+                            <CardContent className="p-6">
+                              <div className="flex justify-between items-start">
+                                <div className="flex items-start gap-4">
+                                  <div className="p-2 rounded-lg bg-blue-100">
+                                    {getTransportIcon(route.transportation_type)}
+                                  </div>
+                                  <div>
+                                    <h4 className="text-lg font-semibold mb-1">
+                                      {route.origin} → {route.destination}
+                                    </h4>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <Badge variant="outline" className="bg-blue-50 border-blue-200">
+                                        {route.transportation_type}
+                                      </Badge>
+                                    </div>
+                                    <p className="text-gray-600 text-sm">{route.description}</p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-xl font-bold">${route.cost}</div>
+                                  {selectedTransportRoute === route.id.toString() && (
+                                    <div className="flex items-center gap-2 text-amber-600 mt-2">
+                                      <Check className="h-5 w-5" /> Selected
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                              <div>
-                                {/* Use the travel agency name if available */}
-                                <p className="font-medium">{route.agency_name || "Transport Provider"}</p>
-                                <p className="text-sm text-gray-500 capitalize">{route.transportation_type || "Transport"}</p>
-                              </div>
-                            </div>
-                            <div className="mt-2">
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="text-sm">{route.origin}</span>
-                                <ArrowRight className="h-4 w-4 mx-1" />
-                                <span className="text-sm">{route.destination}</span>
-                              </div>
-                              <div className="flex justify-between items-center text-sm text-gray-500">
-                                {/* Use duration if available, otherwise just show the route */}
-                                <span>{route.duration || `${route.origin} to ${route.destination}`}</span>
-                                <Badge className="border border-amber-200">${route.cost}</Badge>
-                              </div>
-                              {/* Show schedule if available */}
-                              {route.schedule && <p className="text-xs text-gray-500 mt-2">{route.schedule}</p>}
-                              {/* Show description if available */}
-                              {route.description && (
-                                <p className="text-xs text-gray-500 mt-2">{route.description}</p>
-                              )}
-                            </div>
-                          </div>
+                            </CardContent>
+                          </Card>
                         ))}
                       </div>
                     )}
+                    
                     {errors.transportRoute && <p className="text-red-500 text-sm mt-1">{errors.transportRoute}</p>}
                   </div>
                 </div>
               </div>
-
               <div className="flex justify-between">
-                <Button type="button" onClick={prevStep} variant="outline" className="h-12 px-8 border border-amber-200 hover:bg-amber-50">
-                  Back
+                <Button
+                  type="button"
+                  onClick={prevStep}
+                  variant="outline"
+                  className="h-12 px-8 border border-amber-200 hover:bg-amber-50"
+                >
+                  Back to Dates
                 </Button>
-                <Button type="button" onClick={nextStep} className="h-12 px-8 text-white bg-amber-700 hover:bg-amber-800">
-                  Continue <ArrowRight className="ml-2 h-4 w-4" />
+                <Button
+                  type="button"
+                  onClick={nextStep}
+                  className="bg-amber-700 hover:bg-amber-800 text-white h-12 px-8"
+                >
+                  Continue to {flexibleOptions.includeHotel ? 'Hotels' : flexibleOptions.includeActivities ? 'Activities' : 'Review'}
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             </div>
           )}
 
-          {step === 3 && (  /* Step 3 Content */
+          {step === 4 && flexibleOptions.includeHotel && (  /* Step 4 - Hotel Selection */
             <div className="space-y-8">
               <div>
                 <h3 className="text-xl font-semibold flex items-center gap-2 mb-6">
@@ -676,16 +968,16 @@ function BookLocation({ params }) {
             </div>
           )}
 
-          {step === 4 && (  /* Step 4 - Activities Content */
+          {step === 5 && flexibleOptions.includeActivities && (  /* Step 5 - Activities Selection with Time Slots */
             <div className="space-y-8">
               <div>
                 <h3 className="text-xl font-semibold flex items-center gap-2 mb-6">
-                  <MapPin className="h-5 w-5 text-amber-600" /> Add Activities
+                  <MapPin className="h-5 w-5 text-amber-600" /> Select Activities & Time Slots
                 </h3>
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <div>
                     <Label htmlFor="activities" className="text-base mb-2 block">
-                      Choose Activities for Your Trip
+                      Choose Activities and Schedule Your Experience
                     </Label>
                     
                     {/* Show loading state for activities */}
@@ -704,40 +996,203 @@ function BookLocation({ params }) {
                     ) : apiActivities && apiActivities.length > 0 ? (
                       <>
                         <p className="text-sm text-gray-500 mb-4">
-                          Enhance your stay in {destination.name} with these exciting activities. Select as many as you&apos;d like.
+                          Enhance your stay in {destination.name} with these exciting activities. Select activities and choose your preferred time slots.
                         </p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {apiActivities.map((activity) => (
-                            <div
-                              key={activity.id}
-                              className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                                selectedActivities.includes(activity.id.toString())
-                                  ? "border-amber-600 bg-amber-50"
-                                  : "hover:border-amber-300"
-                              }`}
-                              onClick={() => toggleActivity(activity.id.toString())}
-                            >
-                              <div className="flex justify-between">
-                                <div>
-                                  <h4 className="font-medium text-lg">{activity.name}</h4>
-                                  {activity.duration && (
-                                    <div className="flex items-center text-gray-500 text-sm mt-1">
-                                      <Clock className="h-3 w-3 mr-1" /> {activity.duration}
+                        <div className="space-y-6">
+                          {apiActivities.map((activity) => {
+                            const isSelected = selectedActivities.includes(activity.id.toString());
+                            const currentSchedule = activitySchedules[activity.id] || {};
+                            
+                            // Parse time slots and available dates
+                            let timeSlots = [];
+                            let availableDates = [];
+                            try {
+                              timeSlots = activity.time_slots ? JSON.parse(activity.time_slots) : [];
+                              availableDates = activity.available_dates ? JSON.parse(activity.available_dates) : [];
+                            } catch (e) {
+                              console.error('Failed to parse activity scheduling data:', e);
+                            }
+
+                            return (
+                              <Card key={activity.id} className={`overflow-hidden transition-all duration-200 ${
+                                isSelected ? 'ring-2 ring-amber-500 bg-amber-50' : 'hover:shadow-md'
+                              }`}>
+                                <CardHeader className="pb-3">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      <Checkbox
+                                        checked={isSelected}
+                                        onCheckedChange={() => toggleActivity(activity.id.toString())}
+                                        className="data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600"
+                                      />
+                                      <div>
+                                        <CardTitle className="text-lg">{activity.name}</CardTitle>
+                                        {activity.duration && (
+                                          <div className="flex items-center text-gray-500 text-sm mt-1">
+                                            <Clock className="h-3 w-3 mr-1" /> {activity.duration}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <Badge className="bg-amber-100 text-amber-700 border border-amber-200">
+                                      ${activity.price}
+                                    </Badge>
+                                  </div>
+                                </CardHeader>
+                                
+                                <CardContent>
+                                  <p className="text-gray-600 text-sm mb-4">{activity.description}</p>
+                                  
+                                  {/* Time Slot Selection - Only shown when activity is selected */}
+                                  {isSelected && (
+                                    <div className="space-y-4 p-4 bg-white rounded-lg border border-amber-200">
+                                      <h5 className="font-medium text-amber-800">Schedule Your Activity</h5>
+                                      
+                                      {/* Date Selection */}
+                                      {availableDates.length > 0 ? (
+                                        <div>
+                                          <Label className="text-sm font-medium mb-2 block">Available Dates</Label>
+                                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                            {availableDates.map((date) => (
+                                              <Button
+                                                key={date}
+                                                type="button"
+                                                variant={currentSchedule.date === date ? "default" : "outline"}
+                                                size="sm"
+                                                className={`text-xs ${
+                                                  currentSchedule.date === date 
+                                                    ? 'bg-amber-600 hover:bg-amber-700' 
+                                                    : 'border-amber-200 hover:bg-amber-50'
+                                                }`}
+                                                onClick={() => {
+                                                  setActivitySchedule(activity.id, {
+                                                    ...currentSchedule,
+                                                    date: date
+                                                  });
+                                                  // Check availability for the selected date
+                                                  debouncedAvailabilityCheck(activity.id, date, currentSchedule.time_slot);
+                                                }}
+                                              >
+                                                {formatDate(date)}
+                                              </Button>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div>
+                                          <Label className="text-sm font-medium mb-2 block">Select Date</Label>
+                                          <Input
+                                            type="date"
+                                            value={currentSchedule.date || ''}
+                                            min={startDate}
+                                            max={endDate}
+                                            onChange={(e) => {
+                                              setActivitySchedule(activity.id, {
+                                                ...currentSchedule,
+                                                date: e.target.value
+                                              });
+                                              // Check availability for the selected date
+                                              debouncedAvailabilityCheck(activity.id, e.target.value, currentSchedule.time_slot);
+                                            }}
+                                            className="max-w-xs"
+                                          />
+                                        </div>
+                                      )}
+
+                                      {/* Time Slot Selection */}
+                                      {timeSlots.length > 0 ? (
+                                        <div>
+                                          <Label className="text-sm font-medium mb-2 block">Available Time Slots</Label>
+                                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                            {timeSlots.map((slot) => (
+                                              <Button
+                                                key={slot.time}
+                                                type="button"
+                                                variant={currentSchedule.time_slot === slot.time ? "default" : "outline"}
+                                                size="sm"
+                                                className={`text-xs ${
+                                                  currentSchedule.time_slot === slot.time 
+                                                    ? 'bg-amber-600 hover:bg-amber-700' 
+                                                    : 'border-amber-200 hover:bg-amber-50'
+                                                }`}
+                                                onClick={() => {
+                                                  const newSchedule = {
+                                                    ...currentSchedule,
+                                                    time_slot: slot.time
+                                                  };
+                                                  setActivitySchedule(activity.id, newSchedule);
+                                                  // Check availability for the selected time slot
+                                                  if (newSchedule.date && slot.time) {
+                                                    debouncedAvailabilityCheck(activity.id, newSchedule.date, slot.time);
+                                                  }
+                                                }}
+                                                disabled={slot.available === false}
+                                              >
+                                                {slot.time}
+                                                {slot.available === false && (
+                                                  <span className="ml-1 text-red-500">•</span>
+                                                )}
+                                              </Button>
+                                            ))}
+                                          </div>
+                                          <p className="text-xs text-gray-500 mt-2">
+                                            <span className="text-red-500">• </span>
+                                            Red dot indicates unavailable time slots
+                                          </p>
+                                        </div>
+                                      ) : (
+                                        <div>
+                                          <Label className="text-sm font-medium mb-2 block">Preferred Time</Label>
+                                          <Input
+                                            type="time"
+                                            value={currentSchedule.time_slot || ''}
+                                            onChange={(e) => {
+                                              setActivitySchedule(activity.id, {
+                                                ...currentSchedule,
+                                                time_slot: e.target.value
+                                              });
+                                            }}
+                                            className="max-w-xs"
+                                          />
+                                        </div>
+                                      )}
+
+                                      {/* Selected Schedule Summary */}
+                                      {(currentSchedule.date || currentSchedule.time_slot) && (
+                                        <div className="p-3 bg-amber-50 rounded border border-amber-200">
+                                          <p className="text-sm font-medium text-amber-800">Scheduled for:</p>
+                                          <p className="text-sm text-amber-700">
+                                            {currentSchedule.date && formatDate(currentSchedule.date)}
+                                            {currentSchedule.date && currentSchedule.time_slot && ' at '}
+                                            {currentSchedule.time_slot}
+                                          </p>
+                                        </div>
+                                      )}
+
+                                      {/* Availability Status - Show real-time availability feedback */}
+                                      {availabilityData[`${activity.id}-${currentSchedule.date}-${currentSchedule.time_slot}`] && (
+                                        <div className="mt-2 text-sm">
+                                          {availabilityChecking[`${activity.id}-${currentSchedule.date}-${currentSchedule.time_slot}`] ? (
+                                            <p className="text-gray-500">Checking availability...</p>
+                                          ) : availabilityData[`${activity.id}-${currentSchedule.date}-${currentSchedule.time_slot}`].available ? (
+                                            <p className="text-green-600">
+                                              <Check className="inline h-4 w-4 mr-1" />
+                                              Available
+                                            </p>
+                                          ) : (
+                                            <p className="text-red-600">
+                                              <AlertCircle className="inline h-4 w-4 mr-1" />
+                                              Not available
+                                            </p>
+                                          )}
+                                        </div>
+                                      )}
                                     </div>
                                   )}
-                                </div>
-                                <Badge className="border border-amber-200 bg-amber-50 text-amber-700">
-                                  ${activity.price}
-                                </Badge>
-                              </div>
-                              <p className="text-gray-600 text-sm mt-2 line-clamp-2">{activity.description}</p>
-                              {selectedActivities.includes(activity.id.toString()) && (
-                                <div className="flex items-center gap-1 text-amber-600 mt-2">
-                                  <Check className="h-4 w-4" /> Selected
-                                </div>
-                              )}
-                            </div>
-                          ))}
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
                         </div>
                       </>
                     ) : (
@@ -757,6 +1212,19 @@ function BookLocation({ params }) {
                             {selectedActivities.length} {selectedActivities.length === 1 ? "activity" : "activities"}
                           </p>
                         </div>
+                        
+                        {/* Validate that all selected activities have schedules */}
+                        {selectedActivities.some(actId => {
+                          const schedule = activitySchedules[actId];
+                          return !schedule || !schedule.date;
+                        }) && (
+                          <Alert className="mt-3">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription className="text-sm">
+                              Please schedule all selected activities before continuing.
+                            </AlertDescription>
+                          </Alert>
+                        )}
                       </div>
                     )}
                   </div>
@@ -775,6 +1243,14 @@ function BookLocation({ params }) {
                   type="button"
                   onClick={nextStep}
                   className="h-12 px-8 text-white bg-amber-700 hover:bg-amber-800"
+                  disabled={
+                    flexibleOptions.includeActivities && 
+                    selectedActivities.length > 0 && 
+                    selectedActivities.some(actId => {
+                      const schedule = activitySchedules[actId];
+                      return !schedule || !schedule.date;
+                    })
+                  }
                 >
                   Continue to Review <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -782,7 +1258,7 @@ function BookLocation({ params }) {
             </div>
           )}
 
-          {step === 5 && (  /* Step 5 Content - Review and Payment Page */
+          {step === 6 && (  /* Step 6 Content - Final Review and Payment Page */
             <div className="space-y-8">
               <div className="flex items-center gap-3 mb-6">
                 <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">

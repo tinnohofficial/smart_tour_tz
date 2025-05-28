@@ -1,6 +1,6 @@
 // src/store/bookingStore.js
 import { create } from 'zustand'
-import { destinationsService, transportService, activitiesService, apiUtils } from '@/app/services/api'
+import { destinationsService, transportService, activitiesService, apiUtils, bookingCreationService } from '@/app/services/api'
 
 // Helper function to calculate nights
 const calculateNights = (startDate, endDate) => {
@@ -23,6 +23,12 @@ export const useBookingStore = create((set, get) => ({
   selectedTransportRoute: "",
   selectedHotel: "",
   selectedActivities: [],
+  activitySchedules: {}, // New: Store activity scheduling details
+  flexibleOptions: {    // New: Flexible service selection
+    includeTransport: true,
+    includeHotel: true,
+    includeActivities: true
+  },
   errors: {},
   agreedToTerms: false,
   paymentMethod: "",
@@ -132,7 +138,7 @@ export const useBookingStore = create((set, get) => ({
     
     return apiUtils.withLoadingAndError(
       async () => {
-        const data = await activitiesService.getActivitiesByDestination(destinationId)
+        const data = await activitiesService.getActivitiesWithScheduling(destinationId)
         set({ activities: data })
         return data
       },
@@ -150,6 +156,53 @@ export const useBookingStore = create((set, get) => ({
     )
   },
 
+  // New: Check activity availability
+  checkActivityAvailability: async (activityId, date, timeSlot) => {
+    try {
+      const availability = await activitiesService.getActivityAvailability(activityId, date, timeSlot)
+      return availability
+    } catch (error) {
+      console.error('Error checking activity availability:', error)
+      throw error
+    }
+  },
+
+  // New: Create flexible booking
+  createBooking: async () => {
+    const state = get();
+    const {
+      startDate,
+      endDate,
+      selectedTransportRoute,
+      selectedHotel,
+      selectedActivities,
+      activitySchedules,
+      flexibleOptions,
+      destination
+    } = state;
+
+    const bookingData = {
+      destinationId: destination?.id,
+      startDate,
+      endDate,
+      includeTransport: flexibleOptions.includeTransport,
+      includeHotel: flexibleOptions.includeHotel,
+      includeActivities: flexibleOptions.includeActivities,
+      transportId: flexibleOptions.includeTransport ? selectedTransportRoute : null,
+      hotelId: flexibleOptions.includeHotel ? selectedHotel : null,
+      activityIds: flexibleOptions.includeActivities ? selectedActivities : [],
+      activitySchedules: flexibleOptions.includeActivities ? activitySchedules : {}
+    };
+
+    try {
+      const result = await bookingCreationService.createFlexibleBooking(bookingData);
+      return result;
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      throw error;
+    }
+  },
+
   // Actions
   setStep: (step) => set({ step }),
   setStartDate: (date) => set({ startDate: date, errors: {} }),
@@ -161,6 +214,30 @@ export const useBookingStore = create((set, get) => ({
       ? state.selectedActivities.filter((id) => id !== activityId)
       : [...state.selectedActivities, activityId],
   })),
+  
+  // New: Flexible service selection actions
+  setFlexibleOption: (option, value) => set((state) => ({
+    flexibleOptions: {
+      ...state.flexibleOptions,
+      [option]: value
+    },
+    errors: {}
+  })),
+  
+  // New: Activity scheduling actions
+  setActivitySchedule: (activityId, schedule) => set((state) => ({
+    activitySchedules: {
+      ...state.activitySchedules,
+      [activityId]: schedule
+    }
+  })),
+  
+  removeActivitySchedule: (activityId) => set((state) => {
+    const newSchedules = { ...state.activitySchedules };
+    delete newSchedules[activityId];
+    return { activitySchedules: newSchedules };
+  }),
+  
   setErrors: (errors) => set({ errors }),
   setAgreedToTerms: (agreed) => set({ agreedToTerms: agreed, errors: {} }),
   setPaymentMethod: (method) => set({ paymentMethod: method }),
@@ -173,6 +250,12 @@ export const useBookingStore = create((set, get) => ({
     selectedTransportRoute: "",
     selectedHotel: "",
     selectedActivities: [],
+    activitySchedules: {},
+    flexibleOptions: {
+      includeTransport: true,
+      includeHotel: true,
+      includeActivities: true
+    },
     errors: {},
     agreedToTerms: false,
     paymentMethod: "",
@@ -180,34 +263,95 @@ export const useBookingStore = create((set, get) => ({
     // Keep destination and other API data
   }),
 
-  // Action incorporating validation before proceeding
+  // Action incorporating validation before proceeding with smart step skipping (6-step flow)
   nextStep: () => {
-    const { step, startDate, endDate, selectedTransportRoute, selectedHotel, agreedToTerms, setErrors } = get();
+    const { step, startDate, endDate, selectedTransportRoute, selectedHotel, selectedActivities, activitySchedules, flexibleOptions, setErrors } = get();
     const newErrors = {};
 
     if (step === 1) {
+      // Step 1: Validate that at least one service is selected
+      if (!flexibleOptions.includeTransport && !flexibleOptions.includeHotel && !flexibleOptions.includeActivities) {
+        newErrors.services = "Please select at least one service to continue";
+      }
+    } else if (step === 2) {
+      // Step 2: Validate dates
       if (!startDate) newErrors.startDate = "Start date is required";
       if (!endDate) newErrors.endDate = "End date is required";
       if (startDate && endDate && new Date(startDate) >= new Date(endDate)) {
         newErrors.endDate = "End date must be after start date";
       }
-    } else if (step === 2) {
-      if (!selectedTransportRoute) newErrors.transportRoute = "Please select a transport route";
     } else if (step === 3) {
-      if (!selectedHotel) newErrors.hotel = "Please select a hotel";
+      // Step 3: Validate transport if included
+      if (flexibleOptions.includeTransport && !selectedTransportRoute) {
+        newErrors.transportRoute = "Please select a transport route or disable transport";
+      }
     } else if (step === 4) {
-       // Activities are optional, so no validation needed
+      // Step 4: Validate hotel if included
+      if (flexibleOptions.includeHotel && !selectedHotel) {
+        newErrors.hotel = "Please select a hotel or disable accommodation";
+      }
+    } else if (step === 5) {
+      // Step 5: Validate activity selection and scheduling if activities are included
+      if (flexibleOptions.includeActivities) {
+        if (selectedActivities.length === 0) {
+          newErrors.activities = "Please select at least one activity or disable activities";
+        } else {
+          // Validate that all selected activities have schedules
+          const missingSchedules = selectedActivities.filter(activityId => !activitySchedules[activityId]);
+          if (missingSchedules.length > 0) {
+            newErrors.activitySchedules = "Please complete scheduling for all selected activities";
+          }
+        }
+      }
+    } else if (step === 6) {
+      // Step 6: Final review and confirmation - no additional validation needed here
     }
 
     setErrors(newErrors);
-    if (Object.keys(newErrors).length === 0 && step < 5) {
-      set({ step: step + 1 });
+    if (Object.keys(newErrors).length === 0 && step < 6) {
+      // Smart step navigation: skip steps based on service selection
+      let nextStepNumber = step + 1;
+      
+      // Skip transport step if transport is not included
+      if (nextStepNumber === 3 && !flexibleOptions.includeTransport) {
+        nextStepNumber = 4;
+      }
+      
+      // Skip hotel step if hotel is not included
+      if (nextStepNumber === 4 && !flexibleOptions.includeHotel) {
+        nextStepNumber = 5;
+      }
+      
+      // Skip activities step if activities are not included
+      if (nextStepNumber === 5 && !flexibleOptions.includeActivities) {
+        nextStepNumber = 6; // Go directly to review/confirmation
+      }
+      
+      set({ step: Math.min(nextStepNumber, 6) }); // Allow up to step 6 (review)
       return true;
     }
     return false;
   },
 
-  prevStep: () => set((state) => ({ step: Math.max(1, state.step - 1) })),
+  prevStep: () => {
+    const { step, flexibleOptions } = get();
+    let prevStepNumber = step - 1;
+    
+    // Smart navigation backwards: skip disabled services
+    if (prevStepNumber === 5 && !flexibleOptions.includeActivities) {
+      prevStepNumber = 4;
+    }
+    
+    if (prevStepNumber === 4 && !flexibleOptions.includeHotel) {
+      prevStepNumber = 3;
+    }
+    
+    if (prevStepNumber === 3 && !flexibleOptions.includeTransport) {
+      prevStepNumber = 2;
+    }
+    
+    set({ step: Math.max(1, prevStepNumber) });
+  },
 }))
 
 // Selector hooks (optional but can simplify component code)

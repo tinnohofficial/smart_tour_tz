@@ -12,7 +12,23 @@ export const useDashboardStore = create((set) => ({
   profileStatus: null,
   error: null,
 
-  setIsAvailable: (isAvailable) => set({ isAvailable }),
+  setIsAvailable: async (isAvailable) => {
+    const currentState = useDashboardStore.getState()
+    
+    // Optimistically update UI
+    set({ isAvailable })
+    
+    try {
+      // Call API to update availability
+      await tourGuideService.updateAvailability(isAvailable)
+    } catch (error) {
+      console.error('Error updating availability:', error)
+      // Revert on error
+      set({ isAvailable: !isAvailable })
+      toast.error('Failed to update availability status')
+      throw error
+    }
+  },
   
   fetchDashboard: async () => {
     return apiUtils.withLoadingAndError(

@@ -7,6 +7,12 @@ const checkRole = require("../middleware/checkRole");
 // Get all activities (optional filter by destination_id)
 router.get("/", activitiesController.getActivities);
 
+// Get activities with enhanced scheduling information
+router.get("/scheduling", activitiesController.getActivitiesWithScheduling);
+
+// Get activity availability
+router.get("/:activityId/availability", activitiesController.getActivityAvailability);
+
 // Get activity by ID
 router.get("/:activityId", activitiesController.getActivityById);
 

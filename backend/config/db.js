@@ -24,12 +24,15 @@ if (process.env.JAWSDB_URL) {
     port: process.env.DB_PORT || 3306,
     waitForConnections: true,
     connectionLimit: 10,
-    queueLimit: 0,
-    // Add SSL configuration for Heroku JawsDB
-    ssl: {
-      rejectUnauthorized: false
-    }
+    queueLimit: 0
   };
+  
+  // Add SSL configuration only for remote databases (not localhost)
+  if (process.env.DB_HOST !== 'localhost' && process.env.DB_HOST !== '127.0.0.1') {
+    config.ssl = {
+      rejectUnauthorized: false
+    };
+  }
   
   pool = mysql.createPool(config);
   console.log("Using database connection with credentials from .env");

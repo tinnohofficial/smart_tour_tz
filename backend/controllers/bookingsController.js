@@ -28,16 +28,31 @@ const parseJsonFields = (items, fields) => {
 };
 
 /**
- * Create a booking (save as pending payment) (F6.7)
+ * Create a booking with flexible service options (Enhanced F6.7)
  */
 exports.createBooking = async (req, res) => {
-  const { transportId, hotelId, activityIds, startDate, endDate } =
-    req.body;
+  const { 
+    transportId, 
+    hotelId, 
+    activityIds, 
+    startDate, 
+    endDate, 
+    destinationId,
+    includeTransport = true,
+    includeHotel = true,
+    includeActivities = true,
+    activitySchedules = {} // Object mapping activity IDs to their selected time slots
+  } = req.body;
   const userId = req.user.id;
 
   // Validate date inputs
   if (!startDate || !endDate) {
     return res.status(400).json({ message: "Start date and end date are required" });
+  }
+
+  // Validate that at least one service is included
+  if (!includeTransport && !includeHotel && !includeActivities) {
+    return res.status(400).json({ message: "At least one service (transport, hotel, or activities) must be included" });
   }
 
   const start = new Date(startDate);
@@ -76,14 +91,16 @@ exports.createBooking = async (req, res) => {
       let totalCost = 0;
       const selectedItems = [];
 
-      // Check and calculate cost for transport
-      if (transportId) {
+      // Check and calculate cost for transport (only if included)
+      if (includeTransport && transportId) {
         const [transportRows] = await connection.query(
           "SELECT id, cost FROM transports WHERE id = ?",
           [transportId],
         );
 
         if (transportRows.length === 0) {
+          await connection.rollback();
+          connection.release();
           return res.status(404).json({ message: "Transport route not found" });
         }
 
@@ -96,14 +113,16 @@ exports.createBooking = async (req, res) => {
         });
       }
 
-      // Check and calculate cost for hotel
-      if (hotelId) {
+      // Check and calculate cost for hotel (only if included)
+      if (includeHotel && hotelId) {
         const [hotelRows] = await connection.query(
           "SELECT id, base_price_per_night FROM hotels WHERE id = ?",
           [hotelId],
         );
 
         if (hotelRows.length === 0) {
+          await connection.rollback();
+          connection.release();
           return res.status(404).json({ message: "Hotel not found" });
         }
 
@@ -137,13 +156,14 @@ exports.createBooking = async (req, res) => {
         }
       });
       
-      // Check and calculate cost for activities
-      if (activityIds && Array.isArray(activityIds) && activityIds.length > 0) {
+      // Check and calculate cost for activities (only if included)
+      if (includeActivities && activityIds && Array.isArray(activityIds) && activityIds.length > 0) {
         const placeholders = activityIds.map(() => "?").join(",");
         
-        // Just verify activities exist
+        // Verify activities exist and check time slots availability
         const [activityRows] = await connection.query(
-          `SELECT a.id, a.price, a.destination_id, d.cost as destination_cost, d.name as destination_name 
+          `SELECT a.id, a.price, a.destination_id, a.time_slots, a.available_dates,
+                  d.cost as destination_cost, d.name as destination_name 
            FROM activities a
            JOIN destinations d ON a.destination_id = d.id
            WHERE a.id IN (${placeholders})`,
@@ -158,32 +178,87 @@ exports.createBooking = async (req, res) => {
             .json({ message: "One or more activities not found" });
         }
 
+        // Validate activity schedules and time slot availability
+        for (const activity of activityRows) {
+          const activityId = activity.id;
+          const selectedSchedule = activitySchedules[activityId];
+          
+          if (selectedSchedule) {
+            // Parse time slots and available dates
+            let timeSlots = [];
+            let availableDates = [];
+            
+            try {
+              timeSlots = activity.time_slots ? JSON.parse(activity.time_slots) : [];
+              availableDates = activity.available_dates ? JSON.parse(activity.available_dates) : [];
+            } catch (e) {
+              console.error('Failed to parse activity scheduling data:', e);
+              timeSlots = [];
+              availableDates = [];
+            }
+            
+            // Validate selected date is available
+            if (availableDates.length > 0 && !availableDates.includes(selectedSchedule.date)) {
+              await connection.rollback();
+              connection.release();
+              return res.status(400).json({ 
+                message: `Activity "${activity.destination_name}" is not available on ${selectedSchedule.date}` 
+              });
+            }
+            
+            // Validate selected time slot is available
+            if (timeSlots.length > 0) {
+              const validTimeSlot = timeSlots.find(slot => slot.time === selectedSchedule.time_slot);
+              if (!validTimeSlot) {
+                await connection.rollback();
+                connection.release();
+                return res.status(400).json({ 
+                  message: `Time slot ${selectedSchedule.time_slot} is not available for activity "${activity.destination_name}"` 
+                });
+              }
+            }
+          }
+        }
+
         // Track destinations already included to avoid charging twice
         const includedDestinations = new Set();
         
         for (const activity of activityRows) {
           // Add activity cost
           totalCost += parseFloat(activity.price);
+          
+          // Prepare activity schedule details
+          const activitySchedule = activitySchedules[activity.id] || null;
+          
           selectedItems.push({
             type: "activity",
             id: activity.id,
             cost: activity.price,
+            schedule: activitySchedule
           });
           
-          // Add destination cost if not already included
+          // Add destination cost per day if not already included
           if (activity.destination_id && !includedDestinations.has(activity.destination_id)) {
-            const destinationCost = parseFloat(activity.destination_cost) || 0;
-            if (destinationCost > 0) {
-              totalCost += destinationCost;
+            const destinationCostPerDay = parseFloat(activity.destination_cost) || 0;
+            if (destinationCostPerDay > 0) {
+              // Calculate number of days for destination cost
+              const startDateObj = new Date(startDate);
+              const endDateObj = new Date(endDate);
+              const days = Math.ceil((endDateObj - startDateObj) / (1000 * 60 * 60 * 24));
+              const totalDestinationCost = destinationCostPerDay * Math.max(1, days);
+              
+              totalCost += totalDestinationCost;
               selectedItems.push({
                 type: "placeholder",
                 id: activity.destination_id,
-                cost: destinationCost,
+                cost: totalDestinationCost,
                 details: {
                   type: "destination_fee",
                   destination_id: activity.destination_id,
                   destination_name: activity.destination_name,
-                  message: `Fee for access to ${activity.destination_name}`
+                  cost_per_day: destinationCostPerDay,
+                  days: Math.max(1, days),
+                  message: `Fee for access to ${activity.destination_name} (${destinationCostPerDay}/day × ${Math.max(1, days)} days)`
                 }
               });
             }
@@ -192,11 +267,29 @@ exports.createBooking = async (req, res) => {
         }
       }
 
-      // Create booking record
+      // Create booking record with flexible options
       const [bookingResult] = await connection.query(
-        `INSERT INTO bookings (tourist_user_id, total_cost, status)
-         VALUES (?, ?, 'pending_payment')`,
-        [userId, totalCost],
+        `INSERT INTO bookings (
+          tourist_user_id, 
+          start_date, 
+          end_date, 
+          destination_id, 
+          total_cost, 
+          include_transport, 
+          include_hotel, 
+          include_activities, 
+          status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending_payment')`,
+        [
+          userId, 
+          startDate, 
+          endDate, 
+          destinationId, 
+          totalCost, 
+          includeTransport, 
+          includeHotel, 
+          includeActivities
+        ],
       );
 
       const bookingId = bookingResult.insertId;
@@ -209,6 +302,13 @@ exports.createBooking = async (req, res) => {
             `INSERT INTO booking_items (id, booking_id, item_type, cost, provider_status, item_details)
              VALUES (?, ?, ?, ?, 'pending', ?)`,
             [item.id, bookingId, item.type, item.cost, JSON.stringify(item.details)],
+          );
+        } else if (item.type === 'activity' && item.schedule) {
+          // For activities with schedules, store the schedule information
+          await connection.query(
+            `INSERT INTO booking_items (id, booking_id, item_type, cost, provider_status, activity_schedule)
+             VALUES (?, ?, ?, ?, 'pending', ?)`,
+            [item.id, bookingId, item.type, item.cost, JSON.stringify(item.schedule)],
           );
         } else {
           await connection.query(
@@ -226,6 +326,11 @@ exports.createBooking = async (req, res) => {
         message: "Booking created successfully",
         bookingId,
         totalCost,
+        flexibleOptions: {
+          includeTransport,
+          includeHotel,
+          includeActivities
+        }
       });
     } catch (error) {
       await connection.rollback();
@@ -1083,7 +1188,7 @@ exports.getTransportBookingsCompleted = async (req, res) => {
         bi.id, bi.booking_id, bi.item_type, bi.id as route_id, bi.cost, bi.item_details,
         b.start_date, b.end_date, b.created_at, b.status, b.total_cost,
         u.email as tourist_email,
-        t.origin, t.destination, t.transport_type
+        t.origin, t.destination, t.transportation_type
        FROM booking_items bi
        JOIN bookings b ON bi.booking_id = b.id
        JOIN users u ON b.tourist_user_id = u.id

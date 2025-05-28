@@ -79,6 +79,8 @@ CREATE TABLE activities (
     description TEXT,
     price DECIMAL(10, 2) CHECK (price > 0),
     guide_user_id INT,
+    time_slots JSON, -- Array of time slots: [{"time": "09:00", "duration": 120, "max_participants": 10}, ...]
+    available_dates JSON, -- Array of available dates: ["2024-01-01", "2024-01-02", ...]
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (destination_id) REFERENCES destinations (id) ON DELETE SET NULL,
@@ -103,7 +105,13 @@ CREATE TABLE transports (
 CREATE TABLE bookings (
     id INT AUTO_INCREMENT PRIMARY KEY,
     tourist_user_id INT NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    destination_id INT,
     total_cost DECIMAL(12, 2) NOT NULL,
+    include_transport BOOLEAN DEFAULT TRUE,
+    include_hotel BOOLEAN DEFAULT TRUE,
+    include_activities BOOLEAN DEFAULT TRUE,
     status ENUM (
         'pending_payment',
         'confirmed',
@@ -112,7 +120,8 @@ CREATE TABLE bookings (
     ) NOT NULL DEFAULT 'pending_payment',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (tourist_user_id) REFERENCES users (id) ON DELETE CASCADE
+    FOREIGN KEY (tourist_user_id) REFERENCES users (id) ON DELETE CASCADE,
+    FOREIGN KEY (destination_id) REFERENCES destinations (id) ON DELETE SET NULL
 );
 
 CREATE TABLE booking_items (
@@ -120,6 +129,7 @@ CREATE TABLE booking_items (
     booking_id INT NOT NULL,
     item_type ENUM ('hotel', 'transport', 'tour_guide', 'activity', 'placeholder') NOT NULL,
     item_details TEXT, -- JSON: e.g., { "check_in": "YYYY-MM-DD", "check_out": "YYYY-MM-DD", "room_type": "Standard" } or { "ticket_number": "XYZ", "seat": "12A"}
+    activity_schedule JSON, -- For activities: {"date": "2024-01-01", "time_slot": "09:00", "duration": 120}
     cost DECIMAL(10, 2) NOT NULL,
     provider_status ENUM ('pending', 'confirmed', 'rejected') DEFAULT 'pending', -- Status set by hotel manager, travel agent etc.
     FOREIGN KEY (booking_id) REFERENCES bookings (id) ON DELETE CASCADE

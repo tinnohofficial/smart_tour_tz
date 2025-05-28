@@ -34,16 +34,20 @@ export default function TourGuideDashboard() {
       return
     }
     
-    setIsAvailable(checked)
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    if (checked) {
-      toast.success("You are now available", {
-        description: "You will be considered for new tour assignments."
-      })
-    } else {
-      toast.info("You are now unavailable", {
-        description: "You will not receive new tour assignments."
-      })
+    try {
+      await setIsAvailable(checked)
+      if (checked) {
+        toast.success("You are now available", {
+          description: "You will be considered for new tour assignments."
+        })
+      } else {
+        toast.info("You are now unavailable", {
+          description: "You will not receive new tour assignments."
+        })
+      }
+    } catch (error) {
+      // Error already handled in store, just show user feedback
+      console.error('Availability update failed:', error)
     }
   }
 

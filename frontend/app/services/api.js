@@ -210,6 +210,20 @@ export const activitiesService = {
     return apiRequest(`/activities?destinationId=${destinationId}`)
   },
 
+  async getActivitiesWithScheduling(destinationId) {
+    const query = destinationId ? `?destinationId=${destinationId}` : '';
+    return apiRequest(`/activities/scheduling${query}`)
+  },
+
+  async getActivityAvailability(activityId, date, timeSlot) {
+    const params = new URLSearchParams();
+    if (date) params.append('date', date);
+    if (timeSlot) params.append('time_slot', timeSlot);
+    
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return apiRequest(`/activities/${activityId}/availability${query}`)
+  },
+
   async getActivityById(id) {
     return apiRequest(`/activities/${id}`)
   },
@@ -394,5 +408,26 @@ export const passwordService = {
         newPassword
       })
     })
+  }
+}
+
+// Enhanced Booking Creation Service
+export const bookingCreationService = {
+  async createFlexibleBooking(bookingData) {
+    return apiRequest('/bookings', {
+      method: 'POST',
+      body: JSON.stringify(bookingData)
+    })
+  },
+
+  async processPayment(bookingId, paymentMethod) {
+    return apiRequest(`/bookings/${bookingId}/pay`, {
+      method: 'POST',
+      body: JSON.stringify({ paymentMethod })
+    })
+  },
+
+  async getUserBookings() {
+    return apiRequest('/bookings/my-bookings')
   }
 }
