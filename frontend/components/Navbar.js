@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Menu, User, LogOut, Settings } from "lucide-react"
+import { Menu, User, LogOut, Settings, ShoppingCart } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import {
   DropdownMenu,
@@ -13,8 +13,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { useCartStore } from "../app/store/cartStore"
 
 // Function to publish auth change events (exported for use in other components)
 export function publishAuthChange() {
@@ -28,6 +30,9 @@ export function Navbar() {
   const [user, setUser] = useState(null)
   const [showNavbar, setShowNavbar] = useState(true)
   const router = useRouter()
+  
+  // Get cart item count for tourists
+  const { getCartItemCount, fetchCart } = useCartStore()
 
   // Function to check authentication status
   const checkUser = () => {
@@ -66,6 +71,15 @@ export function Navbar() {
       window.removeEventListener('authStateChanged', checkUser)
     }
   }, [])
+
+  // Fetch cart for tourists
+  useEffect(() => {
+    if (user && user.role === 'tourist') {
+      fetchCart().catch(() => {
+        // Silently handle cart fetch errors
+      })
+    }
+  }, [user, fetchCart])
 
   // Handle logout
   const handleLogout = () => {
@@ -129,6 +143,22 @@ export function Navbar() {
                 <Link href="/savings">
                   <Button variant="ghost">Savings</Button>
                 </Link>
+                
+                {user.role === 'tourist' && (
+                  <Link href="/cart" className="relative">
+                    <Button variant="ghost" className="relative">
+                      <ShoppingCart className="h-4 w-4" />
+                      {getCartItemCount() > 0 && (
+                        <Badge 
+                          variant="secondary" 
+                          className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center text-xs bg-amber-600 text-white"
+                        >
+                          {getCartItemCount()}
+                        </Badge>
+                      )}
+                    </Button>
+                  </Link>
+                )}
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -202,6 +232,24 @@ export function Navbar() {
                         Savings
                       </Button>
                     </Link>
+                    
+                    {user.role === 'tourist' && (
+                      <Link href="/cart" className="relative">
+                        <Button variant="ghost" className="w-full justify-start relative">
+                          <ShoppingCart className="mr-2 h-4 w-4" />
+                          Cart
+                          {getCartItemCount() > 0 && (
+                            <Badge 
+                              variant="secondary" 
+                              className="absolute right-2 h-5 w-5 flex items-center justify-center text-xs bg-amber-600 text-white"
+                            >
+                              {getCartItemCount()}
+                            </Badge>
+                          )}
+                        </Button>
+                      </Link>
+                    )}
+                    
                     <Link href="/profile">
                       <Button variant="ghost" className="w-full justify-start">
                         <User className="mr-2 h-4 w-4" />

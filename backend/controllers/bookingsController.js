@@ -435,31 +435,35 @@ exports.getGuideAssignedBookings = async (req, res) => {
   const userId = req.user.id;
   
   try {
-    // Get all bookings where this guide is assigned
+    // Get all bookings where this guide is assigned with comprehensive details
     let [rows] = await db.query(
       `SELECT bi.id as booking_item_id, bi.cost, bi.item_details,
-              b.id as booking_id, b.total_cost, b.status, b.created_at,
-              u.id as tourist_id, u.email as tourist_email
+              b.id as booking_id, b.total_cost, b.status, b.created_at, b.start_date, b.end_date,
+              u.id as tourist_id, u.email as tourist_email, u.phone as tourist_phone,
+              d.id as destination_id, d.name as destination_name, d.region as destination_region,
+              d.description as destination_description, d.location as destination_location
        FROM booking_items bi
        JOIN bookings b ON bi.booking_id = b.id
        JOIN users u ON b.tourist_user_id = u.id
+       JOIN destinations d ON b.destination_id = d.id
        WHERE bi.item_type = 'tour_guide'
        AND bi.id = ?
-       AND b.status = 'confirmed'
-       ORDER BY b.created_at DESC`,
+       AND b.status IN ('confirmed', 'completed')
+       ORDER BY b.start_date DESC`,
       [userId]
     );
     
-    // For each booking, get the activities and hotel
+    // For each booking, get comprehensive details
     for (let i = 0; i < rows.length; i++) {
       // Parse the item_details for this specific row
       const parsedRow = parseJsonFields([rows[i]], ['item_details']);
       rows[i] = parsedRow[0];
       
-      // Get activities for this booking
+      // Get activities for this booking with schedules
       const [activities] = await db.query(
-        `SELECT a.id, a.name, a.description, a.price,
-                d.name as destination_name, d.region as destination_region
+        `SELECT a.id, a.name, a.description, a.price, a.time_slots, a.duration,
+                d.name as destination_name, d.region as destination_region,
+                bi.item_details as activity_schedule
          FROM booking_items bi
          JOIN activities a ON bi.item_type = 'activity' AND bi.id = a.id
          JOIN destinations d ON a.destination_id = d.id
@@ -468,9 +472,12 @@ exports.getGuideAssignedBookings = async (req, res) => {
         [rows[i].booking_id]
       );
       
+      // Parse activity schedules
+      const parsedActivities = parseJsonFields(activities, ['time_slots', 'activity_schedule']);
+      
       // Get hotel information for this booking
       const [hotelResults] = await db.query(
-        `SELECT h.id, h.name, h.location, bi.item_details
+        `SELECT h.id, h.name, h.location, h.contact_phone, h.contact_email, bi.item_details
          FROM booking_items bi
          JOIN hotels h ON bi.item_type = 'hotel' AND bi.id = h.id
          WHERE bi.booking_id = ?
@@ -482,8 +489,39 @@ exports.getGuideAssignedBookings = async (req, res) => {
         parseJsonFields(hotelResults, ['item_details']) : 
         [];
       
-      rows[i].activities = activities;
+      // Get transport information for this booking
+      const [transportResults] = await db.query(
+        `SELECT t.id, t.from_location, t.to_location, t.duration, t.price, bi.item_details
+         FROM booking_items bi
+         JOIN transports t ON bi.item_type = 'transport' AND bi.id = t.id
+         WHERE bi.booking_id = ?
+         AND bi.item_type = 'transport'`,
+        [rows[i].booking_id]
+      );
+      
+      const transport = transportResults.length > 0 ? 
+        parseJsonFields(transportResults, ['item_details']) : 
+        [];
+      
+      // Calculate booking duration
+      const startDate = new Date(rows[i].start_date);
+      const endDate = new Date(rows[i].end_date);
+      const durationDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+      
+      // Determine booking status based on dates
+      const currentDate = new Date();
+      let bookingStatus = 'upcoming';
+      if (currentDate > endDate) {
+        bookingStatus = 'completed';
+      } else if (currentDate >= startDate && currentDate <= endDate) {
+        bookingStatus = 'ongoing';
+      }
+      
+      rows[i].activities = parsedActivities;
       rows[i].hotel = hotel.length > 0 ? hotel[0] : null;
+      rows[i].transport = transport.length > 0 ? transport[0] : null;
+      rows[i].duration_days = durationDays;
+      rows[i].booking_status = bookingStatus;
     }
     
     res.status(200).json(rows);
@@ -1276,5 +1314,108 @@ exports.getTransportBookingsCompleted = async (req, res) => {
   } catch (error) {
     console.error("Error fetching completed transport bookings:", error);
     res.status(500).json({ message: "Failed to fetch completed bookings", error: error.message });
+  }
+};
+
+/**
+ * Get detailed booking information for tour guide
+ */
+exports.getGuideBookingDetails = async (req, res) => {
+  const userId = req.user.id;
+  const { bookingId } = req.params;
+  
+  try {
+    // Verify that this guide is assigned to this booking
+    const [authCheck] = await db.query(
+      `SELECT bi.id
+       FROM booking_items bi
+       WHERE bi.booking_id = ? AND bi.item_type = 'tour_guide' AND bi.id = ?`,
+      [bookingId, userId]
+    );
+    
+    if (authCheck.length === 0) {
+      return res.status(403).json({ message: "You are not assigned to this booking" });
+    }
+    
+    // Get comprehensive booking details
+    const [bookingDetails] = await db.query(
+      `SELECT b.id, b.total_cost, b.status, b.created_at, b.start_date, b.end_date,
+              u.id as tourist_id, u.email as tourist_email, u.phone as tourist_phone,
+              d.id as destination_id, d.name as destination_name, d.region as destination_region,
+              d.description as destination_description, d.location as destination_location,
+              d.cost as destination_cost
+       FROM bookings b
+       JOIN users u ON b.tourist_user_id = u.id
+       JOIN destinations d ON b.destination_id = d.id
+       WHERE b.id = ?`,
+      [bookingId]
+    );
+    
+    if (bookingDetails.length === 0) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+    
+    const booking = bookingDetails[0];
+    
+    // Get all booking items with details
+    const [bookingItems] = await db.query(
+      `SELECT bi.id, bi.item_type, bi.cost, bi.provider_status, bi.item_details,
+              CASE 
+                WHEN bi.item_type = 'hotel' THEN h.name
+                WHEN bi.item_type = 'activity' THEN a.name
+                WHEN bi.item_type = 'transport' THEN CONCAT(t.from_location, ' to ', t.to_location)
+                WHEN bi.item_type = 'tour_guide' THEN tg.full_name
+                ELSE 'Unknown'
+              END as item_name,
+              CASE 
+                WHEN bi.item_type = 'hotel' THEN h.location
+                WHEN bi.item_type = 'activity' THEN a.description
+                WHEN bi.item_type = 'transport' THEN t.duration
+                WHEN bi.item_type = 'tour_guide' THEN tg.location
+                ELSE NULL
+              END as item_details_extra
+       FROM booking_items bi
+       LEFT JOIN hotels h ON bi.item_type = 'hotel' AND bi.id = h.id
+       LEFT JOIN activities a ON bi.item_type = 'activity' AND bi.id = a.id
+       LEFT JOIN transports t ON bi.item_type = 'transport' AND bi.id = t.id
+       LEFT JOIN tour_guides tg ON bi.item_type = 'tour_guide' AND bi.id = tg.user_id
+       WHERE bi.booking_id = ?
+       ORDER BY bi.item_type`,
+      [bookingId]
+    );
+    
+    // Parse JSON fields and group items by type
+    const parsedItems = parseJsonFields(bookingItems, ['item_details']);
+    const itemsByType = {
+      hotel: parsedItems.filter(item => item.item_type === 'hotel'),
+      activities: parsedItems.filter(item => item.item_type === 'activity'),
+      transport: parsedItems.filter(item => item.item_type === 'transport'),
+      tour_guide: parsedItems.filter(item => item.item_type === 'tour_guide')
+    };
+    
+    // Calculate additional metrics
+    const startDate = new Date(booking.start_date);
+    const endDate = new Date(booking.end_date);
+    const durationDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+    
+    const currentDate = new Date();
+    let bookingStatus = 'upcoming';
+    if (currentDate > endDate) {
+      bookingStatus = 'completed';
+    } else if (currentDate >= startDate && currentDate <= endDate) {
+      bookingStatus = 'ongoing';
+    }
+    
+    const response = {
+      ...booking,
+      duration_days: durationDays,
+      booking_status: bookingStatus,
+      items: itemsByType
+    };
+    
+    res.status(200).json(response);
+  } catch (error) {
+    console.error("Error fetching booking details:", error);
+    res.status(500).json({ message: "Failed to fetch booking details", error: error.message });
   }
 };

@@ -268,6 +268,10 @@ export const bookingsService = {
 
   async getTourGuideAssignedBookings() {
     return apiRequest('/bookings/tour-guide-assigned')
+  },
+
+  async getTourGuideBookingDetails(bookingId) {
+    return apiRequest(`/bookings/tour-guide-booking/${bookingId}`)
   }
 }
 

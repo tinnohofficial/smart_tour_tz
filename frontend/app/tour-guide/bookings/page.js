@@ -1,27 +1,32 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import Image from "next/image"
-import { Search, CalendarDays, Users, MapPin } from "lucide-react"
+import { Search, CalendarDays, Users, MapPin, Phone, Mail, Clock, Building2, Car, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { useBookingsStore } from "./store"
 import { format } from "date-fns"
 
 export default function TourGuideBookings() {
   const {
     tours,
+    selectedTour,
     isLoading,
     searchQuery,
     statusFilter,
     setSearchQuery,
     setStatusFilter,
     fetchTours,
+    fetchTourDetails,
   } = useBookingsStore()
+
+  const [selectedTourId, setSelectedTourId] = useState(null)
 
   useEffect(() => {
     fetchTours()
@@ -29,10 +34,16 @@ export default function TourGuideBookings() {
 
   // Filter tours based on search query and status filter
   const filteredTours = tours.filter((tour) => {
-    const matchesSearch = tour.destination.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesSearch = tour.destination.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         tour.touristEmail.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesStatus = statusFilter === "all" || tour.status === statusFilter
     return matchesSearch && matchesStatus
   })
+
+  const handleViewDetails = async (tourId) => {
+    setSelectedTourId(tourId)
+    await fetchTourDetails(tourId)
+  }
 
   if (isLoading) {
     return (
@@ -100,9 +111,9 @@ export default function TourGuideBookings() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">
-                    {tours.reduce((acc, tour) => acc + tour.touristCount, 0)}
+                    {tours.length}
                   </p>
-                  <p className="text-sm text-muted-foreground">All time</p>
+                  <p className="text-sm text-muted-foreground">Total tourists</p>
                 </div>
               </div>
             </CardContent>
@@ -164,8 +175,8 @@ export default function TourGuideBookings() {
                             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mb-2">
                               <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5 sm:mt-0" />
                               <h3 className="font-semibold text-base sm:text-lg truncate">{tour.destination}</h3>
-                              <Badge variant={tour.status === 'upcoming' ? 'default' : 'secondary'} className="text-xs whitespace-nowrap">
-                                {tour.status === 'upcoming' ? 'Upcoming' : 'Completed'}
+                              <Badge variant={tour.status === 'upcoming' ? 'default' : tour.status === 'ongoing' ? 'destructive' : 'secondary'} className="text-xs whitespace-nowrap">
+                                {tour.status === 'upcoming' ? 'Upcoming' : tour.status === 'ongoing' ? 'Ongoing' : 'Completed'}
                               </Badge>
                             </div>
                             <div className="flex flex-col gap-1 text-sm text-muted-foreground">
@@ -177,50 +188,104 @@ export default function TourGuideBookings() {
                                 </span>
                               </div>
                               <div className="flex items-center gap-2">
-                                <Users className="h-4 w-4 flex-shrink-0" />
-                                <span>{tour.touristCount} tourists</span>
+                                <Clock className="h-4 w-4 flex-shrink-0" />
+                                <span>{tour.duration} day{tour.duration !== 1 ? 's' : ''}</span>
                               </div>
                             </div>
                           </div>
                           <div className="flex flex-row xl:flex-col items-start xl:items-end gap-2 xl:gap-2">
-                            <Badge variant={tour.paymentStatus === 'paid' ? 'outline' : 'destructive'} className="text-xs">
-                              {tour.paymentStatus === 'paid' ? 'Paid' : 'Payment Pending'}
+                            <Badge variant="outline" className="text-xs">
+                              Paid
                             </Badge>
-                            <p className="text-lg font-bold">${tour.amount}</p>
+                            <p className="text-lg font-bold">TZS {(tour.amount * 2835).toLocaleString()}</p>
                           </div>
                         </div>
 
-                        {/* Tourists */}
+                        {/* Tourist Contact Information */}
                         <div className="mt-4 pt-4 border-t">
-                          <h4 className="text-sm font-medium mb-2">Tourists</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {tour.touristNames.map((name, index) => (
-                              <div
-                                key={index}
-                                className="flex items-center gap-2 bg-muted/50 px-2 py-1 rounded-md"
-                              >
-                                <Avatar className="h-5 w-5 sm:h-6 sm:w-6">
-                                  <AvatarFallback className="text-xs">
-                                    {name.charAt(0)}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <span className="text-xs sm:text-sm truncate max-w-24 sm:max-w-none">{name}</span>
+                          <h4 className="text-sm font-medium mb-2">Tourist Contact</h4>
+                          <div className="flex flex-col sm:flex-row gap-3">
+                            <div className="flex items-center gap-2 bg-muted/50 px-3 py-2 rounded-md">
+                              <Avatar className="h-6 w-6">
+                                <AvatarFallback className="text-xs">
+                                  {tour.touristEmail.charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex flex-col min-w-0">
+                                <div className="flex items-center gap-1">
+                                  <Mail className="h-3 w-3 text-muted-foreground" />
+                                  <span className="text-xs text-muted-foreground truncate">{tour.touristEmail}</span>
+                                </div>
+                                {tour.touristPhone !== 'Not provided' && (
+                                  <div className="flex items-center gap-1">
+                                    <Phone className="h-3 w-3 text-muted-foreground" />
+                                    <span className="text-xs text-muted-foreground">{tour.touristPhone}</span>
+                                  </div>
+                                )}
                               </div>
-                            ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Quick Info */}
+                        <div className="mt-4 pt-4 border-t">
+                          <h4 className="text-sm font-medium mb-2">Tour Includes</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {tour.hotel && (
+                              <Badge variant="outline" className="text-xs">
+                                <Building2 className="h-3 w-3 mr-1" />
+                                Accommodation
+                              </Badge>
+                            )}
+                            {tour.transport && (
+                              <Badge variant="outline" className="text-xs">
+                                <Car className="h-3 w-3 mr-1" />
+                                Transport
+                              </Badge>
+                            )}
+                            {tour.activities && tour.activities.length > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                <Star className="h-3 w-3 mr-1" />
+                                {tour.activities.length} Activities
+                              </Badge>
+                            )}
                           </div>
                         </div>
 
                         {/* Actions */}
                         <div className="mt-4 pt-4 border-t flex flex-wrap gap-2">
-                          <Button size="sm" className="text-xs sm:text-sm">View Details</Button>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button size="sm" onClick={() => handleViewDetails(tour.id)} className="text-xs sm:text-sm">
+                                View Details
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                              <DialogHeader>
+                                <DialogTitle>Tour Details - {tour.destination}</DialogTitle>
+                                <DialogDescription>
+                                  Complete itinerary and tourist information
+                                </DialogDescription>
+                              </DialogHeader>
+                              {selectedTour && selectedTourId === tour.id && (
+                                <TourDetailsDialog tour={selectedTour} />
+                              )}
+                            </DialogContent>
+                          </Dialog>
                           {tour.status === 'upcoming' && (
                             <>
-                              <Button size="sm" variant="outline" className="text-xs sm:text-sm">
-                                Contact Tourists
+                              <Button size="sm" variant="outline" className="text-xs sm:text-sm" asChild>
+                                <a href={`mailto:${tour.touristEmail}`}>
+                                  Contact Tourist
+                                </a>
                               </Button>
-                              <Button size="sm" variant="outline" className="text-xs sm:text-sm hidden sm:block">
-                                View Itinerary
-                              </Button>
+                              {tour.touristPhone !== 'Not provided' && (
+                                <Button size="sm" variant="outline" className="text-xs sm:text-sm" asChild>
+                                  <a href={`tel:${tour.touristPhone}`}>
+                                    Call Tourist
+                                  </a>
+                                </Button>
+                              )}
                             </>
                           )}
                         </div>
@@ -232,6 +297,167 @@ export default function TourGuideBookings() {
             </div>
           </CardContent>
         </Card>
+      </div>
+    </div>
+  )
+}
+
+// Tour Details Dialog Component
+function TourDetailsDialog({ tour }) {
+  return (
+    <div className="space-y-6">
+      {/* Tour Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h3 className="text-lg font-semibold mb-3">Tour Information</h3>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">{tour.destination_name}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 text-muted-foreground" />
+              <span>{format(new Date(tour.start_date), 'PPP')} - {format(new Date(tour.end_date), 'PPP')}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span>{tour.duration_days} day{tour.duration_days !== 1 ? 's' : ''}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant={tour.booking_status === 'upcoming' ? 'default' : tour.booking_status === 'ongoing' ? 'destructive' : 'secondary'}>
+                {tour.booking_status.charAt(0).toUpperCase() + tour.booking_status.slice(1)}
+              </Badge>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-lg font-semibold mb-3">Tourist Contact</h3>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              <a href={`mailto:${tour.tourist_email}`} className="text-blue-600 hover:underline">
+                {tour.tourist_email}
+              </a>
+            </div>
+            {tour.tourist_phone && (
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-muted-foreground" />
+                <a href={`tel:${tour.tourist_phone}`} className="text-blue-600 hover:underline">
+                  {tour.tourist_phone}
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Destination Description */}
+      {tour.destination_description && (
+        <div>
+          <h3 className="text-lg font-semibold mb-3">About {tour.destination_name}</h3>
+          <p className="text-muted-foreground">{tour.destination_description}</p>
+        </div>
+      )}
+
+      {/* Itinerary Details */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Accommodation */}
+        {tour.items?.hotel && tour.items.hotel.length > 0 && (
+          <div>
+            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              Accommodation
+            </h3>
+            {tour.items.hotel.map((hotel, index) => (
+              <Card key={index}>
+                <CardContent className="p-4">
+                  <h4 className="font-medium">{hotel.item_name}</h4>
+                  <p className="text-sm text-muted-foreground">{hotel.item_details_extra}</p>
+                  <p className="text-sm font-medium mt-2">TZS {(hotel.cost * 2835).toLocaleString()}</p>
+                  {hotel.item_details && typeof hotel.item_details === 'object' && (
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      {hotel.item_details.check_in && (
+                        <p>Check-in: {hotel.item_details.check_in}</p>
+                      )}
+                      {hotel.item_details.check_out && (
+                        <p>Check-out: {hotel.item_details.check_out}</p>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* Transport */}
+        {tour.items?.transport && tour.items.transport.length > 0 && (
+          <div>
+            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <Car className="h-5 w-5" />
+              Transport
+            </h3>
+            {tour.items.transport.map((transport, index) => (
+              <Card key={index}>
+                <CardContent className="p-4">
+                  <h4 className="font-medium">{transport.item_name}</h4>
+                  <p className="text-sm text-muted-foreground">Duration: {transport.item_details_extra}</p>
+                  <p className="text-sm font-medium mt-2">TZS {(transport.cost * 2835).toLocaleString()}</p>
+                  {transport.item_details && typeof transport.item_details === 'object' && (
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      {transport.item_details.departure_time && (
+                        <p>Departure: {transport.item_details.departure_time}</p>
+                      )}
+                      {transport.item_details.seat_number && (
+                        <p>Seat: {transport.item_details.seat_number}</p>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* Activities */}
+        {tour.items?.activities && tour.items.activities.length > 0 && (
+          <div>
+            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <Star className="h-5 w-5" />
+              Activities
+            </h3>
+            <div className="space-y-3">
+              {tour.items.activities.map((activity, index) => (
+                <Card key={index}>
+                  <CardContent className="p-4">
+                    <h4 className="font-medium">{activity.item_name}</h4>
+                    <p className="text-sm text-muted-foreground">{activity.item_details_extra}</p>
+                    <p className="text-sm font-medium mt-2">TZS {(activity.cost * 2835).toLocaleString()}</p>
+                    {activity.item_details && typeof activity.item_details === 'object' && (
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        {activity.item_details.date && (
+                          <p>Date: {activity.item_details.date}</p>
+                        )}
+                        {activity.item_details.time_slot && (
+                          <p>Time: {activity.item_details.time_slot}</p>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Total Cost */}
+      <div className="border-t pt-4">
+        <div className="flex justify-between items-center">
+          <span className="text-lg font-semibold">Total Tour Cost:</span>
+          <span className="text-2xl font-bold">TZS {(tour.total_cost * 2835).toLocaleString()}</span>
+        </div>
       </div>
     </div>
   )

@@ -25,6 +25,7 @@ Smart Tour Tanzania is a comprehensive tourism booking and management system wit
 - **users**: Central user table with email, role, status, password
 - **bookings**: Main booking records with dates, destination, costs, status
 - **booking_items**: Individual booking components (hotel, transport, activities, tour guide)
+- **booking_carts**: Shopping cart for multi-destination bookings
 - **savings_accounts**: User savings balances for payment
 - **payments**: Payment transaction records
 
@@ -63,6 +64,19 @@ Tourist Booking Process:
 7. Service providers confirm their items → provider status: 'confirmed'
 8. Admin assigns tour guide to replace placeholder
 9. All confirmed → booking status: 'completed'
+```
+
+### 2b. Multi-Destination Cart System Flow
+```
+Cart-based Booking Process:
+1. Tourist selects destinations and adds multiple bookings to cart
+2. Each cart item maintains destination details, dates, and selected services
+3. Cart persists across browser sessions with intelligent sync
+4. Tourist reviews all destinations in cart with total cost calculation
+5. Single checkout process for all cart items with unified payment
+6. All bookings in cart are confirmed simultaneously
+7. Service providers receive notifications for multiple confirmed bookings
+8. Admin assigns tour guides for each confirmed booking
 ```
 
 ### 3. Service Provider Workflows
@@ -160,6 +174,7 @@ Blockchain Integration:
 #### Tourist Interface:
 - `/` - Home page with destination browsing
 - `/book/[id]` - Destination booking page with service selection
+- `/cart` - Multi-destination cart management and checkout
 - `/savings` - Savings account management
 - `/my-bookings` - View and track bookings
 
@@ -190,6 +205,9 @@ Blockchain Integration:
   - User authentication state (`userStore.js`)
   - Layout state (`layoutStore.js`)
   - Booking flow state (`bookingStore.js`)
+  - Cart state with persistence (`cartStore.js`)
+  - Admin assignments state (`assignmentsStore.js`)
+  - Tour guide bookings state (`tour-guide/bookings/store.js`)
 - Local storage for token and user data persistence
 
 ### UI Components
@@ -235,6 +253,12 @@ Blockchain Integration:
 ✅ **Unified savings handling for both fiat and crypto balances** - **COMPLETE**
 ✅ **Automatic blockchain interactions for payment processing** - **COMPLETE**
 ✅ **Wallet address storage and blockchain balance tracking** - **COMPLETE**
+✅ **Multi-destination cart system with persistent storage** - **COMPLETE**
+✅ **Cart checkout workflow with single payment for multiple destinations** - **COMPLETE**
+✅ **Complete tour guide assignment functionality** - **COMPLETE**
+✅ **Admin tour guide assignment interface with booking search and filtering** - **COMPLETE**
+✅ **Tour guide booking management with tourist contact details** - **COMPLETE**
+✅ **Cart persistence across browser sessions with intelligent sync** - **COMPLETE**
 
 ### Partially Implemented
 ⚠️ Activity scheduling with time slots (backend complete, frontend needs work)
@@ -278,9 +302,14 @@ Blockchain Integration:
 7. **Frontend Components**: Use existing UI components from the `components/ui` directory
 
 8. **Testing**: Use the `playground` folder for any testing, experiments, or temporary implementations. But plz priotize feature implementation over testing, as the system is still under development.
+
 9. **Documentation**: Keep the `.github/copilot-instructions.md` file updated with any changes made to the codebase, especially if they affect the overall architecture or flow.
-9. **Flexibility**: The system is under active development, so be open to changing existing structures, especially in the schema.sql file. Feel free to break things and improve them as needed.
-10. **Frontend Integration**: If you implement a new feature in the backend, ensure it is reflected in the frontend. Remove any unused or incomplete features from the frontend that do not have backend support.
+
+10. **NO ROOT FOLDER DOCUMENTATION**: NEVER create documentation files in the root folder. ALL implementation details, summaries, or documentation updates should ONLY be placed in the `.github/copilot-instructions.md` file. Do not create README.md, IMPLEMENTATION_SUMMARY.md, CHANGELOG.md, or any other documentation files in the root directory.
+
+11. **Flexibility**: The system is under active development, so be open to changing existing structures, especially in the schema.sql file. Feel free to break things and improve them as needed.
+
+12. **Frontend Integration**: If you implement a new feature in the backend, ensure it is reflected in the frontend. Remove any unused or incomplete features from the frontend that do not have backend support.
 
 ### Special notes for testing and expirementation:
 - Don't priotize testing, as the system is still under development. But only do it if it is absolutely necessary.

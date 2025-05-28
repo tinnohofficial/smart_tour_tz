@@ -44,6 +44,14 @@ router.get(
   bookingsController.getGuideAssignedBookings,
 );
 
+// Get Tour Guide's booking details
+router.get(
+  "/tour-guide-booking/:bookingId",
+  authenticateToken,
+  checkRole("tour_guide"),
+  bookingsController.getGuideBookingDetails,
+);
+
 // Get hotel bookings needing action
 router.get(
   "/hotel-bookings-pending",

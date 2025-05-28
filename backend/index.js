@@ -14,6 +14,7 @@ const activitiesRouter = require("./routes/activitiesRouter");
 const transportsRouter = require("./routes/transportsRouter");
 const savingsRouter = require("./routes/savingsRouter");
 const applicationsRouter = require("./routes/applicationsRouter");
+const cartRouter = require("./routes/cartRouter");
 
 const PORT = process.env.PORT;
 
@@ -35,6 +36,7 @@ router.use("/activities", activitiesRouter);
 router.use("/transports", transportsRouter);
 router.use("/savings", savingsRouter);
 router.use("/applications", applicationsRouter);
+router.use("/cart", cartRouter);
 
 app.use("/api", router);
 

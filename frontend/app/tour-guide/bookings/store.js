@@ -3,13 +3,15 @@ import { toast } from "sonner"
 import { bookingsService, apiUtils } from '@/app/services/api'
 import { ERROR_MESSAGES } from '@/app/constants'
 
-export const useBookingsStore = create((set) => ({
+export const useBookingsStore = create((set, get) => ({
   tours: [],
+  selectedTour: null,
   isLoading: true,
   searchQuery: "",
   statusFilter: "all",
   
   setTours: (tours) => set({ tours }),
+  setSelectedTour: (tour) => set({ selectedTour: tour }),
   setIsLoading: (isLoading) => set({ isLoading }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   setStatusFilter: (filter) => set({ statusFilter: filter }),
@@ -22,15 +24,21 @@ export const useBookingsStore = create((set) => ({
         // Transform the data to match our UI needs
         const transformedTours = data.map(booking => ({
           id: booking.booking_id,
-          destination: booking.destination_name || booking.destination || 'Unknown Location',
+          destination: booking.destination_name || 'Unknown Location',
+          destinationRegion: booking.destination_region || '',
           startDate: booking.start_date || booking.created_at,
           endDate: booking.end_date || booking.created_at,
-          status: booking.status === 'completed' ? 'completed' : 'upcoming',
-          touristCount: booking.tourist_count || 1,
-          touristNames: booking.tourist_names || [booking.tourist_email],
-          image: booking.image || "/placeholder.svg",
-          paymentStatus: booking.payment_status || 'paid',
-          amount: booking.cost || 0,
+          status: booking.booking_status || (booking.status === 'completed' ? 'completed' : 'upcoming'),
+          touristEmail: booking.tourist_email,
+          touristPhone: booking.tourist_phone || 'Not provided',
+          touristId: booking.tourist_id,
+          duration: booking.duration_days || 1,
+          image: "/placeholder.svg",
+          paymentStatus: 'paid', // Tour guides only see confirmed bookings
+          amount: booking.total_cost || 0,
+          activities: booking.activities || [],
+          hotel: booking.hotel || null,
+          transport: booking.transport || null,
           details: booking.item_details || {}
         }))
 
@@ -43,6 +51,24 @@ export const useBookingsStore = create((set) => ({
         onError: (error) => {
           console.error('Error fetching tours:', error)
           toast.error(ERROR_MESSAGES.BOOKINGS_LOAD_ERROR)
+        }
+      }
+    )
+  },
+
+  fetchTourDetails: async (bookingId) => {
+    return apiUtils.withLoadingAndError(
+      async () => {
+        const data = await bookingsService.getTourGuideBookingDetails(bookingId)
+        set({ selectedTour: data })
+        return data
+      },
+      {
+        setLoading: (loading) => set({ isLoading: loading }),
+        setError: (error) => set({ error }),
+        onError: (error) => {
+          console.error('Error fetching tour details:', error)
+          toast.error('Failed to load tour details')
         }
       }
     )

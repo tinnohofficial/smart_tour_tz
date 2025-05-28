@@ -103,8 +103,26 @@ CREATE TABLE transports (
     INDEX idx_transports_destination (destination)
 );
 
+-- Multi-destination booking carts
+CREATE TABLE booking_carts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tourist_user_id INT NOT NULL,
+    total_cost DECIMAL(12, 2) DEFAULT 0.00,
+    status ENUM (
+        'active',
+        'pending_payment',
+        'confirmed',
+        'completed',
+        'cancelled'
+    ) NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (tourist_user_id) REFERENCES users (id) ON DELETE CASCADE
+);
+
 CREATE TABLE bookings (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    cart_id INT NULL, -- Link to cart for multi-destination bookings
     tourist_user_id INT NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
@@ -114,13 +132,15 @@ CREATE TABLE bookings (
     include_hotel BOOLEAN DEFAULT TRUE,
     include_activities BOOLEAN DEFAULT TRUE,
     status ENUM (
+        'in_cart',
         'pending_payment',
         'confirmed',
         'completed',
         'cancelled'
-    ) NOT NULL DEFAULT 'pending_payment',
+    ) NOT NULL DEFAULT 'in_cart',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (cart_id) REFERENCES booking_carts (id) ON DELETE SET NULL,
     FOREIGN KEY (tourist_user_id) REFERENCES users (id) ON DELETE CASCADE,
     FOREIGN KEY (destination_id) REFERENCES destinations (id) ON DELETE SET NULL
 );
@@ -148,7 +168,8 @@ CREATE TABLE savings_accounts (
 
 CREATE TABLE payments (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    booking_id INT,
+    cart_id INT NULL, -- For multi-booking payments
+    booking_id INT NULL, -- For single booking payments
     user_id INT NOT NULL,
     amount DECIMAL(12, 2) NOT NULL,
     payment_method ENUM ('external', 'savings', 'stripe', 'crypto') NOT NULL,
@@ -157,6 +178,7 @@ CREATE TABLE payments (
     currency VARCHAR(10) DEFAULT 'TZS',
     exchange_rate DECIMAL(10, 4) DEFAULT 1.0000, -- For crypto conversions
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (cart_id) REFERENCES booking_carts (id) ON DELETE SET NULL,
     FOREIGN KEY (booking_id) REFERENCES bookings (id) ON DELETE SET NULL,
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
@@ -167,14 +189,20 @@ CREATE INDEX idx_users_phone ON users (phone_number);
 CREATE INDEX idx_users_role_status ON users (role, status);
 
 CREATE INDEX idx_bookings_tourist_id ON bookings (tourist_user_id);
+CREATE INDEX idx_bookings_cart_id ON bookings (cart_id);
 CREATE INDEX idx_bookings_status ON bookings (status);
 CREATE INDEX idx_bookings_created ON bookings (created_at DESC);
+
+CREATE INDEX idx_booking_carts_tourist_id ON booking_carts (tourist_user_id);
+CREATE INDEX idx_booking_carts_status ON booking_carts (status);
+CREATE INDEX idx_booking_carts_created ON booking_carts (created_at DESC);
 
 CREATE INDEX idx_booking_items_booking_id ON booking_items (booking_id);
 CREATE INDEX idx_booking_items_item ON booking_items (item_type, id);
 CREATE INDEX idx_booking_items_provider_status ON booking_items (provider_status);
 
 CREATE INDEX idx_payments_user_id ON payments (user_id);
+CREATE INDEX idx_payments_cart_id ON payments (cart_id);
 CREATE INDEX idx_payments_booking_id ON payments (booking_id);
 CREATE INDEX idx_payments_status ON payments (status);
 CREATE INDEX idx_payments_created ON payments (created_at DESC);

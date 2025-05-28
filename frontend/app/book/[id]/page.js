@@ -24,6 +24,7 @@ import {
   Ship,
   Wallet,
   Loader2,
+  ShoppingCart,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -40,6 +41,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 // Import the Zustand store and selectors/actions
 import { useBookingStore, useBookingNights } from "./bookingStore"
+// Import cart store
+import { useCartStore } from "../../store/cartStore"
 // Import RouteProtection component
 import { RouteProtection } from "@/components/route-protection"
 // Import shared utilities
@@ -55,6 +58,9 @@ function BookLocation({ params }) {
   const destinationId = parseInt(id, 10)
 
   const router = useRouter()
+
+  // Get cart store actions
+  const { addToCart } = useCartStore()
 
   // Get state and actions from Zustand store
   const {
@@ -1546,14 +1552,58 @@ function BookLocation({ params }) {
                             <p className="text-red-500 text-xs -mt-2 ml-2">{errors.terms}</p>
                           )}
 
-                          <Button
-                            type="submit"
-                            className="w-full h-12 text-white bg-amber-700 hover:bg-amber-800 font-medium"
-                            disabled={!agreedToTerms}
-                          >
-                            <CreditCard className="mr-2 h-4 w-4" />
-                            Pay {formatTZS(totalPrice)}
-                          </Button>
+                          <div className="flex gap-3">
+                            <Button
+                              type="button"
+                              onClick={async () => {
+                                if (!agreedToTerms) {
+                                  setErrors(prev => ({ ...prev, terms: "Please agree to terms and conditions" }))
+                                  return
+                                }
+                                
+                                try {
+                                  // Prepare cart booking data
+                                  const cartBookingData = {
+                                    destinationId,
+                                    startDate,
+                                    endDate,
+                                    includeTransport: flexibleOptions.includeTransport,
+                                    includeHotel: flexibleOptions.includeHotel,
+                                    includeActivities: flexibleOptions.includeActivities,
+                                    transportId: selectedTransportRoute || null,
+                                    hotelId: selectedHotel || null,
+                                    activityIds: selectedActivities || [],
+                                    activitySchedules
+                                  }
+                                  
+                                  await addToCart(cartBookingData)
+                                  
+                                  // Reset the booking form
+                                  resetBooking()
+                                  
+                                  // Navigate back to destinations or cart
+                                  router.push('/cart')
+                                } catch (error) {
+                                  // Error is handled in the cart store
+                                }
+                              }}
+                              variant="outline"
+                              className="flex-1 h-12 border-amber-200 hover:bg-amber-50 font-medium"
+                              disabled={!agreedToTerms}
+                            >
+                              <ShoppingCart className="mr-2 h-4 w-4" />
+                              Add to Cart
+                            </Button>
+                            
+                            <Button
+                              type="submit"
+                              className="flex-1 h-12 text-white bg-amber-700 hover:bg-amber-800 font-medium"
+                              disabled={!agreedToTerms}
+                            >
+                              <CreditCard className="mr-2 h-4 w-4" />
+                              Pay Now
+                            </Button>
+                          </div>
                           
                           <Button
                             type="button"
