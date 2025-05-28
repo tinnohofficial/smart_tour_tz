@@ -7,8 +7,6 @@ import { SUCCESS_MESSAGES, ERROR_MESSAGES } from '@/app/constants'
 export const useDestinationsStore = create((set, get) => ({
   // --- State ---
   destinations: [],
-  filteredDestinations: [],
-  searchTerm: "",
   isLoading: true,
   isSubmitting: false, // For Add/Update/Delete
   isUploading: false,  // For image upload specifically
@@ -30,10 +28,6 @@ export const useDestinationsStore = create((set, get) => ({
   // --- Actions ---
 
   // Basic Setters
-  setSearchTerm: (term) => {
-    set({ searchTerm: term });
-    get().filterDestinations();
-  },
   setIsLoading: (loading) => set({ isLoading: loading }),
   setIsSubmitting: (submitting) => set({ isSubmitting: submitting }),
   setError: (errorMsg) => set({ error: errorMsg }),
@@ -70,24 +64,6 @@ export const useDestinationsStore = create((set, get) => ({
     error: null // Also clear errors on reset
   }),
 
-  // Filtering Logic
-  filterDestinations: () => {
-    const { destinations, searchTerm } = get();
-    if (searchTerm) {
-      const lowerSearchTerm = searchTerm.toLowerCase();
-      set({
-        filteredDestinations: destinations.filter(
-          (dest) =>
-            dest.name.toLowerCase().includes(lowerSearchTerm) ||
-            dest.description.toLowerCase().includes(lowerSearchTerm) ||
-            dest.region.toLowerCase().includes(lowerSearchTerm)
-        ),
-      });
-    } else {
-      set({ filteredDestinations: destinations });
-    }
-  },
-
   // Image Upload Helper (Internal)
   _uploadImageToBlob: async (file) => {
     if (!file) return null;
@@ -110,7 +86,6 @@ export const useDestinationsStore = create((set, get) => ({
       async () => {
         const data = await destinationsService.getAllDestinations()
         set({ destinations: data })
-        get().filterDestinations()
         return data
       },
       {
@@ -149,7 +124,6 @@ export const useDestinationsStore = create((set, get) => ({
         const newDestination = await destinationsService.createDestination(destinationData)
 
         set((state) => ({ destinations: [...state.destinations, newDestination] }));
-        get().filterDestinations();
         toast.success("Destination added successfully!");
         get().resetFormAndFile();
         set({ isAddDialogOpen: false });
@@ -212,15 +186,18 @@ export const useDestinationsStore = create((set, get) => ({
         }
 
         const destinationData = { ...formData, image_url: imageUrl };
-        const updatedDestination = await destinationsService.updateDestination(selectedDestination.id, destinationData)
-
-        set((state) => ({
-          destinations: state.destinations.map((dest) =>
-            dest.id === selectedDestination.id ? updatedDestination : dest
-          ),
-        }));
-        get().filterDestinations();
-        toast.success("Destination updated successfully!");
+        const response = await destinationsService.updateDestination(selectedDestination.id, destinationData);
+        
+        // Extract the updated destination from the response
+        // The controller now returns all fields of the destination
+        if (response) {
+          set((state) => ({
+            destinations: state.destinations.map((dest) =>
+              dest.id === selectedDestination.id ? response : dest
+            ),
+          }));
+          toast.success("Destination updated successfully!");
+        }
         get().resetFormAndFile();
         set({ isEditDialogOpen: false, selectedDestination: null });
 
@@ -256,7 +233,6 @@ export const useDestinationsStore = create((set, get) => ({
         set((state) => ({
           destinations: state.destinations.filter((dest) => dest.id !== selectedDestination.id),
         }));
-        get().filterDestinations();
         toast.success(SUCCESS_MESSAGES.DESTINATION_DELETED);
         set({ isDeleteDialogOpen: false, selectedDestination: null });
       },

@@ -7,12 +7,10 @@ import { SUCCESS_MESSAGES, ERROR_MESSAGES } from '@/app/constants'
 export const useBookingsStore = create((set, get) => ({
   // Booking data
   bookings: [],
-  filteredBookings: [],
   selectedBooking: null,
   isLoading: false,
   isSubmitting: false,
   error: null,
-  searchTerm: "",
   isRoomDialogOpen: false,
   roomDetails: {
     roomNumber: "",
@@ -23,32 +21,11 @@ export const useBookingsStore = create((set, get) => ({
     amenities: []
   },
 
-  // Actions
-  setSearchTerm: (term) => {
-    set({ searchTerm: term })
-    get().filterBookings()
-  },
-
-  filterBookings: () => {
-    const { bookings, searchTerm } = get()
-    if (searchTerm) {
-      const lowerSearchTerm = searchTerm.toLowerCase()
-      set({
-        filteredBookings: bookings.filter(
-          (booking) =>
-            booking.tourist_email?.toLowerCase().includes(lowerSearchTerm) ||
-            booking.booking_id?.toString().includes(lowerSearchTerm)
-        ),
-      })
-    } else {
-      set({ filteredBookings: bookings })
-    }
-  },
-
   fetchBookings: async () => {
     return apiUtils.withLoadingAndError(
       async () => {
         const bookings = await hotelBookingsService.getPendingBookings()
+        set({ bookings })
         
         // Parse the item details if needed
         const parsedBookings = bookings.map(booking => {
@@ -63,8 +40,7 @@ export const useBookingsStore = create((set, get) => ({
         })
         
         set({ 
-          bookings: parsedBookings, 
-          filteredBookings: parsedBookings
+          bookings: parsedBookings
         })
         
         return parsedBookings
@@ -143,7 +119,6 @@ export const useBookingsStore = create((set, get) => ({
         // Update local state - remove the confirmed booking
         set(state => ({
           bookings: state.bookings.filter(booking => booking.id !== itemId),
-          filteredBookings: state.filteredBookings.filter(booking => booking.id !== itemId),
           isRoomDialogOpen: false
         }))
         

@@ -3,7 +3,7 @@ const db = require("../config/db");
 exports.getDestinations = async (req, res) => {
   try {
     const [rows] = await db.query(
-      "SELECT id, name, description, image_url, cost FROM destinations",
+      "SELECT id, name, description, region, image_url, cost FROM destinations",
     );
 
     res.status(200).json(rows);
@@ -172,8 +172,17 @@ exports.updateDestination = async (req, res) => {
         .status(404)
         .json({ message: "Destination not found or no changes applied." });
     }
+    
+    // Fetch the updated destination to return
+    const [updatedDestination] = await db.query(
+      "SELECT * FROM destinations WHERE id = ?",
+      [destinationId],
+    );
 
-    res.json({ message: "Destination updated successfully." });
+    res.json({
+      message: "Destination updated successfully.",
+      ...updatedDestination[0]
+    });
   } catch (error) {
     console.error("Error updating destination:", error);
     res

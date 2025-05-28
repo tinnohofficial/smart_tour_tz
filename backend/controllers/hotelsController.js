@@ -131,8 +131,9 @@ exports.createHotel = async (req, res) => {
             description,
             images,
             capacity,
-            base_price_per_night
-          ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            base_price_per_night,
+            is_available
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           userId,
           name,
@@ -141,6 +142,7 @@ exports.createHotel = async (req, res) => {
           JSON.stringify(images),
           capacity,
           base_price_per_night,
+          true, // Default to available
         ],
       );
 
@@ -278,6 +280,11 @@ exports.updateHotelByManagerId = async (req, res) => {
       params.push(base_price_per_night);
     }
 
+    if (req.body.is_available !== undefined) {
+      updates.push("is_available = ?");
+      params.push(req.body.is_available);
+    }
+
     if (updates.length === 0) {
       return res.status(400).json({ message: "No fields to update" });
     }
@@ -296,5 +303,40 @@ exports.updateHotelByManagerId = async (req, res) => {
     res
       .status(500)
       .json({ message: "Failed to update profile", error: error.message });
+  }
+};
+
+exports.toggleHotelAvailability = async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    // Check if hotel exists and get current availability
+    const [hotelRows] = await db.query(
+      "SELECT id, is_available FROM hotels WHERE id = ?",
+      [userId],
+    );
+
+    if (hotelRows.length === 0) {
+      return res.status(404).json({ message: "Hotel not found" });
+    }
+
+    const currentAvailability = hotelRows[0].is_available;
+    const newAvailability = !currentAvailability;
+
+    // Update availability status
+    await db.query(
+      "UPDATE hotels SET is_available = ? WHERE id = ?",
+      [newAvailability, userId],
+    );
+
+    res.status(200).json({ 
+      message: `Hotel availability updated to ${newAvailability ? 'available' : 'unavailable'}`,
+      is_available: newAvailability
+    });
+  } catch (error) {
+    console.error("Error toggling hotel availability:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to update availability", error: error.message });
   }
 };

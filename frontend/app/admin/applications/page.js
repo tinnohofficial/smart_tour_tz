@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Search, CheckCircle, X, AlertTriangle, User, Hotel, Briefcase, FileText } from "lucide-react"
+import { CheckCircle, X, AlertTriangle, User, Hotel, Briefcase, FileText } from "lucide-react"
 
 // Import the Zustand store
 import { useApplicationsStore } from "./applicationsStore"; // Adjust path if needed
@@ -26,8 +26,7 @@ import { RoleBadge } from "@/app/components/shared/RoleBadge";
 export default function ApplicationsPage() {
   // Select state and actions from the Zustand store
   const {
-    filteredApplications,
-    searchTerm,
+    applications,
     isLoading,
     error,
     selectedApplication,
@@ -35,7 +34,6 @@ export default function ApplicationsPage() {
     isProcessing,
     // Actions
     fetchApplications,
-    setSearchTerm,
     approveApplication,
     rejectApplication,
     viewApplicationDetails,
@@ -70,18 +68,8 @@ export default function ApplicationsPage() {
         </Alert>
       )}
 
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-        <div className="relative flex-1 w-full">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search by name, email, or role..."
-            className="pl-8 text-sm"
-            value={searchTerm} // Read from store
-            onChange={(e) => setSearchTerm(e.target.value)} // Use store action
-          />
-        </div>
-        <Button variant="outline" className="w-full sm:w-auto" onClick={fetchApplications} disabled={isLoading}>
+      <div className="flex justify-end">
+        <Button variant="outline" onClick={fetchApplications} disabled={isLoading}>
           Refresh
         </Button>
       </div>
@@ -101,12 +89,12 @@ export default function ApplicationsPage() {
               </div>
             </div>
           ) : /* Empty State */
-          filteredApplications.length === 0 ? (
+          applications.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 text-center">
               <FileText className="h-10 w-10 text-muted-foreground mb-2" />
               <h3 className="font-medium">No applications found</h3>
               <p className="text-sm text-gray-500 mt-1">
-                {searchTerm ? "Try a different search term" : "There are no pending applications at the moment"}
+                There are no pending applications at the moment
               </p>
             </div>
           ) : (
@@ -123,7 +111,7 @@ export default function ApplicationsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredApplications.map((application) => (
+                  {applications.map((application) => (
                     <TableRow key={application.id}>
                       <TableCell className="font-medium">
                         <div className="truncate max-w-[120px]">{application.name}</div>

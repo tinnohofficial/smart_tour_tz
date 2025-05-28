@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { useState } from "react"
-import { Lock, Eye, EyeOff, ShieldCheck, KeyRound, CheckCircle2 } from "lucide-react"
+import { Eye, EyeOff, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -58,11 +58,9 @@ export default function PasswordChange({ title = "Change Password", description 
         <CardHeader className="space-y-1">
           <div className="flex items-center space-x-2">
             <div className="p-2 bg-primary/10 rounded-lg">
-              <Lock className="h-5 w-5 text-primary" />
             </div>
             <div>
               <CardTitle className="text-2xl">{title}</CardTitle>
-              <CardDescription>{description}</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -87,7 +85,6 @@ export default function PasswordChange({ title = "Change Password", description 
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center space-x-2">
-                      <KeyRound className="h-4 w-4" />
                       <span>Current Password</span>
                     </FormLabel>
                     <FormControl>
@@ -126,7 +123,6 @@ export default function PasswordChange({ title = "Change Password", description 
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center space-x-2">
-                      <ShieldCheck className="h-4 w-4" />
                       <span>New Password</span>
                     </FormLabel>
                     <FormControl>
@@ -153,9 +149,6 @@ export default function PasswordChange({ title = "Change Password", description 
                         </Button>
                       </div>
                     </FormControl>
-                    <FormDescription className="text-xs">
-                      Must contain at least 8 characters with uppercase, lowercase, number, and special character.
-                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -168,7 +161,6 @@ export default function PasswordChange({ title = "Change Password", description 
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center space-x-2">
-                      <ShieldCheck className="h-4 w-4" />
                       <span>Confirm New Password</span>
                     </FormLabel>
                     <FormControl>
@@ -209,12 +201,11 @@ export default function PasswordChange({ title = "Change Password", description 
               >
                 {isSubmitting ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    <div className="animate-spin bg-amber-500 rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                     Changing Password...
                   </>
                 ) : (
                   <>
-                    <Lock className="h-4 w-4 mr-2" />
                     Change Password
                   </>
                 )}

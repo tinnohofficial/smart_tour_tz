@@ -28,7 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Search, Plus, Edit, Trash, AlertTriangle, Loader2, MapPin, ImageIcon } from "lucide-react"
+import { Plus, Edit, Trash, AlertTriangle, Loader2, MapPin, ImageIcon } from "lucide-react"
 import { useDestinationsStore } from "./destinationsStore";
 import { formatDate } from "@/app/utils/dateUtils" 
 import { formatTZS } from "@/app/utils/currency" 
@@ -36,8 +36,7 @@ import { formatTZS } from "@/app/utils/currency"
 export default function DestinationsPage() {
   // Select state and actions from the Zustand store
   const {
-    filteredDestinations,
-    searchTerm,
+    destinations,
     isLoading,
     isSubmitting,
     isUploading,
@@ -50,7 +49,6 @@ export default function DestinationsPage() {
     formData,
     // Actions
     fetchDestinations,
-    setSearchTerm,
     setIsAddDialogOpen,
     setIsEditDialogOpen,
     setIsDeleteDialogOpen,
@@ -117,17 +115,7 @@ export default function DestinationsPage() {
         </Alert>
       )}
 
-      <div className="flex items-center justify-between">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-          <Input
-            type="search"
-            placeholder="Search destinations..."
-            className="pl-8"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)} 
-          />
-        </div>
+      <div className="flex justify-end">
         {/* Add Dialog */}
         <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
             setIsAddDialogOpen(open);
@@ -227,8 +215,8 @@ export default function DestinationsPage() {
           {isLoading ? (
              <div className="flex items-center justify-center p-8"><div className="flex flex-col items-center gap-2"><div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-600 border-t-transparent"></div><p className="text-sm text-gray-500">Loading destinations...</p></div></div>
           ) : /* Empty State */
-          filteredDestinations.length === 0 ? (
-             <div className="flex flex-col items-center justify-center p-8 text-center"><MapPin className="h-10 w-10 text-gray-500 mb-2" /><h3 className="font-medium">No destinations found</h3><p className="text-sm text-gray-500 mt-1">{searchTerm ? "Try a different search term" : "Add your first destination to get started"}</p></div>
+          destinations.length === 0 ? (
+             <div className="flex flex-col items-center justify-center p-8 text-center"><MapPin className="h-10 w-10 text-gray-500 mb-2" /><h3 className="font-medium">No destinations found</h3><p className="text-sm text-gray-500 mt-1">Add your first destination to get started</p></div>
           ) : (
             /* Data Table */
             <Table>
@@ -236,7 +224,7 @@ export default function DestinationsPage() {
                 <TableRow>
                   <TableHead>Image</TableHead>
                   <TableHead>Name</TableHead>
-                  {/* <TableHead>Region</TableHead> */}
+                  <TableHead>Region</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Cost (TZS)</TableHead>
                   {/* <TableHead>Created</TableHead> */}
@@ -244,30 +232,37 @@ export default function DestinationsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredDestinations.map((destination) => (
+                {destinations.map((destination) => (
                   <TableRow key={destination.id}>
                     <TableCell>
                       <div className="h-12 w-20 overflow-hidden rounded-md">
                         {destination.image_url ? (
-                          <div key={`img-url-${destination.id}`} className="relative h-full w-full">
-                            <Image src={destination.image_url} alt={destination.name} className="h-full w-full object-cover" fill />
+                          <div className="relative h-full w-full">
+                            <Image 
+                              src={destination.image_url} 
+                              alt={destination.name || "Destination"} 
+                              className="h-full w-full object-cover" 
+                              fill 
+                            />
                           </div>
                         ) : (
-                          <div key={`img-placeholder-${destination.id}`} className="flex h-full w-full items-center justify-center bg-gray-500"><ImageIcon className="h-6 w-6 text-gray-500" /></div>
+                          <div className="flex h-full w-full items-center justify-center bg-gray-500">
+                            <ImageIcon className="h-6 w-6 text-gray-500" />
+                          </div>
                         )}
                       </div>
                     </TableCell>
                     <TableCell className="font-medium">{destination.name}</TableCell>
-                    {/* <TableCell>{destination.region}</TableCell> */}
+                    <TableCell>{destination.region}</TableCell>
                     <TableCell className="max-w-xs truncate">{destination.description}</TableCell>
                     <TableCell>{formatTZS(destination.cost ? parseFloat(destination.cost) : 0)}</TableCell>
                     {/* <TableCell>{formatDate(destination.created_at)}</TableCell> */}
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         {/* Edit Button */}
-                        <Button key={`edit-${destination.id}`} variant="outline" className="hover:bg-amber-50" size="sm" onClick={() => onEditClick(destination)}> <Edit className="h-4 w-4" /> </Button>
+                        <Button variant="outline" className="hover:bg-amber-50" size="sm" onClick={() => onEditClick(destination)}> <Edit className="h-4 w-4" /> </Button>
                         {/* Delete Button */}
-                        <Button key={`delete-${destination.id}`} variant="outline" className="hover:bg-amber-50" size="sm" onClick={() => onDeleteClick(destination)}> <Trash className="h-4 w-4" /> </Button>
+                        <Button variant="outline" className="hover:bg-amber-50" size="sm" onClick={() => onDeleteClick(destination)}> <Trash className="h-4 w-4" /> </Button>
                       </div>
                     </TableCell>
                   </TableRow>

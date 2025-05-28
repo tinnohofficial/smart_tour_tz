@@ -7,8 +7,6 @@ import { SUCCESS_MESSAGES, ERROR_MESSAGES } from '@/app/constants';
 export const useAssignmentsStore = create((set, get) => ({
   // --- State ---
   bookings: [],
-  filteredBookings: [],
-  searchTerm: "",
   isLoading: true,
   isSubmitting: false, // Used for both fetching guides and assigning
   error: null,
@@ -20,10 +18,6 @@ export const useAssignmentsStore = create((set, get) => ({
   // --- Actions ---
 
   // Basic Setters
-  setSearchTerm: (term) => {
-    set({ searchTerm: term });
-    get().filterBookings(); // Trigger filtering when term changes
-  },
   setIsLoading: (loading) => set({ isLoading: loading }),
   setIsSubmitting: (submitting) => set({ isSubmitting: submitting }),
   setError: (errorMsg) => set({ error: errorMsg }),
@@ -32,30 +26,12 @@ export const useAssignmentsStore = create((set, get) => ({
   setSelectedGuideId: (guideId) => set({ selectedGuideId: guideId }),
   clearEligibleGuides: () => set({ eligibleGuides: [] }), // Helper to clear guides
 
-  // Filtering Logic
-  filterBookings: () => {
-    const { bookings, searchTerm } = get();
-    if (searchTerm) {
-      const lowerSearchTerm = searchTerm.toLowerCase();
-      set({
-        filteredBookings: bookings.filter(
-          (booking) =>
-            booking.tourist_name.toLowerCase().includes(lowerSearchTerm) ||
-            booking.destination_name.toLowerCase().includes(lowerSearchTerm)
-        ),
-      });
-    } else {
-      set({ filteredBookings: bookings }); // Show all if no search term
-    }
-  },
-
   // Fetching Action
   fetchUnassignedBookings: async () => {
     return apiUtils.withLoadingAndError(
       async () => {
         const data = await bookingsService.getUnassignedBookings();
         set({ bookings: data });
-        get().filterBookings();
         return data;
       },
       {
@@ -104,7 +80,6 @@ export const useAssignmentsStore = create((set, get) => ({
         set((state) => ({
           bookings: state.bookings.filter((b) => b.id !== selectedBooking.id),
         }));
-        get().filterBookings();
 
         toast.success(SUCCESS_MESSAGES.BOOKING_ASSIGNED);
         set({ isAssignDialogOpen: false, selectedBooking: null, selectedGuideId: "", eligibleGuides: [] });

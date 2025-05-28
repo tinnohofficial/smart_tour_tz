@@ -123,7 +123,6 @@ function LoginForm() {
       <Card className="border-amber-100 shadow-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold">Sign In</CardTitle>
-          <CardDescription className="text-gray-500">Enter your credentials to access your account</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4">

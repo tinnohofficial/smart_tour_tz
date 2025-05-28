@@ -20,6 +20,8 @@ export const useProfileStore = create((set, get) => ({
   accommodationCosts: "",
   hotelImages: [],
   isApproved: false,
+  isAvailable: true,
+  isTogglingAvailability: false,
 
   // Actions
   fetchProfile: async () => {
@@ -35,7 +37,8 @@ export const useProfileStore = create((set, get) => ({
           // Format price to maintain decimal precision
           accommodationCosts: data.base_price_per_night ? parseFloat(data.base_price_per_night).toFixed(2) : "",
           hotelImages: data.images || [],
-          isApproved: data.status === 'active'
+          isApproved: data.status === 'active',
+          isAvailable: data.is_available !== undefined ? data.is_available : true
         })
         return data
       },
@@ -121,6 +124,28 @@ export const useProfileStore = create((set, get) => ({
           toast.error(ERROR_MESSAGES.PROFILE_UPDATE_ERROR)
         },
         onFinally: () => set({ isUploading: false })
+      }
+    )
+  },
+
+  toggleAvailability: async () => {
+    return apiUtils.withLoadingAndError(
+      async () => {
+        const result = await hotelManagerService.toggleAvailability()
+        
+        // Update the availability state
+        set({ isAvailable: result.is_available })
+        
+        toast.success(result.message)
+        return result
+      },
+      {
+        setLoading: (loading) => set({ isTogglingAvailability: loading }),
+        setError: (error) => set({ error }),
+        onError: (error) => {
+          console.error('Error toggling availability:', error)
+          toast.error('Failed to update availability status')
+        }
       }
     )
   }

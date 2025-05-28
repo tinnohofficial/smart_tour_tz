@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Image from "next/image"
-import { Search, CalendarDays, Users, MapPin, Phone, Mail, Clock, Building2, Car, Star } from "lucide-react"
+import { CalendarDays, Users, MapPin, Phone, Mail, Clock, Building2, Car, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -18,9 +18,7 @@ export default function TourGuideBookings() {
     tours,
     selectedTour,
     isLoading,
-    searchQuery,
     statusFilter,
-    setSearchQuery,
     setStatusFilter,
     fetchTours,
     fetchTourDetails,
@@ -32,12 +30,10 @@ export default function TourGuideBookings() {
     fetchTours()
   }, [fetchTours])
 
-  // Filter tours based on search query and status filter
+  // Filter tours based on status filter
   const filteredTours = tours.filter((tour) => {
-    const matchesSearch = tour.destination.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         tour.touristEmail.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesStatus = statusFilter === "all" || tour.status === statusFilter
-    return matchesSearch && matchesStatus
+    return matchesStatus
   })
 
   const handleViewDetails = async (tourId) => {
@@ -66,22 +62,6 @@ export default function TourGuideBookings() {
       <div className="flex flex-col gap-6">
         {/* Search and Filter Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="col-span-1 md:col-span-2">
-            <CardHeader className="pb-3">
-              <CardTitle className="font-medium text-sm">Search Tours</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by destination..."
-                  className="pl-9"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </CardContent>
-          </Card>
 
           <Card>
             <CardHeader className="pb-3">

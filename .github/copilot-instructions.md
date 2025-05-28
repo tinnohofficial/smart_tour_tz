@@ -153,6 +153,7 @@ Blockchain Integration:
 ### Profile Management Endpoints
 - `/api/tour-guides` - Tour guide profile management
 - `/api/hotels` - Hotel management (manager role)
+  - `PUT /hotels/manager/availability` - Toggle hotel availability status (hotel manager only)
 - `/api/travel-agents` - Travel agency management
 - `/api/destinations` - Destination management (admin)
 - `/api/activities` - Activity management (admin)
@@ -265,6 +266,10 @@ Blockchain Integration:
 ✅ **Travel agent forms using destination/origin select dropdowns instead of text inputs** - **COMPLETE**
 ✅ **Booking flow with origin selection before transport route filtering** - **COMPLETE**
 ✅ **Database schema with transport_origins table and proper foreign key relationships** - **COMPLETE**
+✅ **Hotel availability management system with toggle functionality** - **COMPLETE**
+✅ **Hotels filtered by availability status in booking flow** - **COMPLETE**
+✅ **Hotel manager availability controls in profile dashboard** - **COMPLETE**
+✅ **Cart fetch error resolution (environment variable configuration fix)** - **COMPLETE**
 
 ### Partially Implemented
 ⚠️ Activity scheduling with time slots (backend complete, frontend needs work)

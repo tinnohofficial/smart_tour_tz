@@ -38,5 +38,12 @@ router.put(
   hotelsController.updateHotelByManagerId
 );
 
+router.put(
+  "/manager/availability",
+  authenticateToken,
+  checkRole("hotel_manager"),
+  hotelsController.toggleHotelAvailability
+);
+
 module.exports = router;
 

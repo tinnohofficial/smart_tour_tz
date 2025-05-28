@@ -117,6 +117,12 @@ export const hotelManagerService = {
       method: 'PUT',
       body: JSON.stringify(profileData)
     })
+  },
+
+  async toggleAvailability() {
+    return apiRequest('/hotels/manager/availability', {
+      method: 'PUT'
+    })
   }
 }
 

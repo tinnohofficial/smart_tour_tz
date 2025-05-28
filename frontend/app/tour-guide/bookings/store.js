@@ -7,13 +7,11 @@ export const useBookingsStore = create((set, get) => ({
   tours: [],
   selectedTour: null,
   isLoading: true,
-  searchQuery: "",
   statusFilter: "all",
   
   setTours: (tours) => set({ tours }),
   setSelectedTour: (tour) => set({ selectedTour: tour }),
   setIsLoading: (isLoading) => set({ isLoading }),
-  setSearchQuery: (query) => set({ searchQuery: query }),
   setStatusFilter: (filter) => set({ statusFilter: filter }),
   
   fetchTours: async () => {

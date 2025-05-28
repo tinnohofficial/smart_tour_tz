@@ -29,7 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Search, Plus, Edit, Trash, AlertTriangle, Loader2, MapPin } from "lucide-react"
+import { Plus, Edit, Trash, AlertTriangle, Loader2, MapPin } from "lucide-react"
 import { useActivitiesStore } from "./activitiesStore" 
 import { formatDate } from "@/app/utils/dateUtils" 
 import { formatTZS } from "@/app/utils/currency" 
@@ -38,7 +38,6 @@ export default function ActivitiesPage() {
   const {
     filteredActivities,
     destinations,
-    searchTerm,
     isLoading,
     isSubmitting,
     error,
@@ -48,7 +47,6 @@ export default function ActivitiesPage() {
     selectedActivity,
     formData,
     // Actions
-    setSearchTerm,
     setIsAddDialogOpen,
     setIsEditDialogOpen,
     setIsDeleteDialogOpen,
@@ -120,17 +118,7 @@ export default function ActivitiesPage() {
         </Alert>
       )}
 
-      <div className="flex items-center justify-between">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-          <Input
-            type="search"
-            placeholder="Search activities..."
-            className="pl-8"
-            value={searchTerm} // Read from store
-            onChange={(e) => setSearchTerm(e.target.value)} // Use store action
-          />
-        </div>
+      <div className="flex items-center justify-end">
         {/* Add Dialog - controlled by store state/actions */}
         <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
             setIsAddDialogOpen(open);
@@ -210,7 +198,7 @@ export default function ActivitiesPage() {
               <MapPin className="h-10 w-10 text-gray-500 mb-2" />
               <h3 className="font-medium">No activities found</h3>
               <p className="text-sm text-gray-500 mt-1">
-                {searchTerm ? "Try a different search term" : "Add your first activity to get started"}
+                Add your first activity to get started
               </p>
             </div>
           ) : (

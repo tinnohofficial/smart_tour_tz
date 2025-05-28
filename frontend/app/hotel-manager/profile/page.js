@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
-import { MapPin, Hotel, Loader2, Save, Camera, CheckCircle, AlertCircle, Building } from "lucide-react"
+import { MapPin, Hotel, Loader2, Save, Camera, CheckCircle, AlertCircle, Building, ToggleLeft, ToggleRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
@@ -29,7 +29,10 @@ export default function HotelManagerProfile() {
     isApproved,
     fetchProfile,
     updateProfile,
-    setHotelImages
+    setHotelImages,
+    isAvailable,
+    isTogglingAvailability,
+    toggleAvailability
   } = useProfileStore()
 
   useEffect(() => {
@@ -126,6 +129,45 @@ export default function HotelManagerProfile() {
                     <span className="text-sm font-medium">Price per night:</span>
                     <span className="text-sm text-gray-600">{formatTZS(accommodationCosts || 0)}</span>
                   </div>
+                  
+                  <div className="flex items-center gap-2 py-2 border-t">
+                    <div className="flex items-center gap-2 flex-1">
+                      {isAvailable ? (
+                        <ToggleRight className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <ToggleLeft className="h-4 w-4 text-red-600" />
+                      )}
+                      <span className="text-sm font-medium">Status:</span>
+                      <Badge 
+                        className={`text-xs ${
+                          isAvailable 
+                            ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                            : 'bg-red-100 text-red-700 hover:bg-red-200'
+                        } border-0`}
+                      >
+                        {isAvailable ? 'Available' : 'Unavailable'}
+                      </Badge>
+                    </div>
+                    {isApproved && (
+                      <Button
+                        onClick={toggleAvailability}
+                        disabled={isTogglingAvailability}
+                        variant="outline"
+                        size="sm"
+                        className={`text-xs px-2 py-1 h-auto ${
+                          isAvailable 
+                            ? 'border-red-300 text-red-600 hover:bg-red-50' 
+                            : 'border-green-300 text-green-600 hover:bg-green-50'
+                        }`}
+                      >
+                        {isTogglingAvailability ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          isAvailable ? 'Make Unavailable' : 'Make Available'
+                        )}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </Card>
@@ -133,6 +175,17 @@ export default function HotelManagerProfile() {
 
           {/* Right Column - Profile Form */}
           <div className="md:col-span-8 space-y-6">
+            {/* Availability Alert */}
+            {!isAvailable && isApproved && (
+              <Alert className="border-amber-200 bg-amber-50">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                <AlertTitle className="text-amber-800">Hotel Currently Unavailable</AlertTitle>
+                <AlertDescription className="text-amber-700">
+                  Your hotel is currently marked as unavailable for new bookings. Tourists cannot book rooms until you mark it as available again.
+                </AlertDescription>
+              </Alert>
+            )}
+            
             {/* Hotel Information Card */}
             <Card className="shadow-sm py-0">
               <CardHeader className="bg-gray-50 border-b p-4 flex flex-row items-start">

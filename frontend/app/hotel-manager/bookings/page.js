@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Search, Calendar, Clock, FileText, CheckCircle2, Loader2 } from "lucide-react"
+import { Calendar, Clock, FileText, CheckCircle2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,13 +18,11 @@ import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner"
 
 export default function HotelManagerBookings() {
   const {
-    filteredBookings,
+    bookings,
     isLoading,
-    searchTerm,
     isRoomDialogOpen,
     selectedBooking,
     roomDetails,
-    setSearchTerm,
     fetchBookings,
     setSelectedBooking,
     setIsRoomDialogOpen,
@@ -62,29 +60,13 @@ export default function HotelManagerBookings() {
     <div className="container px-1">
       {/* Page Header */}
       <div className="bg-amber-700 p-4 rounded-lg mb-6">
-        <div className="flex flex-col md:flex-row justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-bold text-white">Bookings Management</h1>
-            <p className="text-amber-100 text-sm">Manage guest bookings and assign rooms</p>
-          </div>
-          
-          {/* Search */}
-          <div className="w-full md:w-1/3">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-white/70" />
-              <Input
-                type="search"
-                placeholder="Search by guest email or booking ID"
-                className="bg-amber-700/40 border-amber-500/50 pl-9 text-white placeholder:text-white/70"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
+        <div>
+          <h1 className="text-xl font-bold text-white">Bookings Management</h1>
+          <p className="text-amber-100 text-sm">Manage guest bookings and assign rooms</p>
         </div>
       </div>
 
-      {filteredBookings.length === 0 ? (
+      {bookings.length === 0 ? (
         <div className="text-center py-12">
           <CheckCircle2 className="h-12 w-12 text-gray-300 mx-auto mb-4" />
           <h2 className="text-xl font-medium text-gray-700">No pending bookings</h2>
@@ -92,7 +74,7 @@ export default function HotelManagerBookings() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4">
-          {filteredBookings.map((booking) => (
+          {bookings.map((booking) => (
             <Card key={booking.id} className="overflow-hidden">
               <CardHeader className="pb-3 bg-gray-50">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">

@@ -19,7 +19,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 // Removed useToast hook import
-import { Search, Calendar, MapPin, AlertTriangle, Loader2, CheckCircle } from "lucide-react"
+import { Calendar, MapPin, AlertTriangle, Loader2, CheckCircle } from "lucide-react"
 
 
 // Import the Zustand store
@@ -29,8 +29,7 @@ import { formatDate, formatDateRange } from "@/app/utils/dateUtils";
 export default function AssignmentsPage() {
   // Select state and actions from the Zustand store
   const {
-    filteredBookings,
-    searchTerm,
+    bookings,
     isLoading,
     isSubmitting,
     error,
@@ -40,7 +39,6 @@ export default function AssignmentsPage() {
     selectedGuideId,
     // Actions
     fetchUnassignedBookings,
-    setSearchTerm,
     prepareAssignDialog,
     assignGuide,
     setIsAssignDialogOpen,
@@ -73,18 +71,8 @@ export default function AssignmentsPage() {
         </Alert>
       )}
 
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-        <div className="relative flex-1 w-full max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search bookings..."
-            className="pl-8 text-sm"
-            value={searchTerm} // Read from store
-            onChange={(e) => setSearchTerm(e.target.value)} // Use store action
-          />
-        </div>
-        <Button variant="outline" className="w-full sm:w-auto" onClick={fetchUnassignedBookings} disabled={isLoading}>
+      <div className="flex justify-end">
+        <Button variant="outline" onClick={fetchUnassignedBookings} disabled={isLoading}>
           Refresh
         </Button>
       </div>
@@ -104,12 +92,12 @@ export default function AssignmentsPage() {
                </div>
             </div>
           ) : /* Empty State */
-          filteredBookings.length === 0 ? (
+          bookings.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 text-center">
               <Calendar className="h-10 w-10 text-muted-foreground mb-2" />
               <h3 className="font-medium">No unassigned bookings</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                {searchTerm ? "Try a different search term" : "All bookings have been assigned to tour guides"}
+                All bookings have been assigned to tour guides
               </p>
             </div>
           ) : (
@@ -126,7 +114,7 @@ export default function AssignmentsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredBookings.map((booking) => (
+                  {bookings.map((booking) => (
                     <TableRow key={booking.id}>
                       <TableCell className="font-medium">
                         <div className="truncate max-w-[120px]">{booking.tourist_name}</div>
