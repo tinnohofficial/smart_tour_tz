@@ -16,9 +16,15 @@ export default function CartPage() {
   // Check if user is logged in and is a tourist
   useEffect(() => {
     const token = localStorage.getItem('token')
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const userData = localStorage.getItem('userData')
     
-    if (!token || user.role !== 'tourist') {
+    if (!token || !userData) {
+      router.push('/login')
+      return
+    }
+    
+    const user = JSON.parse(userData)
+    if (user.role !== 'tourist') {
       router.push('/login')
       return
     }

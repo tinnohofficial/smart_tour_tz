@@ -20,15 +20,15 @@ export const useBookingStore = create((set, get) => ({
   step: 1,
   startDate: "",
   endDate: "",
-  selectedOrigin: "", // New: User's selected origin location
+  selectedOrigin: "", // User's selected origin location
   selectedTransportRoute: "",
   selectedHotel: "",
   selectedActivities: [],
-  activitySchedules: {}, // New: Store activity scheduling details
-  flexibleOptions: {    // New: Flexible service selection
-    includeTransport: true,
-    includeHotel: true,
-    includeActivities: true
+  activitySchedules: {}, // Store activity scheduling details
+  skipOptions: {    // Skip functionality for services
+    skipTransport: false,
+    skipHotel: false,
+    skipActivities: false
   },
   errors: {},
   agreedToTerms: false,
@@ -191,7 +191,7 @@ export const useBookingStore = create((set, get) => ({
     }
   },
 
-  // New: Create flexible booking
+  // Create booking with skip functionality
   createBooking: async () => {
     const state = get();
     const {
@@ -201,7 +201,7 @@ export const useBookingStore = create((set, get) => ({
       selectedHotel,
       selectedActivities,
       activitySchedules,
-      flexibleOptions,
+      skipOptions,
       destination
     } = state;
 
@@ -209,13 +209,13 @@ export const useBookingStore = create((set, get) => ({
       destinationId: destination?.id,
       startDate,
       endDate,
-      includeTransport: flexibleOptions.includeTransport,
-      includeHotel: flexibleOptions.includeHotel,
-      includeActivities: flexibleOptions.includeActivities,
-      transportId: flexibleOptions.includeTransport ? selectedTransportRoute : null,
-      hotelId: flexibleOptions.includeHotel ? selectedHotel : null,
-      activityIds: flexibleOptions.includeActivities ? selectedActivities : [],
-      activitySchedules: flexibleOptions.includeActivities ? activitySchedules : {}
+      includeTransport: !skipOptions.skipTransport,
+      includeHotel: !skipOptions.skipHotel,
+      includeActivities: !skipOptions.skipActivities,
+      transportId: !skipOptions.skipTransport ? selectedTransportRoute : null,
+      hotelId: !skipOptions.skipHotel ? selectedHotel : null,
+      activityIds: !skipOptions.skipActivities ? selectedActivities : [],
+      activitySchedules: !skipOptions.skipActivities ? activitySchedules : {}
     };
 
     try {
@@ -240,10 +240,10 @@ export const useBookingStore = create((set, get) => ({
       : [...state.selectedActivities, activityId],
   })),
   
-  // New: Flexible service selection actions
-  setFlexibleOption: (option, value) => set((state) => ({
-    flexibleOptions: {
-      ...state.flexibleOptions,
+  // Skip service actions
+  setSkipOption: (option, value) => set((state) => ({
+    skipOptions: {
+      ...state.skipOptions,
       [option]: value
     },
     errors: {}
@@ -284,7 +284,7 @@ export const useBookingStore = create((set, get) => ({
         selectedHotel: state.selectedHotel,
         selectedActivities: state.selectedActivities,
         activitySchedules: state.activitySchedules,
-        flexibleOptions: state.flexibleOptions
+        skipOptions: state.skipOptions
       };
 
       const booking = await bookingCreationService.createBooking(
@@ -334,10 +334,10 @@ export const useBookingStore = create((set, get) => ({
     selectedHotel: "",
     selectedActivities: [],
     activitySchedules: {},
-    flexibleOptions: {
-      includeTransport: true,
-      includeHotel: true,
-      includeActivities: true
+    skipOptions: {
+      skipTransport: false,
+      skipHotel: false,
+      skipActivities: false
     },
     errors: {},
     agreedToTerms: false,
@@ -347,42 +347,37 @@ export const useBookingStore = create((set, get) => ({
     // Keep destination and other API data
   }),
 
-  // Action incorporating validation before proceeding with smart step skipping (6-step flow)
+  // Action incorporating validation before proceeding with 5-step flow
   nextStep: () => {
-    const { step, startDate, endDate, selectedTransportRoute, selectedHotel, selectedActivities, activitySchedules, flexibleOptions, setErrors } = get();
+    const { step, startDate, endDate, selectedTransportRoute, selectedHotel, selectedActivities, activitySchedules, skipOptions, setErrors } = get();
     const newErrors = {};
 
     if (step === 1) {
-      // Step 1: Validate that at least one service is selected
-      if (!flexibleOptions.includeTransport && !flexibleOptions.includeHotel && !flexibleOptions.includeActivities) {
-        newErrors.services = "Please select at least one service to continue";
-      }
-    } else if (step === 2) {
-      // Step 2: Validate dates and origin (if transport is included)
+      // Step 1: Validate dates and origin (if transport is not skipped)
       if (!startDate) newErrors.startDate = "Start date is required";
       if (!endDate) newErrors.endDate = "End date is required";
       if (startDate && endDate && new Date(startDate) >= new Date(endDate)) {
         newErrors.endDate = "End date must be after start date";
       }
-      // Validate origin selection if transport is included
-      if (flexibleOptions.includeTransport && !selectedOrigin) {
-        newErrors.origin = "Please select a departure location";
+      // Validate origin selection if transport is not skipped
+      if (!skipOptions.skipTransport && !selectedOrigin) {
+        newErrors.origin = "Please select a departure location or skip transport";
+      }
+    } else if (step === 2) {
+      // Step 2: Validate transport if not skipped
+      if (!skipOptions.skipTransport && !selectedTransportRoute) {
+        newErrors.transportRoute = "Please select a transport route or skip transport";
       }
     } else if (step === 3) {
-      // Step 3: Validate transport if included
-      if (flexibleOptions.includeTransport && !selectedTransportRoute) {
-        newErrors.transportRoute = "Please select a transport route or disable transport";
+      // Step 3: Validate hotel if not skipped
+      if (!skipOptions.skipHotel && !selectedHotel) {
+        newErrors.hotel = "Please select a hotel or skip accommodation";
       }
     } else if (step === 4) {
-      // Step 4: Validate hotel if included
-      if (flexibleOptions.includeHotel && !selectedHotel) {
-        newErrors.hotel = "Please select a hotel or disable accommodation";
-      }
-    } else if (step === 5) {
-      // Step 5: Validate activity selection and scheduling if activities are included
-      if (flexibleOptions.includeActivities) {
+      // Step 4: Validate activity selection and scheduling if activities are not skipped
+      if (!skipOptions.skipActivities) {
         if (selectedActivities.length === 0) {
-          newErrors.activities = "Please select at least one activity or disable activities";
+          newErrors.activities = "Please select at least one activity or skip activities";
         } else {
           // Validate that all selected activities have schedules
           const missingSchedules = selectedActivities.filter(activityId => !activitySchedules[activityId]);
@@ -391,54 +386,21 @@ export const useBookingStore = create((set, get) => ({
           }
         }
       }
-    } else if (step === 6) {
-      // Step 6: Final review and confirmation - no additional validation needed here
+    } else if (step === 5) {
+      // Step 5: Final review and confirmation - no additional validation needed here
     }
 
     setErrors(newErrors);
-    if (Object.keys(newErrors).length === 0 && step < 6) {
-      // Smart step navigation: skip steps based on service selection
-      let nextStepNumber = step + 1;
-      
-      // Skip transport step if transport is not included
-      if (nextStepNumber === 3 && !flexibleOptions.includeTransport) {
-        nextStepNumber = 4;
-      }
-      
-      // Skip hotel step if hotel is not included
-      if (nextStepNumber === 4 && !flexibleOptions.includeHotel) {
-        nextStepNumber = 5;
-      }
-      
-      // Skip activities step if activities are not included
-      if (nextStepNumber === 5 && !flexibleOptions.includeActivities) {
-        nextStepNumber = 6; // Go directly to review/confirmation
-      }
-      
-      set({ step: Math.min(nextStepNumber, 6) }); // Allow up to step 6 (review)
+    if (Object.keys(newErrors).length === 0 && step < 5) {
+      set({ step: step + 1 });
       return true;
     }
     return false;
   },
 
   prevStep: () => {
-    const { step, flexibleOptions } = get();
-    let prevStepNumber = step - 1;
-    
-    // Smart navigation backwards: skip disabled services
-    if (prevStepNumber === 5 && !flexibleOptions.includeActivities) {
-      prevStepNumber = 4;
-    }
-    
-    if (prevStepNumber === 4 && !flexibleOptions.includeHotel) {
-      prevStepNumber = 3;
-    }
-    
-    if (prevStepNumber === 3 && !flexibleOptions.includeTransport) {
-      prevStepNumber = 2;
-    }
-    
-    set({ step: Math.max(1, prevStepNumber) });
+    const { step } = get();
+    set({ step: Math.max(1, step - 1) });
   },
 }))
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, Suspense } from "react"
+import { useState, Suspense, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,6 +20,36 @@ function LoginForm() {
   const [isLoading, setIsLoading] = useState(false) 
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    const userData = localStorage.getItem('userData')
+    
+    if (token && userData) {
+      const user = JSON.parse(userData)
+      
+      // Redirect based on role
+      switch (user.role) {
+        case 'admin':
+          router.push("/admin/dashboard")
+          break;
+        case 'tour_guide':
+          router.push("/tour-guide/dashboard")
+          break;
+        case 'travel_agent':
+          router.push("/travel-agent/dashboard")
+          break;
+        case 'hotel_manager':
+          router.push("/hotel-manager/dashboard")
+          break;
+        default:
+          // Default case for tourists
+          router.push("/")
+          break;
+      }
+    }
+  }, [router])
 
   const onSubmit = async (event) => {
     event.preventDefault();
