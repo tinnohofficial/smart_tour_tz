@@ -12,6 +12,9 @@ const PUBLIC_ROUTES = [
   '/forbidden',
   '/session-expired',
   '/pending-approval',
+  '/tour-guide/complete-profile',
+  '/hotel-manager/complete-profile',
+  '/travel-agent/complete-profile',
 ]
 
 // API routes that require token authentication

@@ -171,24 +171,42 @@ export default function Register() {
       // Notify about authentication change
       publishAuthChange();
 
-      // Set role in store and redirect based on role
+      // Set role in store and redirect based on role and status
       setRole(selectedRole);
       if (selectedRole === "tourist") {
-        // the tourist will just be redirected to the homepage
+        // Tourists are immediately active and go to homepage
         router.push("/");
       } else {
-        // For other roles that need profile completion
-        const profilePath = {
-          tour_guide: "/tour-guide/dashboard",
-          hotel_manager: "/hotel-manager/dashboard",
-          travel_agent: "/travel-agent/dashboard",
-        }[selectedRole];
+        // For other roles, check their status and redirect accordingly
+        const userStatus = data.user.status;
+        
+        if (userStatus === "pending_profile") {
+          // New users need to complete their profile first
+          const profileCompletionPath = {
+            tour_guide: "/tour-guide/complete-profile",
+            hotel_manager: "/hotel-manager/complete-profile", 
+            travel_agent: "/travel-agent/complete-profile",
+          }[selectedRole];
 
-        if (profilePath) {
-          router.push(profilePath);
+          if (profileCompletionPath) {
+            router.push(profileCompletionPath);
+          } else {
+            // Fallback to dashboard
+            router.push(`/${selectedRole.replace('_', '-')}/dashboard`);
+          }
         } else {
-          // otherwise, redirect to the homepage
-          router.push("/");
+          // For other statuses, go to dashboard
+          const dashboardPath = {
+            tour_guide: "/tour-guide/dashboard",
+            hotel_manager: "/hotel-manager/dashboard",
+            travel_agent: "/travel-agent/dashboard",
+          }[selectedRole];
+
+          if (dashboardPath) {
+            router.push(dashboardPath);
+          } else {
+            router.push("/");
+          }
         }
       }
     } catch (error) {

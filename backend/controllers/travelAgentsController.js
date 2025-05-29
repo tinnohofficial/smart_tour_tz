@@ -1,10 +1,47 @@
 const db = require("../config/db");
 
 exports.submitTravelAgentProfile = async (req, res) => {
-  const { name, document_url, routes } = req.body;
+  const { name, document_url, routes, contact_email, contact_phone } = req.body;
   const userId = req.user.id;
 
+  console.log("Travel agent profile submission:", {
+    userId,
+    body: req.body,
+    userRole: req.user.role,
+    userStatus: req.user.status
+  });
+
+  // Validate required fields
+  if (!name || !contact_email || !contact_phone) {
+    return res.status(400).json({
+      message: "Required fields missing: name, contact_email, and contact_phone are required"
+    });
+  }
+
   try {
+    // Check if user exists and get their current status
+    const [userRows] = await db.query(
+      "SELECT id, role, status FROM users WHERE id = ? AND role = 'travel_agent'",
+      [userId]
+    );
+
+    if (userRows.length === 0) {
+      return res.status(404).json({ 
+        message: "Travel agent user not found. Please check your account." 
+      });
+    }
+
+    // Check if travel agency already exists
+    const [existingAgency] = await db.query(
+      "SELECT id FROM travel_agencies WHERE id = ?",
+      [userId]
+    );
+
+    if (existingAgency.length > 0) {
+      return res.status(400).json({ 
+        message: "Travel agency profile already exists. Use update instead." 
+      });
+    }
     // Start a transaction
     const connection = await db.getConnection();
     await connection.beginTransaction();
@@ -12,26 +49,41 @@ exports.submitTravelAgentProfile = async (req, res) => {
     try {
       // Insert new agency using user's ID as the agency ID
       await connection.query(
-        `INSERT INTO travel_agencies (id, name, document_url)
-           VALUES (?, ?, ?)`,
-        [userId, name, document_url],
+        `INSERT INTO travel_agencies (id, name, document_url, contact_email, contact_phone)
+           VALUES (?, ?, ?, ?, ?)`,
+        [userId, name, document_url, contact_email, contact_phone],
       );
       
       // If routes are provided, process them
       if (routes && Array.isArray(routes) && routes.length > 0) {
+        // Validate routes data
+        for (const route of routes) {
+          if (!route.origin_id || !route.destination_id || !route.transportation_type || !route.cost) {
+            throw new Error("Each route must have origin_id, destination_id, transportation_type, and cost");
+          }
+          
+          if (isNaN(parseInt(route.origin_id)) || isNaN(parseInt(route.destination_id))) {
+            throw new Error("origin_id and destination_id must be valid numbers");
+          }
+          
+          if (isNaN(parseFloat(route.cost)) || parseFloat(route.cost) <= 0) {
+            throw new Error("Route cost must be a positive number");
+          }
+        }
+
         // Insert new routes
         for (const route of routes) {
           await connection.query(
             `INSERT INTO transports
-             (agency_id, origin, destination, transportation_type, cost, description)
+             (agency_id, origin_id, destination_id, transportation_type, cost, description)
              VALUES (?, ?, ?, ?, ?, ?)`,
             [
               userId, // Now using the user's ID directly as agency_id
-              route.origin,
-              route.destination,
-              route.transport_type, // Client sends transport_type
-              route.price, // Client sends price
-              route.description || JSON.stringify(route.schedule_details || {}),
+              parseInt(route.origin_id),
+              parseInt(route.destination_id),
+              route.transportation_type, // Client sends transportation_type
+              parseFloat(route.cost), // Client sends cost
+              route.description || `Transport from origin ${route.origin_id} to destination ${route.destination_id} by ${route.transportation_type}`,
             ],
           );
         }
@@ -62,6 +114,7 @@ exports.submitTravelAgentProfile = async (req, res) => {
     }
   } catch (error) {
     console.error("Error in travel agent profile submission:", error);
+    console.error("Error stack:", error.stack);
     res.status(500).json({
       message: "Failed to submit travel agent profile",
       error: error.message,

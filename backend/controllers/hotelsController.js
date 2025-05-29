@@ -66,6 +66,13 @@ exports.createHotel = async (req, res) => {
   } = req.body;
   const userId = req.user.id;
 
+  console.log("Hotel profile submission:", {
+    userId,
+    body: req.body,
+    userRole: req.user.role,
+    userStatus: req.user.status
+  });
+
   // Validate required fields
   if (!name || !location || !description || !capacity || !base_price_per_night) {
     return res.status(400).json({
@@ -105,6 +112,18 @@ exports.createHotel = async (req, res) => {
   }
 
   try {
+    // Check if user exists and get their current status
+    const [userRows] = await db.query(
+      "SELECT id, role, status FROM users WHERE id = ? AND role = 'hotel_manager'",
+      [userId]
+    );
+
+    if (userRows.length === 0) {
+      return res.status(404).json({ 
+        message: "Hotel manager user not found. Please check your account." 
+      });
+    }
+
     // Check if the hotel manager already has a hotel
     const [existingHotels] = await db.query(
       "SELECT id FROM hotels WHERE id = ?",
@@ -139,9 +158,9 @@ exports.createHotel = async (req, res) => {
           name,
           location,
           description,
-          JSON.stringify(images),
-          capacity,
-          base_price_per_night,
+          JSON.stringify(images || []),
+          parseInt(capacity),
+          parseFloat(base_price_per_night),
           true, // Default to available
         ],
       );
@@ -171,6 +190,7 @@ exports.createHotel = async (req, res) => {
     }
   } catch (error) {
     console.error("Error in hotel creation:", error);
+    console.error("Error stack:", error.stack);
     res.status(500).json({
       message: "Failed to create hotel",
       error: error.message,

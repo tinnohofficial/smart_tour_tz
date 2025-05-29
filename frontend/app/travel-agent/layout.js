@@ -45,9 +45,9 @@ export default function TravelAgentLayout({ children }) {
                 setUserStatus('pending_profile')
                 setHasProfile(false)
                 
-                // If not on dashboard or password page and has no profile, redirect to dashboard
-                if (!pathname.includes('/dashboard') && !pathname.includes('/password')) {
-                  router.push('/travel-agent/dashboard')
+                // Redirect to profile completion page if user has no profile
+                if (!pathname.includes('/complete-profile') && !pathname.includes('/dashboard') && !pathname.includes('/password')) {
+                  router.push('/travel-agent/complete-profile')
                 }
               } else {
                 console.error('Error fetching profile:', error)
@@ -109,15 +109,17 @@ export default function TravelAgentLayout({ children }) {
     }
   ]
 
-  // Allow access only to dashboard, profile, and password page if user hasn't completed profile
+  // Allow access only to specific pages based on user status
   const shouldRestrictAccess = () => {
     if (isLoading) return true // Don't render content while checking
     
-    if (!hasProfile) {
-      return !['/travel-agent/dashboard', '/travel-agent/profile', '/travel-agent/password'].includes(pathname)
+    if (!hasProfile && userStatus === 'pending_profile') {
+      // Allow access only to complete-profile, dashboard, and password pages
+      return !['/travel-agent/complete-profile', '/travel-agent/dashboard', '/travel-agent/password'].includes(pathname)
     }
     
     if (userStatus === 'pending_approval') {
+      // Allow access to dashboard, profile (read-only), and password when pending approval
       return !['/travel-agent/dashboard', '/travel-agent/profile', '/travel-agent/password'].includes(pathname)
     }
     
@@ -246,15 +248,46 @@ export default function TravelAgentLayout({ children }) {
             {shouldRestrictAccess() ? (
               pathname !== '/travel-agent/dashboard' && pathname !== '/travel-agent/password' && (
                 <div className="text-center py-10">
-                  <Briefcase className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-                  <h2 className="text-xl font-semibold text-gray-700">Please complete your agency profile</h2>
-                  <p className="text-gray-500 mb-6">You need to complete your travel agency profile before accessing this page.</p>
-                  <Button 
-                    onClick={() => router.push('/travel-agent/profile')}
-                    className="bg-amber-700 hover:bg-amber-800"
-                  >
-                    Complete Profile
-                  </Button>
+                  {userStatus === 'pending_approval' && pathname === '/travel-agent/profile' ? (
+                    // Show message specific to pending approval users trying to access profile
+                    <div>
+                      <Briefcase className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+                      <h2 className="text-xl font-semibold text-gray-700">Profile Under Review</h2>
+                      <p className="text-gray-500 mb-6">Your agency profile is currently under review and cannot be modified. You will be able to access your profile again once it&apos;s approved.</p>
+                      <Button 
+                        onClick={() => router.push('/travel-agent/dashboard')}
+                        className="bg-amber-700 hover:bg-amber-800"
+                      >
+                        Go to Dashboard
+                      </Button>
+                    </div>
+                  ) : userStatus === 'pending_profile' && !hasProfile ? (
+                    // Show message for users who need to complete their profile
+                    <div>
+                      <Briefcase className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+                      <h2 className="text-xl font-semibold text-gray-700">Complete Your Agency Profile</h2>
+                      <p className="text-gray-500 mb-6">You need to complete your travel agency profile to access all features.</p>
+                      <Button 
+                        onClick={() => router.push('/travel-agent/complete-profile')}
+                        className="bg-amber-700 hover:bg-amber-800"
+                      >
+                        Complete Profile Now
+                      </Button>
+                    </div>
+                  ) : (
+                    // Standard message for other restricted access
+                    <div>
+                      <Briefcase className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+                      <h2 className="text-xl font-semibold text-gray-700">Access Restricted</h2>
+                      <p className="text-gray-500 mb-6">Please complete the required steps to access this page.</p>
+                      <Button 
+                        onClick={() => router.push('/travel-agent/dashboard')}
+                        className="bg-amber-700 hover:bg-amber-800"
+                      >
+                        Go to Dashboard
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )
             ) : (

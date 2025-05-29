@@ -4,6 +4,13 @@ exports.submitTourGuideProfile = async (req, res) => {
   const userId = req.user.id;
   const { full_name, license_document_url, location, expertise, activity_expertise } = req.body;
 
+  console.log("Tour guide profile submission:", {
+    userId,
+    body: req.body,
+    userRole: req.user.role,
+    userStatus: req.user.status
+  });
+
   if (!full_name || !location || !expertise) {
     return res
       .status(400)
@@ -11,11 +18,28 @@ exports.submitTourGuideProfile = async (req, res) => {
   }
 
   try {
-    // Verify the user exists first
-    const [userRows] = await db.query("SELECT id FROM users WHERE id = ?", [userId]);
-    
+    // Check if user exists and get their current status
+    const [userRows] = await db.query(
+      "SELECT id, role, status FROM users WHERE id = ? AND role = 'tour_guide'",
+      [userId]
+    );
+
     if (userRows.length === 0) {
-      return res.status(404).json({ message: "User not found. Cannot create tour guide profile." });
+      return res.status(404).json({ 
+        message: "Tour guide user not found. Please check your account." 
+      });
+    }
+
+    // Check if tour guide profile already exists
+    const [existingGuide] = await db.query(
+      "SELECT user_id FROM tour_guides WHERE user_id = ?",
+      [userId]
+    );
+
+    if (existingGuide.length > 0) {
+      return res.status(400).json({ 
+        message: "Tour guide profile already exists. Use update instead." 
+      });
     }
     
     // Start a transaction
@@ -87,6 +111,7 @@ exports.submitTourGuideProfile = async (req, res) => {
     }
   } catch (error) {
     console.error("Error completing tour guide profile:", error);
+    console.error("Error stack:", error.stack);
     res.status(500).json({ message: "Failed to update profile.", error: error.message });
   }
 };

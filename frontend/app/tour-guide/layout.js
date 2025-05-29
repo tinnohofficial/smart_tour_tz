@@ -50,9 +50,9 @@ export default function TourGuideLayout({ children }) {
                 setUserStatus('pending_profile')
                 setHasProfile(false)
                 
-                // If not on dashboard or password page and has no profile, redirect to dashboard
-                if (!pathname.includes('/dashboard') && !pathname.includes('/password')) {
-                  router.push('/tour-guide/dashboard')
+                // Redirect to profile completion page if user has no profile
+                if (!pathname.includes('/complete-profile') && !pathname.includes('/dashboard') && !pathname.includes('/password')) {
+                  router.push('/tour-guide/complete-profile')
                 }
               } else {
                 console.error('Error fetching profile:', error)
@@ -106,16 +106,17 @@ export default function TourGuideLayout({ children }) {
     }
   ]
 
-  // Allow access only to dashboard, profile, and password page if user hasn't completed profile
+  // Allow access only to specific pages based on user status
   const shouldRestrictAccess = () => {
     if (isLoading) return true // Don't render content while checking
     
-    if (!hasProfile) {
-      return !['/tour-guide/dashboard', '/tour-guide/profile', '/tour-guide/password'].includes(pathname)
+    if (!hasProfile && userStatus === 'pending_profile') {
+      // Allow access only to complete-profile, dashboard, and password pages
+      return !['/tour-guide/complete-profile', '/tour-guide/dashboard', '/tour-guide/password'].includes(pathname)
     }
     
     if (userStatus === 'pending_approval') {
-      // Allow access to profile, dashboard and password when pending approval
+      // Allow access to dashboard, profile (read-only), and password when pending approval
       return !['/tour-guide/dashboard', '/tour-guide/profile', '/tour-guide/password'].includes(pathname)
     }
     
@@ -254,20 +255,31 @@ export default function TourGuideLayout({ children }) {
                         Go to Dashboard
                       </Button>
                     </div>
+                  ) : userStatus === 'pending_profile' && !hasProfile ? (
+                    // Show message for users who need to complete their profile
+                    <div>
+                      <User className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+                      <h2 className="text-xl font-semibold text-gray-700">Complete Your Profile</h2>
+                      <p className="text-gray-500 mb-6">You need to complete your tour guide profile to access all features.</p>
+                      <Button 
+                        onClick={() => router.push('/tour-guide/complete-profile')}
+                        className="bg-amber-700 hover:bg-amber-800"
+                      >
+                        Complete Profile Now
+                      </Button>
+                    </div>
                   ) : (
                     // Standard message for other restricted access
                     <div>
                       <User className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-                      <h2 className="text-xl font-semibold text-gray-700">Please complete your profile</h2>
-                      <p className="text-gray-500 mb-6">You need to complete your tour guide profile before accessing this page.</p>
-                      {userStatus !== 'pending_approval' && (
-                        <Button 
-                          onClick={() => router.push('/tour-guide/profile')}
-                          className="bg-amber-700 hover:bg-amber-800"
-                        >
-                          Complete Profile
-                        </Button>
-                      )}
+                      <h2 className="text-xl font-semibold text-gray-700">Access Restricted</h2>
+                      <p className="text-gray-500 mb-6">Please complete the required steps to access this page.</p>
+                      <Button 
+                        onClick={() => router.push('/tour-guide/dashboard')}
+                        className="bg-amber-700 hover:bg-amber-800"
+                      >
+                        Go to Dashboard
+                      </Button>
                     </div>
                   )}
                 </div>
