@@ -150,9 +150,6 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
                       value={basicFormData.password}
                       onChange={(e) => setBasicFormData({ password: e.target.value })}
                     />
-                    <p className="text-xs text-gray-500">
-                      At least 8 characters with uppercase, lowercase, and numbers
-                    </p>
                   </div>
 
                   <div className="space-y-2">
@@ -177,9 +174,6 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
                     international
                     withCountryCallingCode
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Format: +255 followed by 9 digits (e.g., +255744117544)
-                  </p>
                 </div>
 
                 <div className="space-y-2">

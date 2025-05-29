@@ -1,7 +1,7 @@
 // src/stores/destinationsStore.js (or your preferred location)
 import { create } from 'zustand';
 import { toast } from 'sonner'; // Import toast from sonner
-import { destinationsService, uploadService, apiUtils } from '@/app/services/api'
+import { destinationsService, apiUtils } from '@/app/services/api'
 import { SUCCESS_MESSAGES, ERROR_MESSAGES } from '@/app/constants'
 
 export const useDestinationsStore = create((set, get) => ({
@@ -9,14 +9,12 @@ export const useDestinationsStore = create((set, get) => ({
   destinations: [],
   isLoading: true,
   isSubmitting: false, // For Add/Update/Delete
-  isUploading: false,  // For image upload specifically
+
   error: null,
   isAddDialogOpen: false,
   isEditDialogOpen: false,
   isDeleteDialogOpen: false,
   selectedDestination: null,
-  selectedFile: null,
-  previewUrl: null, // Can be data URL or existing image URL
   formData: {
     name: "",
     description: "",
@@ -37,54 +35,12 @@ export const useDestinationsStore = create((set, get) => ({
   setSelectedDestination: (dest) => set({ selectedDestination: dest }),
   setFormDataField: (field, value) => set((state) => ({ formData: { ...state.formData, [field]: value } })),
 
-  // Handle File Selection and Preview
-  handleFileChange: (file) => {
-    if (file) {
-      set({ selectedFile: file });
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        set({ previewUrl: reader.result }); // Set preview to data URL
-      };
-      reader.readAsDataURL(file);
-      // Clear manual image_url input if a file is selected
-      set((state) => ({ formData: { ...state.formData, image_url: "" } }));
-    } else {
-      // If file is cleared, reset selectedFile and potentially preview
-      set({ selectedFile: null });
-      // Optionally reset preview if needed, or keep existing if editing
-      // set({ previewUrl: null });
-    }
-  },
 
-  // Handle FileUploader array-based file changes
-  handleFileUploaderChange: (files) => {
-    const file = files[0]; // Take the first file since we only allow one image
-    get().handleFileChange(file);
-  },
-
-  // Reset Form and File State
+  // Reset Form State
   resetFormAndFile: () => set({
     formData: { name: "", description: "", region: "", image_url: "", cost: "" },
-    selectedFile: null,
-    previewUrl: null,
     error: null // Also clear errors on reset
   }),
-
-  // Image Upload Helper (Internal)
-  _uploadImageToBlob: async (file) => {
-    if (!file) return null;
-    set({ isUploading: true });
-    try {
-      const { url } = await uploadService.uploadFile(file)
-      return url;
-    } catch (error) {
-      console.error("Error uploading image:", error);
-      toast.error(`Image upload failed: ${error.message}`);
-      throw error; 
-    } finally {
-      set({ isUploading: false });
-    }
-  },
 
   // Fetching Action
   fetchDestinations: async () => {
@@ -107,28 +63,21 @@ export const useDestinationsStore = create((set, get) => ({
 
   // Add Destination Action
   addDestination: async () => {
-    const { formData, selectedFile } = get();
+    const { formData } = get();
     if (!formData.name || !formData.description || !formData.region) {
       toast.warning("Please fill in name, description, and region.");
       return;
     }
-    // Require either a file or a URL
-    if (!selectedFile && !formData.image_url) {
-        toast.warning("Please select an image file or provide an image URL.");
+    // Require image URL (SingleImageUploader handles upload)
+    if (!formData.image_url) {
+        toast.warning("Please upload an image.");
         return;
     }
 
     return apiUtils.withLoadingAndError(
       async () => {
-        let imageUrl = formData.image_url; // Use URL from form first
-        if (selectedFile) {
-          imageUrl = await get()._uploadImageToBlob(selectedFile); // Upload if file exists
-          if (!imageUrl) throw new Error("Image upload failed, cannot proceed."); // Stop if upload fails
-        }
-
         const destinationData = { 
           ...formData, 
-          image_url: imageUrl,
           cost: formData.cost === "" ? 0 : parseFloat(formData.cost) || 0
         };
         const newDestination = await destinationsService.createDestination(destinationData)
@@ -156,10 +105,7 @@ export const useDestinationsStore = create((set, get) => ({
         setError: (error) => set({ error }),
         onError: (error, message) => {
           console.error("Error adding destination:", error);
-          // Toast handled in _uploadImageToBlob or here if API call fails
-          if (!error.message?.includes("upload failed")) { // Avoid double toast
-            toast.error(message)
-          }
+          toast.error(message)
         }
       }
     )
@@ -176,8 +122,6 @@ export const useDestinationsStore = create((set, get) => ({
         image_url: destination.image_url || "", // Ensure empty string if null/undefined
         cost: destination.cost || "0", // Added cost field with default 0
       },
-      previewUrl: destination.image_url || null, // Set initial preview
-      selectedFile: null, // Clear any previously selected file
       isEditDialogOpen: true,
       error: null
     });
@@ -185,30 +129,23 @@ export const useDestinationsStore = create((set, get) => ({
 
   // Update Destination Action
   updateDestination: async () => {
-    const { formData, selectedFile, selectedDestination } = get();
+    const { formData, selectedDestination } = get();
     if (!selectedDestination) return;
 
     if (!formData.name || !formData.description || !formData.region) {
       toast.warning("Please fill in name, description, and region.");
       return;
     }
-     // Require either a file or a URL (even if it's the existing one)
-    if (!selectedFile && !formData.image_url) {
-        toast.warning("Please select an image file or provide an image URL.");
+     // Require image URL (SingleImageUploader handles upload)
+    if (!formData.image_url) {
+        toast.warning("Please upload an image.");
         return;
     }
 
     return apiUtils.withLoadingAndError(
       async () => {
-        let imageUrl = formData.image_url; // Start with potentially existing URL
-        if (selectedFile) { // If a *new* file is selected, upload it
-          imageUrl = await get()._uploadImageToBlob(selectedFile);
-           if (!imageUrl) throw new Error("Image upload failed, cannot proceed."); // Stop if upload fails
-        }
-
         const destinationData = { 
           ...formData, 
-          image_url: imageUrl,
           cost: formData.cost === "" ? 0 : parseFloat(formData.cost) || 0
         };
         const response = await destinationsService.updateDestination(selectedDestination.id, destinationData);
@@ -238,9 +175,7 @@ export const useDestinationsStore = create((set, get) => ({
         setError: (error) => set({ error }),
         onError: (error, message) => {
           console.error("Error updating destination:", error);
-          if (!error.message?.includes("upload failed")) { // Avoid double toast
-            toast.error(message)
-          }
+          toast.error(message)
         }
       }
     )

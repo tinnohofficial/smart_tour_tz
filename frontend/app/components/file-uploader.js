@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react"
 import { useDropzone } from "react-dropzone"
 import { Button } from "@/components/ui/button"
-import { X, Upload, File, FileImage, FileText, Zap, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
+import { X, Upload, File, FileImage, FileText, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
 import { create } from 'zustand'
 import { uploadService } from '@/app/services/api'
 import { toast } from 'sonner'
@@ -45,36 +45,6 @@ const getFileIcon = (mimetype) => {
   return <FileText className="h-4 w-4 text-gray-600" />
 }
 
-// Helper function to check if file is an image
-const isImageFile = (mimetype) => {
-  return mimetype && mimetype.startsWith('image/')
-}
-
-// Compression badge component
-const CompressionBadge = ({ compression }) => {
-  if (!compression) return null
-
-  if (compression.compressed) {
-    return (
-      <div className="flex items-center gap-1 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-        <Zap className="h-3 w-3" />
-        <span>-{compression.compressionRatio}%</span>
-      </div>
-    )
-  }
-
-  if (compression.reason === 'File type does not support compression') {
-    return null
-  }
-
-  return (
-    <div className="flex items-center gap-1 text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-      <AlertCircle className="h-3 w-3" />
-      <span>Not compressed</span>
-    </div>
-  )
-}
-
 // Upload status component
 const UploadStatus = ({ status }) => {
   if (status === 'uploading') {
@@ -82,15 +52,6 @@ const UploadStatus = ({ status }) => {
       <div className="flex items-center gap-1 text-xs text-blue-600">
         <Loader2 className="h-3 w-3 animate-spin" />
         <span>Uploading...</span>
-      </div>
-    )
-  }
-
-  if (status === 'compressing') {
-    return (
-      <div className="flex items-center gap-1 text-xs text-amber-600">
-        <Zap className="h-3 w-3 animate-pulse" />
-        <span>Compressing...</span>
       </div>
     )
   }
@@ -129,13 +90,6 @@ export function FileUploader(props) {
     try {
       setUploading(fileId, 'uploading')
       
-      // Show compression status for images
-      if (isImageFile(file.type)) {
-        setTimeout(() => {
-          setUploading(fileId, 'compressing')
-        }, 500)
-      }
-
       const response = await uploadService.uploadFile(file)
       
       setUploading(fileId, 'success')
@@ -146,16 +100,8 @@ export function FileUploader(props) {
         originalFile: file
       }))
 
-      // Show compression feedback
-      if (response.compression) {
-        if (response.compression.compressed) {
-          const savedMB = (response.compression.savedBytes / (1024 * 1024)).toFixed(1)
-          toast.success(`File compressed! Saved ${savedMB}MB (${response.compression.compressionRatio}% reduction)`)
-        } else if (response.compression.reason && 
-                   response.compression.reason !== 'File type does not support compression') {
-          toast.info(`File uploaded without compression: ${response.compression.reason}`)
-        }
-      }
+      // Simple success message without compression details
+      toast.success('File uploaded successfully!')
 
       // Clear upload status after delay
       setTimeout(() => {
@@ -280,9 +226,9 @@ export function FileUploader(props) {
           <Button 
             onClick={uploadAllFiles}
             className="bg-amber-700 hover:bg-amber-800 text-white"
-            disabled={Array.from(uploadingFiles.values()).some(status => status === 'uploading' || status === 'compressing')}
+            disabled={Array.from(uploadingFiles.values()).some(status => status === 'uploading')}
           >
-            {Array.from(uploadingFiles.values()).some(status => status === 'uploading' || status === 'compressing') ? (
+            {Array.from(uploadingFiles.values()).some(status => status === 'uploading') ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Uploading...
@@ -309,7 +255,7 @@ export function FileUploader(props) {
             const uploadResult = uploadedFiles.get(index)
             
             return (
-              <div key={index} className="flex items-center justify-between p-3 border rounded-md bg-background hover:bg-gray-50 transition-colors">
+              <div key={fileId} className="flex items-center justify-between p-3 border rounded-md bg-background hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-3 truncate flex-1">
                   {getFileIcon(file.type)}
                   <div className="flex-1 min-w-0">
@@ -321,12 +267,6 @@ export function FileUploader(props) {
                       <span>
                         {uploadResult ? formatFileSize(uploadResult.size) : formatFileSize(file.size)}
                       </span>
-                      {uploadResult && uploadResult.size !== file.size && (
-                        <span className="text-green-600">
-                          (was {formatFileSize(file.size)})
-                        </span>
-                      )}
-                      {uploadResult && <CompressionBadge compression={uploadResult.compression} />}
                     </div>
                   </div>
                 </div>
@@ -336,24 +276,13 @@ export function FileUploader(props) {
                   variant="ghost"
                   onClick={() => removeFile(index)} 
                   className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50"
-                  disabled={uploadStatus === 'uploading' || uploadStatus === 'compressing'}
+                  disabled={uploadStatus === 'uploading'}
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
             )
           })}
-        </div>
-      )}
-
-      {/* Compression info */}
-      {files.some(file => isImageFile(file.type)) && (
-        <div className="flex items-start gap-2 mt-2 bg-blue-50 p-3 rounded-md">
-          <Zap className="h-4 w-4 text-blue-700 mt-0.5 flex-shrink-0" />
-          <div className="text-xs text-blue-800">
-            <p className="font-medium">Smart Compression Enabled</p>
-            <p>Images will be automatically compressed to reduce file size while maintaining quality.</p>
-          </div>
         </div>
       )}
     </div>

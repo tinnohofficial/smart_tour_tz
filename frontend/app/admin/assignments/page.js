@@ -131,7 +131,7 @@ export default function AssignmentsPage() {
                       <TableCell className="hidden lg:table-cell">
                         <div className="flex flex-wrap gap-1 max-w-[150px]">
                           {booking.activities.slice(0, 2).map((activity, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">{activity}</Badge>
+                            <Badge key={`activity-${booking.id}-${index}`} variant="outline" className="text-xs">{activity}</Badge>
                           ))}
                           {booking.activities.length > 2 && (
                             <Badge variant="outline" className="text-xs">+{booking.activities.length - 2}</Badge>
@@ -186,7 +186,7 @@ export default function AssignmentsPage() {
                   <span className="text-muted-foreground">Activities:</span>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {selectedBooking.activities.map((activity, index) => (
-                      <Badge key={index} variant="outline">{activity}</Badge>
+                      <Badge key={`dialog-activity-${selectedBooking.id}-${index}`} variant="outline">{activity}</Badge>
                     ))}
                   </div>
                 </div>

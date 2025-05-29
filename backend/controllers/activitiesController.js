@@ -164,17 +164,15 @@ exports.createActivity = async (req, res) => {
       ],
     );
 
+    // Fetch the newly created activity to return complete data
+    const [newActivity] = await db.query(
+      "SELECT * FROM activities WHERE id = ?",
+      [result.insertId]
+    );
+
     res.status(201).json({
       message: "Activity created successfully",
-      id: result.insertId,
-      name,
-      destination_id,
-      time_slots: timeSlots,
-      available_dates: availableDates,
-      duration_hours,
-      max_participants,
-      difficulty_level,
-      requirements
+      ...newActivity[0]
     });
   } catch (error) {
     console.error("Error creating activity:", error);
@@ -303,9 +301,15 @@ exports.updateActivity = async (req, res) => {
       values,
     );
 
+    // Fetch the updated activity to return complete data
+    const [updatedActivity] = await db.query(
+      "SELECT * FROM activities WHERE id = ?",
+      [activityId]
+    );
+
     res.status(200).json({ 
       message: "Activity updated successfully",
-      activityId: activityId
+      ...updatedActivity[0]
     });
   } catch (error) {
     console.error("Error updating activity:", error);

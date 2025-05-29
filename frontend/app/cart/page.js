@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import CartComponent from '../../components/CartComponent'
-import { useCartStore } from '../../store/cartStore'
+import { useCartStore } from '../store/cartStore'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { EnhancedPaymentDialog } from '@/app/components/enhanced-payment-dialog'

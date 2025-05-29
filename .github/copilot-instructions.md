@@ -250,15 +250,23 @@ Blockchain Integration:
 ✅ Phone number validation with Tanzania country code (+255)
 ✅ Currency conversion from USD to TZS throughout the system
 ✅ Stripe payment integration for fiat deposits
-✅ **Advanced File Compression and Upload System** - **PRODUCTION READY**
-  - **Smart Image Compression**: Automatic JPEG/PNG/WebP compression with 20-70% size reduction
+✅ **Transparent Image Compression System** - **PRODUCTION READY**
+  - **Silent Background Compression**: Automatic JPEG/PNG/WebP compression with 20-70% size reduction
   - **Intelligent Quality Control**: Dynamic compression settings based on file size and format
-  - **Real-time Compression Feedback**: Live progress indicators and compression statistics
+  - **Seamless User Experience**: No compression UI clutter - users only see simple upload interface
   - **Multi-format Support**: JPEG, PNG, WebP, GIF with format-specific optimization
   - **Security-first Design**: Comprehensive file validation and malicious content detection
   - **Performance Optimized**: Only compresses files that benefit from compression
-  - **User-friendly Interface**: Toast notifications, progress bars, and compression analytics
-  - **Comprehensive Testing**: Full test suite with real-world image compression validation
+  - **Clean Interface**: Simplified upload flow without technical compression details
+  - **Full URL Support**: Automatic conversion of relative URLs to full image paths
+✅ **Single Image Uploader Component** - **PRODUCTION READY**
+  - **Simplified Single Image Interface**: Clean, focused component for single image uploads (destinations admin)
+  - **Automatic Upload Processing**: Handles upload automatically with visual feedback
+  - **Preview with Change/Remove**: Shows uploaded image with hover controls for changing or removing
+  - **Form Integration**: Direct integration with form state via onChange callback
+  - **Edit Mode Support**: Properly handles existing image URLs for edit scenarios
+  - **Drag & Drop Support**: Intuitive file selection with drag-and-drop or click to browse
+  - **Real-time Status Updates**: Loading states and success/error feedback without technical details
 ✅ **Complete file upload and document management system** - **COMPLETE**
 ✅ **Unified upload handling across all forms with consistent FileUploader component** - **COMPLETE**
 ✅ **Backend upload controller with multer integration and file validation** - **COMPLETE**
@@ -281,9 +289,9 @@ Blockchain Integration:
 ✅ **Hotel manager availability controls in profile dashboard** - **COMPLETE**
 ✅ **Cart fetch error resolution (environment variable configuration fix)** - **COMPLETE**
 ✅ **Cart role protection system for non-tourist users** - **COMPLETE**
-✅ **Advanced file compression system with Smart image optimization** - **COMPLETE**
-✅ **Real-time compression feedback and statistics in FileUploader component** - **COMPLETE**
-✅ **Comprehensive compression testing framework with detailed analytics** - **COMPLETE**
+✅ **Transparent image compression system with seamless user experience** - **COMPLETE**
+✅ **Simplified FileUploader component with clean, non-technical interface** - **COMPLETE**
+✅ **Automatic full URL generation for uploaded images** - **COMPLETE**
 ✅ **Enhanced multi-leg transport routing system with detailed journey information** - **COMPLETE**
 ✅ **Flexible route_details JSON system for complex transport route specifications** - **COMPLETE**
 ✅ **Advanced booking flow with detailed transport information display** - **COMPLETE**
@@ -311,53 +319,74 @@ Blockchain Integration:
 ⚠️ Smart contract deployment and production blockchain configuration (demo configuration in place)
 ✅ Comprehensive error handling implemented for payment and blockchain features
 
-### File Compression System Features
-✅ **Advanced Image Compression**:
+### Transparent Image Compression Features
+✅ **Silent Image Compression**:
   - **Smart Quality Adjustment**: 70-85% quality based on file size (5MB+ → 70%, 2-5MB → 75%, 1-2MB → 80%, <1MB → 85%)
   - **Intelligent Resizing**: Dynamic max dimensions (5MB+ → 1600x900, 2-5MB → 1800x1000, others → 1920x1080)
   - **Format-specific Optimization**: JPEG (progressive, mozjpeg), PNG (palette optimization), WebP (effort 6)
   - **Threshold-based Processing**: Only compresses files >50KB that achieve >5% size reduction
   - **Automatic Format Conversion**: Converts unsupported formats to optimized JPEG
 
-✅ **Comprehensive File Management**:
+✅ **Seamless File Management**:
   - **Security-first Validation**: Path traversal protection, malicious file detection, filename sanitization
   - **Enhanced File Filtering**: Supports JPEG, PNG, WebP, GIF, PDF, DOC, DOCX, XLS, XLSX, TXT, CSV
-  - **Robust Error Handling**: Graceful fallback to original file, detailed error logging and reporting
+  - **Robust Error Handling**: Graceful fallback to original file, silent error handling
   - **File Size Limits**: 10MB maximum with customizable limits per file type
   - **Unique Filename Generation**: Timestamp + crypto hash for collision prevention
 
-✅ **User Experience Features**:
-  - **Real-time Progress Tracking**: Upload → Compression → Success status indicators
-  - **Compression Analytics**: Display original size, compressed size, reduction percentage, bytes saved
-  - **Visual Feedback**: Toast notifications for compression results, error states, and warnings
-  - **File Management**: Drag-and-drop interface, file preview, easy removal, batch operations
-  - **Auto-upload Mode**: Optional automatic upload with compression for seamless workflows
+✅ **Clean User Experience**:
+  - **Simple Upload Interface**: Clean drag-and-drop without technical details
+  - **Basic Progress Tracking**: Simple uploading → success status indicators
+  - **Clean Feedback**: Simple success/error messages without compression metrics
+  - **File Management**: Drag-and-drop interface, file preview, easy removal
+  - **Transparent Operation**: Compression happens silently without user awareness
 
 ### Recently Fixed Issues
-✅ **Advanced File Compression System Implementation**: Completely overhauled and enhanced the file compression system:
-  - **Backend Compression Engine**: Implemented intelligent image compression using Sharp with format-specific optimization
+✅ **Recently Fixed Issues**
+✅ **React Key Prop Issues Fixed** - **COMPLETE**
+  - **Fixed CartComponent booking items using array index**: Changed from `key={index}` to `key={\`${booking.id}-${item.item_type}-${item.id || index}\`}` for unique identification
+  - **Fixed FileUploader component**: Changed from `key={index}` to `key={fileId}` using existing unique file identifier
+  - **Fixed Travel Agent Profile routes**: Changed from `key={index}` to `key={route.id || \`route-${index}\`}` with fallback
+  - **Fixed Admin Applications dialogs**: Multiple fixes for image galleries, document lists, and route listings using descriptive keys
+  - **Fixed Admin Assignments activity badges**: Used booking ID and index combination for unique keys across multiple badge lists
+  - **Fixed Tour Guide Bookings item listings**: Used tour ID and index combination for hotel, transport, and activity item cards
+  - **Fixed Activities Admin table**: Added fallback key for activities with undefined IDs using `key={activity.id || \`activity-${index}\`}`
+  - **Comprehensive Search and Fix**: Systematically found and fixed all instances of `key={index}` usage throughout the frontend codebase
+  - **Verified Existing Proper Keys**: Confirmed that Select components, table rows, and other major components already had proper unique keys
+✅ **Single Image Uploader Implementation for Destinations Admin**: Simplified destination image upload workflow:
+  - **Created SingleImageUploader Component**: Clean, focused component for single image uploads with drag-and-drop support
+  - **Simplified Admin Interface**: Replaced complex FileUploader with streamlined single image interface for destinations
+  - **Automatic Upload Processing**: Images upload automatically with real-time feedback and preview
+  - **Clean Form Integration**: Direct integration with destination form state via onChange callbacks
+  - **Edit Mode Support**: Properly handles existing image URLs when editing destinations with seamless preview
+  - **Removed Complex File Handling**: Eliminated file state management from destinations store in favor of direct URL handling
+  - **Fixed Import Issues**: Resolved Loader2 import error and added localhost to Next.js image domains
+  - **Enhanced User Experience**: Single upload area that morphs into preview with change/remove controls on hover
+✅ **Transparent Image Compression System Implementation**: Completely simplified and cleaned the image compression system:
+  - **Silent Backend Compression**: Intelligent image compression using Sharp happens transparently without user awareness
   - **Smart Compression Logic**: Dynamic quality adjustment based on file size (70-85% quality, adaptive sizing)
   - **Multi-format Support**: JPEG, PNG, WebP compression with format-specific settings and fallback conversion
-  - **Compression Analytics**: Detailed compression statistics including original size, compressed size, ratio, and bytes saved
+  - **Clean User Interface**: Removed all compression-related UI clutter and technical details from user experience
   - **Performance Optimization**: Only compresses files that benefit (>5% reduction, >50KB threshold)
   - **Enhanced Security**: Comprehensive file validation, path traversal protection, and malicious file detection
   - **Error Resilience**: Graceful fallback to original file if compression fails or isn't beneficial
-  - **Comprehensive Logging**: Detailed compression process logging with success/failure tracking
+  - **Full URL Generation**: Backend automatically returns complete image URLs for seamless frontend display
 
-✅ **Enhanced FileUploader Component**: Complete frontend compression integration:
-  - **Real-time Compression Feedback**: Live upload status with compression progress indicators
-  - **Visual Compression Stats**: Compression ratio badges, size reduction display, and space saved metrics
-  - **Smart File Management**: File size formatting, compression status indicators, and automatic cleanup
-  - **User Experience**: Toast notifications for compression results, error handling, and progress tracking
-  - **Auto-upload Mode**: Optional automatic upload with compression for seamless user experience
-  - **Accessibility**: Proper loading states, error feedback, and compression information display
+✅ **Simplified FileUploader Component**: Clean, user-friendly upload interface:
+  - **Simple Upload Interface**: Clean drag-and-drop interface without technical compression details
+  - **Basic Status Indicators**: Simple uploading/success states without compression metrics
+  ✅ **File Management**: Standard file preview, removal, and upload functionality
+    - **User Experience**: Clear success messages without compression analytics
+    - **Clean Design**: Removed compression badges, statistics, and technical information displays
+    - **Seamless Integration**: Works transparently with compression happening behind the scenes
+    - **Automatic Cleanup**: Uploads directory is cleared when resetting the database
 
-✅ **Comprehensive Testing Framework**: Built robust compression testing system:
-  - **Multi-format Testing**: Tests JPEG, PNG, WebP, and document uploads with various file sizes
-  - **Performance Analytics**: Detailed compression statistics and benchmark reporting
-  - **Real Image Testing**: Integration with external image sources for realistic compression testing
-  - **Automated Test Suite**: Complete test automation with result logging and analysis
-  - **Edge Case Handling**: Tests for small files, large files, and various compression scenarios
+✅ **Full Image URL Support**: Fixed image display issues across the system:
+  - **URL Utility Function**: Added `getFullImageUrl()` utility to construct complete image URLs
+  - **Service Integration**: Updated destinations service to automatically convert relative URLs to full URLs
+  - **Backend URL Generation**: Upload controller now returns complete URLs instead of relative paths
+  - **Seamless Image Display**: All images now display correctly throughout the application
+  - **Legacy URL Support**: Handles both old relative URLs and new full URLs transparently
 
 ✅ **Complete Payment and Blockchain Integration System**: Implemented comprehensive payment infrastructure:
   - **Stripe Payment Integration**: Full Stripe integration with test keys for secure fiat payments
@@ -426,35 +455,57 @@ Blockchain Integration:
 ⚠️ Smart contract deployment and production blockchain configuration (demo environment configured)
 
 ### Database Improvements
-✅ Removed unnecessary timestamp fields from tables that don't need them
-✅ Updated column definitions to use proper data types and constraints
-✅ Streamlined table structure for better performance and readability
+✅ **Database Improvements**
+- Removed unnecessary timestamp fields from tables that don't need them
+- Updated column definitions to use proper data types and constraints
+- Streamlined table structure for better performance and readability
+- Uploads directory cleanup integrated with database teardown process
 - Some JSON fields still need better validation
 - Foreign key constraints could be further strengthened
 - Index optimization needed for large datasets
 
-### File Compression Technical Implementation
+### Image Upload System Technical Implementation
 ✅ **Backend Compression Engine** (`fyp/backend/controllers/uploadController.js`):
   - **Sharp Integration**: Advanced image processing with format-specific compression algorithms
-  - **Compression Analytics**: Real-time calculation of compression ratios and space savings
+  - **Silent Operation**: Compression happens transparently without exposing technical details
   - **Error Recovery**: Automatic fallback to original file if compression fails or isn't beneficial
-  - **Performance Monitoring**: Detailed logging of compression process and results
+  - **Clean Response**: Returns only essential file information without compression statistics
   - **Security Enhancements**: Comprehensive file validation and malicious content protection
+  - **Full URL Generation**: Automatically constructs complete image URLs for frontend consumption
 
-✅ **Frontend Compression Interface** (`fyp/frontend/app/components/file-uploader.js`):
-  - **React Dropzone Integration**: Modern drag-and-drop file upload interface
-  - **Zustand State Management**: Efficient file state management with upload progress tracking
-  - **Real-time Feedback**: Live compression status updates and progress indicators
-  - **Compression Visualization**: Badges showing compression ratios and space saved
-  - **Toast Notifications**: User-friendly feedback for compression results and errors
+✅ **Single Image Uploader Component** (`fyp/frontend/app/components/single-image-uploader.js`):
+  - **Focused Design**: Specialized component for single image uploads with clean interface
+  - **React Dropzone Integration**: Drag-and-drop file upload with image format validation
+  - **Automatic Upload**: Handles upload automatically with real-time progress feedback
+  - **Preview Mode**: Transforms into image preview with hover controls for change/remove actions
+  - **Form Integration**: Direct onChange callback integration with form state management
+  - **Edit Mode Support**: useEffect hook properly handles initial value changes for edit scenarios
 
-✅ **Comprehensive Testing Framework** (`fyp/playground/test-image-compression.js`):
-  - **Multi-format Testing**: Automated testing of JPEG, PNG, WebP, and document uploads
-  - **Performance Benchmarking**: Detailed analytics on compression effectiveness
-  - **Edge Case Validation**: Testing with various file sizes and compression scenarios
-  - **Result Documentation**: JSON output with comprehensive test results and statistics
+✅ **Multi-File Uploader Component** (`fyp/frontend/app/components/file-uploader.js`):
+  - **React Dropzone Integration**: Clean drag-and-drop file upload interface for multiple files
+  - **Zustand State Management**: Efficient file state management with simple upload progress
+  - **Clean Status Updates**: Basic uploading/success indicators without technical details
+  - **Simple User Feedback**: Clear success messages without compression metrics
+  - **Streamlined Design**: Removed all compression-related UI elements and badges
 
-## Development Guidelines for AI Models
+✅ **Image URL Management** (`fyp/frontend/app/services/api.js`):
+  - **URL Utility Function**: `getFullImageUrl()` converts relative URLs to complete URLs
+  - **Service Integration**: Destinations service automatically handles URL conversion
+  - **Backward Compatibility**: Supports both legacy relative URLs and new full URLs
+  - **Seamless Display**: Images display correctly throughout the application
+
+✅ **Next.js Configuration** (`fyp/frontend/next.config.mjs`):
+  - **Localhost Support**: Added localhost to allowed image domains for development
+  - **Vercel Blob Support**: Maintains compatibility with existing Vercel Blob storage
+  - **Multi-domain Support**: Handles various image sources seamlessly
+
+### Development Utilities
+
+- **Database Reset**: Run `node backend/config/teardownDb.js` to drop all tables and clean uploads directory
+- **Uploads Cleanup Only**: Run `node backend/config/teardownDb.js clean-uploads` to just clean uploads
+- **Full Reset**: Database reset followed by `nodemon index.js` will recreate all tables with a clean state
+
+### Development Guidelines for AI Models
 
 ### When Working on This Codebase:
 

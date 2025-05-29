@@ -129,7 +129,7 @@ async function testCreateMultiLegRoute() {
     const result = await response.json();
     console.log(`  ✅ Multi-leg route created successfully: ID ${result.id}`);
     console.log(`  📊 Route: ${result.origin} → ${result.destination}`);
-    console.log(`  💰 Cost: $${result.cost}`);
+    console.log(`  💰 Cost: TZS ${result.cost} /=`);
     
     return result;
   } catch (error) {

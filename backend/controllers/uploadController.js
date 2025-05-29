@@ -284,8 +284,6 @@ exports.uploadFile = async (req, res) => {
           const compressedFilename = `${nameWithoutExt}-compressed${ext}`;
           const compressedPath = path.join(uploadsDir, compressedFilename);
           
-          console.log(`Attempting to compress ${req.file.mimetype} file: ${req.file.filename}`);
-          
           // Compress the image
           const compressionResult = await compressImage(
             req.file.path, 
@@ -299,8 +297,6 @@ exports.uploadFile = async (req, res) => {
             
             // Only use compressed version if it's significantly smaller (at least 5% reduction)
             if (compressedSize < originalSize * 0.95) {
-              console.log(`Compression successful: ${originalSize} -> ${compressedSize} bytes (${compressionResult.compressionRatio}% reduction)`);
-              
               // Delete original file
               fs.unlinkSync(req.file.path);
               
@@ -317,7 +313,6 @@ exports.uploadFile = async (req, res) => {
                 savedBytes: compressionResult.savedBytes
               };
             } else {
-              console.log(`Compression not beneficial: ${originalSize} -> ${compressedSize} bytes (${compressionResult.compressionRatio}% reduction)`);
               // Delete compressed file if it's not smaller
               fs.unlinkSync(compressedPath);
               compressionStats = {
@@ -327,7 +322,6 @@ exports.uploadFile = async (req, res) => {
               };
             }
           } else {
-            console.log(`Compression failed: ${compressionResult.reason}`);
             compressionStats = {
               compressed: false,
               reason: compressionResult.reason,
@@ -335,7 +329,6 @@ exports.uploadFile = async (req, res) => {
             };
           }
         } catch (compressionError) {
-          console.error('Compression process failed:', compressionError);
           compressionStats = {
             compressed: false,
             reason: `Compression error: ${compressionError.message}`,
@@ -351,7 +344,11 @@ exports.uploadFile = async (req, res) => {
       }
 
       // Return the file information with compression stats
-      const fileUrl = `/uploads/${finalFilename}`;
+      // Construct full URL for the uploaded file (without /api prefix)
+      const protocol = req.protocol || 'http';
+      const host = req.get('host') || 'localhost:3002';
+      const baseUrl = `${protocol}://${host}`;
+      const fileUrl = `${baseUrl}/uploads/${finalFilename}`;
       
       const response = {
         message: 'File uploaded successfully',
@@ -360,11 +357,10 @@ exports.uploadFile = async (req, res) => {
         originalName: req.file.originalname,
         size: finalFileSize,
         mimetype: req.file.mimetype,
-        uploadedAt: new Date().toISOString(),
-        compression: compressionStats
+        uploadedAt: new Date().toISOString()
       };
 
-      console.log('Upload completed:', response);
+
       res.status(200).json(response);
     });
   } catch (error) {

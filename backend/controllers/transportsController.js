@@ -202,13 +202,21 @@ exports.createTransport = async (req, res) => {
       ],
     );
 
+    // Fetch the newly created transport to return complete data
+    const [newTransport] = await db.query(
+      `SELECT t.*, 
+              to_origin.name as origin_name, 
+              d.name as destination_name 
+       FROM transports t
+       JOIN transport_origins to_origin ON t.origin_id = to_origin.id
+       JOIN destinations d ON t.destination_id = d.id
+       WHERE t.id = ?`,
+      [result.insertId]
+    );
+
     res.status(201).json({
       message: "Transport route created successfully",
-      id: result.insertId,
-      origin: originRows[0].name,
-      destination: destinationRows[0].name,
-      transportation_type: transportation_type || 'bus',
-      cost
+      ...newTransport[0]
     });
   } catch (error) {
     console.error("Error creating transport:", error);
@@ -297,7 +305,22 @@ exports.updateTransport = async (req, res) => {
       values,
     );
 
-    res.status(200).json({ message: "Transport updated successfully" });
+    // Fetch the updated transport to return complete data
+    const [updatedTransport] = await db.query(
+      `SELECT t.*, 
+              to_origin.name as origin_name, 
+              d.name as destination_name 
+       FROM transports t
+       JOIN transport_origins to_origin ON t.origin_id = to_origin.id
+       JOIN destinations d ON t.destination_id = d.id
+       WHERE t.id = ?`,
+      [transportId]
+    );
+
+    res.status(200).json({ 
+      message: "Transport updated successfully",
+      ...updatedTransport[0]
+    });
   } catch (error) {
     console.error("Error updating transport:", error);
     res.status(500).json({

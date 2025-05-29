@@ -1,3 +1,0 @@
-This is a test file to verify the upload functionality is working properly.
-Created for testing the Smart Tour Tanzania upload system.
-Date: 2024

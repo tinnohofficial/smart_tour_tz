@@ -166,7 +166,7 @@ export default function Home() {
                 />
                 <div className="absolute top-4 right-4">
                   <Badge className="bg-amber-700 text-white">
-                    ${destination.cost}
+                    TZS {destination.cost} /=
                   </Badge>
                 </div>
               </div>

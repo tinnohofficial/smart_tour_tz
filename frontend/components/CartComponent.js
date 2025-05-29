@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect } from 'react'
-import { useCartStore } from '../store/cartStore'
+import { useCartStore } from '../app/store/cartStore'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
@@ -163,7 +163,7 @@ const CartComponent = ({ onCheckout }) => {
                     {/* Booking Items */}
                     <div className="space-y-2 mb-3">
                       {booking.items?.map((item, index) => (
-                        <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded">
+                        <div key={`${booking.id}-${item.item_type}-${item.id || index}`} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded">
                           <div className="flex items-center gap-2">
                             <Badge variant="secondary" className="capitalize">
                               {item.item_type}

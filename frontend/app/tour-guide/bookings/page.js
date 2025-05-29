@@ -350,7 +350,7 @@ function TourDetailsDialog({ tour }) {
               Accommodation
             </h3>
             {tour.items.hotel.map((hotel, index) => (
-              <Card key={index}>
+              <Card key={`hotel-${tour.id}-${index}`}>
                 <CardContent className="p-4">
                   <h4 className="font-medium">{hotel.item_name}</h4>
                   <p className="text-sm text-muted-foreground">{hotel.item_details_extra}</p>
@@ -379,7 +379,7 @@ function TourDetailsDialog({ tour }) {
               Transport
             </h3>
             {tour.items.transport.map((transport, index) => (
-              <Card key={index}>
+              <Card key={`transport-${tour.id}-${index}`}>
                 <CardContent className="p-4">
                   <h4 className="font-medium">{transport.item_name}</h4>
                   <p className="text-sm text-muted-foreground">Duration: {transport.item_details_extra}</p>
@@ -409,7 +409,7 @@ function TourDetailsDialog({ tour }) {
             </h3>
             <div className="space-y-3">
               {tour.items.activities.map((activity, index) => (
-                <Card key={index}>
+                <Card key={`activity-${tour.id}-${index}`}>
                   <CardContent className="p-4">
                     <h4 className="font-medium">{activity.item_name}</h4>
                     <p className="text-sm text-muted-foreground">{activity.item_details_extra}</p>

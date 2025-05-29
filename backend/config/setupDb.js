@@ -2,6 +2,7 @@ const db = require("./db");
 const fs = require("fs");
 const path = require("path");
 const { createAdminUser } = require("./createAdmin");
+const { cleanUploadsDirectory } = require("./teardownDb");
 
 async function checkTableExists(tableName) {
   try {
@@ -52,6 +53,9 @@ async function runSchema() {
       .map((statement) => statement.trim())
       .filter((statement) => statement.length > 0);
 
+    // Clean up the uploads directory to start fresh
+    cleanUploadsDirectory();
+    
     // Temporarily disable foreign key checks to handle circular dependencies
     await db.query("SET FOREIGN_KEY_CHECKS = 0");
     

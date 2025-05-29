@@ -426,7 +426,7 @@ export default function TravelAgentProfile() {
                     <h3 className="text-sm font-medium mb-4">Current Routes ({routes.length})</h3>
                     <div className="space-y-3">
                       {routes.map((route, index) => (
-                        <div key={index} className="border rounded-md p-4 bg-white hover:bg-gray-50">
+                        <div key={route.id || `route-${index}`} className="border rounded-md p-4 bg-white hover:bg-gray-50">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <div className="p-2 rounded-lg bg-blue-100">

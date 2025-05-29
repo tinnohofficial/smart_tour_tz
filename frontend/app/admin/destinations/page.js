@@ -46,13 +46,13 @@ import {
   Edit,
   Trash,
   AlertTriangle,
-  Loader2,
   MapPin,
   ImageIcon,
+  Loader2,
 } from "lucide-react";
 import { useDestinationsStore } from "./destinationsStore";
 import { formatTZS } from "@/app/utils/currency";
-import { FileUploader } from "@/app/components/file-uploader";
+import { SingleImageUploader } from "@/app/components/single-image-uploader";
 
 export default function DestinationsPage() {
   // Select state and actions from the Zustand store
@@ -60,28 +60,23 @@ export default function DestinationsPage() {
     destinations,
     isLoading,
     isSubmitting,
-    isUploading,
     error,
     isAddDialogOpen,
     isEditDialogOpen,
     isDeleteDialogOpen,
     selectedDestination,
-    previewUrl,
     formData,
-    // Actions
-    fetchDestinations,
     setIsAddDialogOpen,
     setIsEditDialogOpen,
     setIsDeleteDialogOpen,
     setFormDataField,
-    handleFileChange,
-    handleFileUploaderChange,
     resetFormAndFile,
     addDestination,
-    prepareEditDialog,
     updateDestination,
-    prepareDeleteDialog,
     deleteDestination,
+    prepareEditDialog,
+    prepareDeleteDialog,
+    fetchDestinations,
   } = useDestinationsStore();
 
   // Fetch initial data on component mount
@@ -230,29 +225,11 @@ export default function DestinationsPage() {
                     {" "}
                     Image{" "}
                   </Label>
-                  <div className="col-span-3 space-y-2">
-                    <FileUploader
-                      onChange={handleFileUploaderChange}
-                      maxFiles={1}
-                      acceptedFileTypes="image/*"
+                  <div className="col-span-3">
+                    <SingleImageUploader
+                      onChange={(url) => setFormDataField('image_url', url)}
+                      value={formData.image_url}
                     />
-                    {isUploading && (
-                      <div className="flex items-center gap-2 text-sm text-amber-600">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Uploading image...</span>
-                      </div>
-                    )}
-                    {/* Image Preview */}
-                    {previewUrl && (
-                      <div className="relative mt-2 h-40 w-full overflow-hidden rounded-md border">
-                        <Image
-                          src={previewUrl}
-                          alt="Preview"
-                          className="h-full w-full object-cover"
-                          fill
-                        />
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -269,13 +246,9 @@ export default function DestinationsPage() {
                 <Button
                   type="submit"
                   className="border border-amber-200 hover:bg-amber-50"
-                  disabled={isSubmitting || isUploading}
+                  disabled={isSubmitting}
                 >
-                  {isUploading
-                    ? "Uploading..."
-                    : isSubmitting
-                      ? "Saving..."
-                      : "Save Destination"}
+                  {isSubmitting ? "Saving..." : "Save Destination"}
                 </Button>
               </DialogFooter>
             </form>
@@ -477,29 +450,11 @@ export default function DestinationsPage() {
                   {" "}
                   Image{" "}
                 </Label>
-                <div className="col-span-3 space-y-2">
-                  <FileUploader
-                    onChange={handleFileUploaderChange}
-                    maxFiles={1}
-                    acceptedFileTypes="image/*"
+                <div className="col-span-3">
+                  <SingleImageUploader
+                    onChange={(url) => setFormDataField('image_url', url)}
+                    value={formData.image_url}
                   />
-                  {isUploading && (
-                    <div className="flex items-center gap-2 text-sm text-amber-600">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Uploading image...</span>
-                    </div>
-                  )}
-                  {/* Image Preview */}
-                  {previewUrl && (
-                    <div className="relative mt-2 h-40 w-full overflow-hidden rounded-md border">
-                      <Image
-                        src={previewUrl}
-                        alt="Preview"
-                        className="h-full w-full object-cover"
-                        fill
-                      />
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
@@ -512,12 +467,8 @@ export default function DestinationsPage() {
                 {" "}
                 Cancel{" "}
               </Button>
-              <Button type="submit" disabled={isSubmitting || isUploading}>
-                {isUploading
-                  ? "Uploading..."
-                  : isSubmitting
-                    ? "Updating..."
-                    : "Update Destination"}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Updating..." : "Update Destination"}
               </Button>
             </DialogFooter>
           </form>

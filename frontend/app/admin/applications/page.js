@@ -208,7 +208,7 @@ export default function ApplicationsPage() {
                       <h4 className="text-sm font-medium text-gray-500 mb-1">Hotel Images</h4>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
                         {selectedApplication.details.images && selectedApplication.details.images.map((image, index) => ( // Removed types
-                          <div key={index} className="relative aspect-video rounded-md overflow-hidden border">
+                          <div key={`hotel-image-${index}`} className="relative aspect-video rounded-md overflow-hidden border">
                             <Image src={image || "/placeholder.svg"} alt={`Hotel image ${index + 1}`} className="object-cover w-full h-full" fill />
                           </div>
                         ))}
@@ -231,13 +231,13 @@ export default function ApplicationsPage() {
                         <h4 className="text-sm font-medium text-gray-500 mb-1">Transport Routes</h4>
                         <div className="mt-2 space-y-4">
                           {selectedApplication.details.routes.map((route, index) => (
-                            <div key={index} className="p-4 border rounded-md">
+                            <div key={`route-${index}`} className="p-4 border rounded-md">
                                <div className="flex justify-between mb-2">
                                  <span className="font-medium">{route.origin} to {route.destination}</span>
                                  <Badge>{route.transportation_type}</Badge>
                                </div>
                                <div className="text-sm">
-                                 <p><span className="text-gray-500">Cost:</span> ${route.cost}</p>
+                                 <p><span className="text-gray-500">Cost:</span> TZS {route.cost} /=</p>
                                  {route.description && (
                                    <p><span className="text-gray-500">Description:</span> {route.description}</p>
                                  )}
@@ -253,7 +253,7 @@ export default function ApplicationsPage() {
                         <div className="mt-2">
                           {Array.isArray(selectedApplication.details.document_url) ? (
                             selectedApplication.details.document_url.map((doc, index) => (
-                              <a key={index} href={doc} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-primary hover:underline">
+                              <a key={`doc-${index}`} href={doc} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-primary hover:underline">
                                 <FileText className="h-4 w-4" /> View Document {index + 1}
                               </a>
                             ))

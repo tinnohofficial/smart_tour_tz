@@ -213,8 +213,8 @@ export default function ActivitiesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredActivities.map((activity) => (
-                  <TableRow key={activity.id}>
+                {filteredActivities.map((activity, index) => (
+                  <TableRow key={activity.id || `activity-${index}`}>
                     <TableCell className="font-medium">{activity.name}</TableCell>
                     <TableCell>{getDestinationName(activity.destination_id)}</TableCell>
                     <TableCell>

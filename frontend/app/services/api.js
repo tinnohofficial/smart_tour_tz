@@ -1,4 +1,15 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3002'
+
+// Utility function to construct full image URLs
+export const getFullImageUrl = (imageUrl) => {
+  if (!imageUrl) return null
+  if (imageUrl.startsWith('http')) return imageUrl // Already full URL
+  if (imageUrl.startsWith('/uploads/')) {
+    return `${BACKEND_BASE_URL}${imageUrl}`
+  }
+  return imageUrl
+}
 
 // Utility function to get auth headers
 const getAuthHeaders = () => {
@@ -176,25 +187,41 @@ export const tourGuideService = {
 // Destinations Service
 export const destinationsService = {
   async getAllDestinations() {
-    return apiRequest('/destinations')
+    const destinations = await apiRequest('/destinations')
+    return destinations.map(dest => ({
+      ...dest,
+      image_url: getFullImageUrl(dest.image_url)
+    }))
   },
 
   async getDestinationById(id) {
-    return apiRequest(`/destinations/${id}`)
+    const destination = await apiRequest(`/destinations/${id}`)
+    return {
+      ...destination,
+      image_url: getFullImageUrl(destination.image_url)
+    }
   },
 
   async createDestination(destinationData) {
-    return apiRequest('/destinations', {
+    const destination = await apiRequest('/destinations', {
       method: 'POST',
       body: JSON.stringify(destinationData)
     })
+    return {
+      ...destination,
+      image_url: getFullImageUrl(destination.image_url)
+    }
   },
 
   async updateDestination(id, destinationData) {
-    return apiRequest(`/destinations/${id}`, {
+    const destination = await apiRequest(`/destinations/${id}`, {
       method: 'PUT',
       body: JSON.stringify(destinationData)
     })
+    return {
+      ...destination,
+      image_url: getFullImageUrl(destination.image_url)
+    }
   },
 
   async deleteDestination(id) {

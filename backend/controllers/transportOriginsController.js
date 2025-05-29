@@ -73,12 +73,15 @@ exports.createOrigin = async (req, res) => {
       [name, description, country]
     );
 
+    // Fetch the newly created origin to return complete data
+    const [newOrigin] = await db.query(
+      "SELECT * FROM transport_origins WHERE id = ?",
+      [result.insertId]
+    );
+
     res.status(201).json({
       message: "Transport origin created successfully",
-      id: result.insertId,
-      name,
-      description,
-      country
+      ...newOrigin[0]
     });
   } catch (error) {
     console.error("Error creating transport origin:", error);
@@ -133,7 +136,16 @@ exports.updateOrigin = async (req, res) => {
       updateValues
     );
 
-    res.status(200).json({ message: "Transport origin updated successfully" });
+    // Fetch the updated origin to return complete data
+    const [updatedOrigin] = await db.query(
+      "SELECT * FROM transport_origins WHERE id = ?",
+      [originId]
+    );
+
+    res.status(200).json({ 
+      message: "Transport origin updated successfully",
+      ...updatedOrigin[0]
+    });
   } catch (error) {
     console.error("Error updating transport origin:", error);
     res.status(500).json({
