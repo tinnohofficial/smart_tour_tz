@@ -765,29 +765,29 @@ function BookLocation({ params }) {
 
           {step === 2 && (
             <div className="space-y-8">
-                <div>
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xl font-semibold flex items-center gap-2">
-                      <Bus className="h-5 w-5 text-amber-600" /> Select Transport
-                    </h3>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setSkipOption('skipTransport', !skipOptions.skipTransport)}
-                      className={`${skipOptions.skipTransport ? 'bg-amber-100 border-amber-300' : ''}`}
-                    >
-                      {skipOptions.skipTransport ? 'Include Transport' : 'Skip Transport'}
-                    </Button>
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-semibold flex items-center gap-2">
+                    <Bus className="h-5 w-5 text-amber-600" /> Select Transport
+                  </h3>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setSkipOption('skipTransport', !skipOptions.skipTransport)}
+                    className={`${skipOptions.skipTransport ? 'bg-amber-100 border-amber-300' : ''}`}
+                  >
+                    {skipOptions.skipTransport ? 'Include Transport' : 'Skip Transport'}
+                  </Button>
+                </div>
+
+                {skipOptions.skipTransport && (
+                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg mb-6">
+                    <p className="text-amber-800 font-medium">Transport skipped</p>
+                    <p className="text-amber-700 text-sm">You can arrange your own transportation to {destination?.name}.</p>
                   </div>
+                )}
 
-                  {skipOptions.skipTransport && (
-                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg mb-6">
-                      <p className="text-amber-800 font-medium">Transport skipped</p>
-                      <p className="text-amber-700 text-sm">You can arrange your own transportation to {destination?.name}.</p>
-                    </div>
-                  )}
-
-                  {!skipOptions.skipTransport && (
+                {!skipOptions.skipTransport && (
                   <div className="space-y-4">
                     <div>
                       <Label
@@ -1000,8 +1000,7 @@ function BookLocation({ params }) {
                       )}
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
                 <div className="flex justify-between">
                   <Button
@@ -1022,12 +1021,13 @@ function BookLocation({ params }) {
                   </Button>
                 </div>
               </div>
+            </div>
           )}
 
           {step === 3 && ( 
             <div className="space-y-8">
-                <div>
-                  <div className="flex items-center justify-between mb-6">
+              <div>
+                <div className="flex items-center justify-between mb-6">
                     <h3 className="text-xl font-semibold flex items-center gap-2">
                       <Hotel className="h-5 w-5 text-amber-600" /> Select Hotel
                     </h3>
@@ -1205,54 +1205,54 @@ function BookLocation({ params }) {
                       )}
                     </div>
                   </div>
-                  )}
+                )}
 
-                  <div className="flex justify-between">
-                    <Button
-                      type="button"
-                      onClick={prevStep}
-                      variant="outline"
-                      className="h-12 px-8 border border-amber-200 hover:bg-amber-50"
-                    >
-                      Back to Transport
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={nextStep}
-                      className="h-12 px-8 text-white bg-amber-700 hover:bg-amber-800"
-                    >
-                      Continue to Activities <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </div>
+                <div className="flex justify-between">
+                  <Button
+                    type="button"
+                    onClick={prevStep}
+                    variant="outline"
+                    className="h-12 px-8 border border-amber-200 hover:bg-amber-50"
+                  >
+                    Back to Transport
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={nextStep}
+                    className="h-12 px-8 text-white bg-amber-700 hover:bg-amber-800"
+                  >
+                    Continue to Activities <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
                 </div>
+              </div>
             </div>
           )}
 
           {step === 4 && (
             <div className="space-y-8">
-                <div>
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xl font-semibold flex items-center gap-2">
-                      <MapPin className="h-5 w-5 text-amber-600" /> Select Activities
-                    </h3>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setSkipOption('skipActivities', !skipOptions.skipActivities)}
-                      className={`${skipOptions.skipActivities ? 'bg-amber-100 border-amber-300' : ''}`}
-                    >
-                      {skipOptions.skipActivities ? 'Include Activities' : 'Skip Activities'}
-                    </Button>
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-semibold flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-amber-600" /> Select Activities
+                  </h3>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setSkipOption('skipActivities', !skipOptions.skipActivities)}
+                    className={`${skipOptions.skipActivities ? 'bg-amber-100 border-amber-300' : ''}`}
+                  >
+                    {skipOptions.skipActivities ? 'Include Activities' : 'Skip Activities'}
+                  </Button>
+                </div>
+
+                {skipOptions.skipActivities && (
+                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg mb-6">
+                    <p className="text-amber-800 font-medium">Activities skipped</p>
+                    <p className="text-amber-700 text-sm">You can explore {destination?.name} on your own or book activities separately.</p>
                   </div>
+                )}
 
-                  {skipOptions.skipActivities && (
-                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg mb-6">
-                      <p className="text-amber-800 font-medium">Activities skipped</p>
-                      <p className="text-amber-700 text-sm">You can explore {destination?.name} on your own or book activities separately.</p>
-                    </div>
-                  )}
-
-                  {!skipOptions.skipActivities && (
+                {!skipOptions.skipActivities && (
                   <div className="space-y-6">
                     <div>
                       <Label
@@ -1618,8 +1618,7 @@ function BookLocation({ params }) {
                       )}
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
                 <div className="flex justify-between">
                   <Button
@@ -1646,6 +1645,7 @@ function BookLocation({ params }) {
                     Continue to Review <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </div>
+              </div>
             </div>
           )}
 

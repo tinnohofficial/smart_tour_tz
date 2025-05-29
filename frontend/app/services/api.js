@@ -35,10 +35,17 @@ const apiRequest = async (endpoint, options = {}) => {
   const response = await fetch(url, config)
   
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: 'Network error' }))
-    const error = new Error(errorData.message || `HTTP ${response.status}`)
-    error.response = { status: response.status, data: errorData }
-    throw error
+    let errorData;
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      errorData = await response.json().catch(() => ({ message: 'Network error' }));
+    } else {
+      const text = await response.text().catch(() => '');
+      errorData = { message: text || 'Network error' };
+    }
+    const error = new Error(errorData.message || `HTTP ${response.status}`);
+    error.response = { status: response.status, data: errorData };
+    throw error;
   }
 
   return response.json()
