@@ -1,6 +1,7 @@
 // src/store/bookingStore.js
 import { create } from 'zustand'
 import { destinationsService, transportService, activitiesService, apiUtils, bookingCreationService, transportOriginsService } from '@/app/services/api'
+import { toast } from 'sonner'
 
 // Helper function to calculate nights
 const calculateNights = (startDate, endDate) => {
@@ -349,8 +350,9 @@ export const useBookingStore = create((set, get) => ({
 
   // Action incorporating validation before proceeding with 5-step flow
   nextStep: () => {
-    const { step, startDate, endDate, selectedTransportRoute, selectedHotel, selectedActivities, activitySchedules, skipOptions, setErrors } = get();
-    const newErrors = {};
+    try {
+      const { step, startDate, endDate, selectedOrigin, selectedTransportRoute, selectedHotel, selectedActivities, activitySchedules, skipOptions, setErrors } = get();
+      const newErrors = {};
 
     if (step === 1) {
       // Step 1: Validate dates and origin (if transport is not skipped)
@@ -390,12 +392,28 @@ export const useBookingStore = create((set, get) => ({
       // Step 5: Final review and confirmation - no additional validation needed here
     }
 
-    setErrors(newErrors);
-    if (Object.keys(newErrors).length === 0 && step < 5) {
-      set({ step: step + 1 });
-      return true;
+      setErrors(newErrors);
+      if (Object.keys(newErrors).length === 0 && step < 5) {
+        set({ step: step + 1 });
+        return true;
+      }
+      
+      // Show validation errors as toast notifications
+      if (Object.keys(newErrors).length > 0) {
+        const firstError = Object.values(newErrors)[0];
+        toast.error("Validation Error", {
+          description: firstError
+        });
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error in nextStep:', error);
+      toast.error("Booking Error", {
+        description: "An unexpected error occurred. Please try again."
+      });
+      return false;
     }
-    return false;
   },
 
   prevStep: () => {
