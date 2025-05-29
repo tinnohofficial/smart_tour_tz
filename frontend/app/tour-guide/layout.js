@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { useLayoutStore } from "@/app/store/layoutStore"
-import { PendingApprovalAlert } from "@/components/pending-approval-alert"
+
 import { RouteProtection } from "@/components/route-protection"
 import { tourGuideService, apiUtils } from "@/app/services/api"
 import { useEffect, useState } from "react"
@@ -230,13 +230,7 @@ export default function TourGuideLayout({ children }) {
 
           {/* Page content */}
           <main className="flex-1 px-6 py-6">
-            {/* Show pending approval alert if needed */}
-            {userStatus !== 'active' && (
-              <PendingApprovalAlert 
-                userRole="tour_guide" 
-                hasCompletedProfile={hasProfile && userStatus !== 'pending_profile'} 
-              />
-            )}
+
 
             {/* Show content based on access restrictions */}
             {shouldRestrictAccess() ? (

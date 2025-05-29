@@ -1,10 +1,10 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { 
   Hotel, Bed, BarChart3, Clock, Calendar, Loader2, 
-  DollarSign, Percent, User, ArrowRight, CheckCircle, CalendarClock
+  DollarSign, Percent, User, ArrowRight, CheckCircle, CalendarClock, Building
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,14 +14,78 @@ import { format } from "date-fns"
 import { formatDateWithFormat } from "@/app/utils/dateUtils"
 import { formatTZS } from "@/app/utils/currency"
 import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner"
+import { hotelManagerService, apiUtils } from "@/app/services/api"
 
 export default function HotelManagerDashboard() {
   const { stats, recentBookings, isLoading, error, fetchDashboardData } = useDashboardStore()
   const router = useRouter()
+  const [userStatus, setUserStatus] = useState(null)
+  const [isCheckingAccess, setIsCheckingAccess] = useState(true)
 
   useEffect(() => {
-    fetchDashboardData()
-  }, [fetchDashboardData])
+    const checkAccess = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) {
+          router.push('/login')
+          return
+        }
+
+        try {
+          const data = await hotelManagerService.getProfile()
+          setUserStatus(data.status || 'pending_profile')
+          
+          // Only allow access if user is active
+          if (data.status !== 'active') {
+            if (data.status === 'pending_profile' || !data.status) {
+              router.push('/hotel-manager/complete-profile')
+            } else {
+              // For pending_approval status, redirect to a restricted page
+              router.push('/hotel-manager/password')
+            }
+            return
+          }
+          
+          // User is active, fetch dashboard data
+          fetchDashboardData()
+        } catch (error) {
+          if (error.response?.status === 404) {
+            // No profile exists, redirect to complete profile
+            router.push('/hotel-manager/complete-profile')
+            return
+          } else {
+            console.error('Error fetching profile:', error)
+            apiUtils.handleAuthError(error, router)
+            return
+          }
+        }
+      } catch (error) {
+        console.error("Error checking access:", error)
+        router.push('/login')
+      } finally {
+        setIsCheckingAccess(false)
+      }
+    }
+
+    checkAccess()
+  }, [fetchDashboardData, router])
+
+  // Show loading while checking access
+  if (isCheckingAccess) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Checking access...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render dashboard if user is not active
+  if (userStatus !== 'active') {
+    return null
+  }
 
   const formatDate = (dateString) => formatDateWithFormat(dateString, "MMM dd, yyyy", "Invalid date")
 
@@ -111,31 +175,12 @@ export default function HotelManagerDashboard() {
                 <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
               </div>
               <div>
-                <div className="text-xl sm:text-2xl font-bold">{formatTZS(stats.monthlyRevenue)}</div>
-                <div className="text-xs text-gray-500">Current month</div>
-              </div>
-            </div>
-          </CardContent>
-          <div className="absolute right-0 top-0 h-full w-1.5 bg-blue-500" />
-        </Card>
-
-        {/* Monthly Revenue Card */}
-        <Card className="relative overflow-hidden">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Monthly Revenue</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <div className="mr-4 rounded-full bg-purple-100 p-2">
-                <DollarSign className="h-4 w-4 text-purple-600" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold">{formatTZS(stats.revenueThisMonth)}</div>
+                <div className="text-xl sm:text-2xl font-bold">{formatTZS(stats.revenueThisMonth)}</div>
                 <div className="text-xs text-gray-500">This month</div>
               </div>
             </div>
           </CardContent>
-          <div className="absolute right-0 top-0 h-full w-1.5 bg-purple-500" />
+          <div className="absolute right-0 top-0 h-full w-1.5 bg-blue-500" />
         </Card>
       </div>
 

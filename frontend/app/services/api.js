@@ -118,26 +118,34 @@ export const authService = {
 // Hotel Manager Service
 export const hotelManagerService = {
   async getProfile() {
-    return apiRequest('/hotels/manager/profile')
+    // Get current user's ID from token payload
+    const token = localStorage.getItem('token')
+    if (!token) throw new Error('No authentication token found')
+    
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    const userId = payload.id
+    
+    return apiRequest(`/hotels/${userId}`)
   },
 
   async createProfile(profileData) {
-    return apiRequest('/hotels/manager/profile', {
+    return apiRequest('/hotels', {
       method: 'POST',
       body: JSON.stringify(profileData)
     })
   },
 
   async updateProfile(profileData) {
-    return apiRequest('/hotels/manager/profile', {
+    // Get current user's ID from token payload
+    const token = localStorage.getItem('token')
+    if (!token) throw new Error('No authentication token found')
+    
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    const userId = payload.id
+    
+    return apiRequest(`/hotels/${userId}`, {
       method: 'PUT',
       body: JSON.stringify(profileData)
-    })
-  },
-
-  async toggleAvailability() {
-    return apiRequest('/hotels/manager/availability', {
-      method: 'PUT'
     })
   }
 }
@@ -467,6 +475,11 @@ export const uploadService = {
     }
 
     return response.json()
+  },
+
+  // Alias for backward compatibility
+  async uploadImage(file) {
+    return this.uploadFile(file)
   },
 
   async uploadDocument(file) {

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { useLayoutStore } from "@/app/store/layoutStore"
-import { PendingApprovalAlert } from "@/components/pending-approval-alert"
+
 import { RouteProtection } from "@/components/route-protection"
 import { publishAuthChange } from "@/components/Navbar"
 import { hotelManagerService, apiUtils } from "@/app/services/api"
@@ -27,36 +27,23 @@ export default function HotelManagerLayout({ children }) {
       try {
         const token = localStorage.getItem('token')
         if (!token) {
-          // Redirect to login if no token
           router.push('/login')
           return
         }
 
-        // Fetch user profile to check status using shared API service
-        const data = await apiUtils.withLoadingAndError(
-          () => hotelManagerService.getProfile(),
-          {
-            onSuccess: (data) => {
-              setUserStatus(data.status || 'pending_profile')
-              setHasProfile(true)
-            },
-            onError: (error) => {
-              if (error.response?.status === 404) {
-                // User has no profile yet
-                setUserStatus('pending_profile')
-                setHasProfile(false)
-                
-                // Redirect to profile completion page if user has no profile
-                if (!pathname.includes('/complete-profile') && !pathname.includes('/dashboard') && !pathname.includes('/password')) {
-                  router.push('/hotel-manager/complete-profile')
-                }
-              } else {
-                console.error('Error fetching profile:', error)
-                apiUtils.handleAuthError(error, router)
-              }
-            }
+        try {
+          const data = await hotelManagerService.getProfile()
+          setUserStatus(data.status || 'pending_profile')
+          setHasProfile(true)
+        } catch (error) {
+          if (error.response?.status === 404) {
+            setUserStatus('pending_profile')
+            setHasProfile(false)
+          } else {
+            console.error('Error fetching profile:', error)
+            apiUtils.handleAuthError(error, router)
           }
-        )
+        }
       } catch (error) {
         console.error("Error fetching user profile:", error)
       } finally {
@@ -73,15 +60,13 @@ export default function HotelManagerLayout({ children }) {
       label: "Dashboard",
       icon: <BarChart3 className="h-5 w-5" />,
       active: pathname === "/hotel-manager/dashboard",
-      // Always show dashboard
-      show: true
+      show: userStatus === 'active'
     },
     {
       href: "/hotel-manager/bookings",
       label: "Manage Bookings",
       icon: <Bed className="h-5 w-5" />,
       active: pathname === "/hotel-manager/bookings",
-      // Only show bookings if user has completed profile and is active
       show: userStatus === 'active'
     },
     {
@@ -89,8 +74,14 @@ export default function HotelManagerLayout({ children }) {
       label: "Hotel Profile",
       icon: <Building className="h-5 w-5" />,
       active: pathname === "/hotel-manager/profile",
-      // Always show profile - users need to access it to complete initial setup
-      show: true
+      show: userStatus === 'active'
+    },
+    {
+      href: "/hotel-manager/pending-status",
+      label: "Application Status",
+      icon: <User className="h-5 w-5" />,
+      active: pathname === "/hotel-manager/pending-status",
+      show: userStatus === 'pending_approval' || userStatus === 'rejected'
     },
     {
       href: "/hotel-manager/password",
@@ -102,18 +93,22 @@ export default function HotelManagerLayout({ children }) {
     }
   ]
 
-  // Allow access only to specific pages based on user status
   const shouldRestrictAccess = () => {
-    if (isLoading) return true // Don't render content while checking
+    if (isLoading) return true
     
+    // If no profile exists, only allow complete-profile and password pages
     if (!hasProfile && userStatus === 'pending_profile') {
-      // Allow access only to complete-profile, dashboard, and password pages
-      return !['/hotel-manager/complete-profile', '/hotel-manager/dashboard', '/hotel-manager/password'].includes(pathname)
+      return !['/hotel-manager/complete-profile', '/hotel-manager/password'].includes(pathname)
     }
     
-    if (userStatus === 'pending_approval') {
-      // Allow access to dashboard, profile (read-only), and password when pending approval
-      return !['/hotel-manager/dashboard', '/hotel-manager/profile', '/hotel-manager/password'].includes(pathname)
+    // If profile exists but pending approval or rejected, only allow pending-status and password
+    if (hasProfile && (userStatus === 'pending_approval' || userStatus === 'rejected')) {
+      return !['/hotel-manager/pending-status', '/hotel-manager/password'].includes(pathname)
+    }
+    
+    // If active, restrict access to complete-profile and pending-status
+    if (userStatus === 'active') {
+      return ['/hotel-manager/complete-profile', '/hotel-manager/pending-status'].includes(pathname)
     }
     
     return false
@@ -222,60 +217,54 @@ export default function HotelManagerLayout({ children }) {
 
           {/* Page content */}
           <main className="flex-1 px-6 py-6">
-            {/* Show pending approval alert if needed */}
-            {userStatus !== 'active' && (
-              <PendingApprovalAlert 
-                userRole="hotel_manager" 
-                hasCompletedProfile={hasProfile && userStatus !== 'pending_profile'} 
-              />
-            )}
 
-            {/* Show content based on access restrictions */}
+
             {shouldRestrictAccess() ? (
-              pathname !== '/hotel-manager/dashboard' && pathname !== '/hotel-manager/password' && (
-                <div className="text-center py-10">
-                  {userStatus === 'pending_approval' && pathname === '/hotel-manager/profile' ? (
-                    // Show message specific to pending approval users trying to access profile
-                    <div>
-                      <Building className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-                      <h2 className="text-xl font-semibold text-gray-700">Profile Under Review</h2>
-                      <p className="text-gray-500 mb-6">Your hotel profile is currently under review and cannot be modified. You will be able to access your profile again once it&apos;s approved.</p>
-                      <Button 
-                        onClick={() => router.push('/hotel-manager/dashboard')}
-                        className="bg-amber-700 hover:bg-amber-800"
-                      >
-                        Go to Dashboard
-                      </Button>
-                    </div>
-                  ) : userStatus === 'pending_profile' && !hasProfile ? (
-                    // Show message for users who need to complete their profile
-                    <div>
-                      <Building className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-                      <h2 className="text-xl font-semibold text-gray-700">Complete Your Hotel Profile</h2>
-                      <p className="text-gray-500 mb-6">You need to complete your hotel profile to access all features.</p>
-                      <Button 
-                        onClick={() => router.push('/hotel-manager/complete-profile')}
-                        className="bg-amber-700 hover:bg-amber-800"
-                      >
-                        Complete Profile Now
-                      </Button>
-                    </div>
-                  ) : (
-                    // Standard message for other restricted access
-                    <div>
-                      <Building className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-                      <h2 className="text-xl font-semibold text-gray-700">Access Restricted</h2>
-                      <p className="text-gray-500 mb-6">Please complete the required steps to access this page.</p>
-                      <Button 
-                        onClick={() => router.push('/hotel-manager/dashboard')}
-                        className="bg-amber-700 hover:bg-amber-800"
-                      >
-                        Go to Dashboard
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              )
+              <div className="text-center py-10">
+                {!hasProfile && userStatus === 'pending_profile' ? (
+                  <>
+                    <Building className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+                    <h2 className="text-xl font-semibold text-gray-700">Complete Your Hotel Profile</h2>
+                    <p className="text-gray-500 mb-6">You need to complete your hotel profile to access this page.</p>
+                    <Button 
+                      onClick={() => router.push('/hotel-manager/complete-profile')}
+                      className="bg-amber-700 hover:bg-amber-800"
+                    >
+                      Complete Profile Now
+                    </Button>
+                  </>
+                ) : hasProfile && (userStatus === 'pending_approval' || userStatus === 'rejected') ? (
+                  <>
+                    <User className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+                    <h2 className="text-xl font-semibold text-gray-700">Check Your Application Status</h2>
+                    <p className="text-gray-500 mb-6">View your application status and submitted details.</p>
+                    <Button 
+                      onClick={() => router.push('/hotel-manager/pending-status')}
+                      className="bg-amber-700 hover:bg-amber-800"
+                    >
+                      View Application Status
+                    </Button>
+                  </>
+                ) : userStatus === 'active' ? (
+                  <>
+                    <Building className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+                    <h2 className="text-xl font-semibold text-gray-700">Access Restricted</h2>
+                    <p className="text-gray-500 mb-6">This page is not available for approved hotel managers.</p>
+                    <Button 
+                      onClick={() => router.push('/hotel-manager/dashboard')}
+                      className="bg-amber-700 hover:bg-amber-800"
+                    >
+                      Go to Dashboard
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Building className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+                    <h2 className="text-xl font-semibold text-gray-700">Access Restricted</h2>
+                    <p className="text-gray-500 mb-6">You don't have permission to access this page.</p>
+                  </>
+                )}
+              </div>
             ) : (
               children
             )}
