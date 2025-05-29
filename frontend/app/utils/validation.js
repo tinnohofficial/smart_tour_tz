@@ -25,12 +25,12 @@ export const passwordSchema = z.string()
   // .regex(PASSWORD_RULES.hasUppercase, "Password must contain at least one uppercase letter")
   .regex(PASSWORD_RULES.hasLowercase, "Password must contain at least one lowercase letter") 
   .regex(PASSWORD_RULES.hasNumber, "Password must contain at least one number")
-  .regex(PASSWORD_RULES.hasSpecialChar, "Password must contain at least one special character")
+  // .regex(PASSWORD_RULES.hasSpecialChar, "Password must contain at least one special character")
 
+// Basic phone schema - detailed validation is handled by backend
 export const phoneSchema = z.string()
-  .min(13, "Phone number must be +255 followed by 9 digits")
-  .max(13, "Phone number must be +255 followed by 9 digits")
-  .regex(PHONE_REGEX, "Please enter a valid Tanzanian phone number (+255XXXXXXXXX)")
+  .min(1, "Phone number is required")
+  .optional()
 
 // Password change schema
 export const passwordChangeSchema = z
@@ -83,9 +83,9 @@ export const validatePassword = (password) => {
   if (!PASSWORD_RULES.hasNumber.test(password)) {
     return "Password must contain at least one number"
   }
-  if (!PASSWORD_RULES.hasSpecialChar.test(password)) {
-    return "Password must contain at least one special character"
-  }
+  // if (!PASSWORD_RULES.hasSpecialChar.test(password)) {
+  //   return "Password must contain at least one special character"
+  // }
   return null
 }
 

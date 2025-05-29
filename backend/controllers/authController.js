@@ -2,6 +2,7 @@ const db = require("../config/db");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { validationResult } = require("express-validator");
+const { parsePhoneNumber, isValidPhoneNumber } = require('libphonenumber-js');
 
 const saltRounds = 10;
 
@@ -264,10 +265,10 @@ exports.updatePhone = async (req, res) => {
     });
   }
 
-  // Simple phone validation for Tanzanian numbers (+255XXXXXXXXX)
-  if (phone_number && (phone_number.length !== 13 || !phone_number.match(/^\+255\d{9}$/))) {
+  // Validate phone number using international standards
+  if (phone_number && !isValidPhoneNumber(phone_number)) {
     return res.status(400).json({
-      message: "Please provide a valid Tanzanian phone number (+255XXXXXXXXX)",
+      message: "Please provide a valid international phone number",
     });
   }
 

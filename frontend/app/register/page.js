@@ -44,10 +44,10 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
       return;
     }
 
-    if (!/[A-Z]/.test(password)) {
-      toast.error("Password must contain at least one uppercase letter.");
-      return;
-    }
+    // if (!/[A-Z]/.test(password)) {
+    //   toast.error("Password must contain at least one uppercase letter.");
+    //   return;
+    // }
 
     if (!/[a-z]/.test(password)) {
       toast.error("Password must contain at least one lowercase letter.");
@@ -64,8 +64,9 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
       return;
     }
 
-    if (phoneNumber.length !== 13 || !phoneNumber.match(/^\+255\d{9}$/)) {
-      toast.error("Please enter a valid Tanzanian phone number (+255XXXXXXXXX).");
+    // Basic presence check only - detailed validation is handled by backend
+    if (!phoneNumber) {
+      toast.error("Please enter a phone number.");
       return;
     }
 
@@ -86,7 +87,14 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error(data.message || "Registration failed.");
+        // Handle validation errors from backend
+        if (data.errors && Array.isArray(data.errors)) {
+          // Show the first validation error message
+          const firstError = data.errors[0];
+          toast.error(firstError.msg || firstError.message || "Validation failed.");
+        } else {
+          toast.error(data.message || "Registration failed.");
+        }
         return;
       }
 

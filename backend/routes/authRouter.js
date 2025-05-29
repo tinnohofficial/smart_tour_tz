@@ -3,6 +3,7 @@ const router = express.Router();
 const authController = require("../controllers/authController");
 const authenticateToken = require("../middleware/authenticateToken");
 const { body } = require("express-validator");
+const { isValidPhoneNumber } = require('libphonenumber-js');
 
 validateRegistration = [
   body("email")
@@ -18,10 +19,12 @@ validateRegistration = [
 
   body("phone_number")
     .optional({ checkFalsy: true })
-    .isLength({ min: 13, max: 13 })
-    .withMessage("Phone number must be in format +255XXXXXXXXX (13 characters)")
-    .matches(/^\+255\d{9}$/)
-    .withMessage("Phone number must start with +255 followed by 9 digits"),
+    .custom((value) => {
+      if (value && !isValidPhoneNumber(value)) {
+        throw new Error('Please provide a valid international phone number');
+      }
+      return true;
+    }),
 
   body("role")
     .isIn(["tourist", "tour_guide", "hotel_manager", "travel_agent"])
