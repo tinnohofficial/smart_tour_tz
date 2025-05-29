@@ -6,6 +6,7 @@ const checkRole = require("../middleware/checkRole");
 
 // Public routes - any user can access
 router.get("/", hotelsController.getAllHotels);
+
 router.get("/:id", hotelsController.getHotelById);
 
 // Hotel manager routes - only accessible to hotel managers
@@ -13,37 +14,15 @@ router.post(
   "/",
   authenticateToken,
   checkRole("hotel_manager", false),
-  hotelsController.createHotel
+  hotelsController.createHotel,
 );
 
-// Hotel manager profile routes - these should map to the same functionality
-router.post(
-  "/manager/profile",
-  authenticateToken,
-  checkRole("hotel_manager", false),
-  hotelsController.createHotel  // Same functionality for profile creation
-);
-
-router.get(
-  "/manager/profile",
-  authenticateToken,
-  checkRole("hotel_manager", false),
-  hotelsController.getHotelByManagerId
-);
-
+// Hotel manager routes - update hotel by id with authorization check
 router.put(
-  "/manager/profile",
+  "/:id",
   authenticateToken,
   checkRole("hotel_manager"),
-  hotelsController.updateHotelByManagerId
-);
-
-router.put(
-  "/manager/availability",
-  authenticateToken,
-  checkRole("hotel_manager"),
-  hotelsController.toggleHotelAvailability
+  hotelsController.updateHotel,
 );
 
 module.exports = router;
-

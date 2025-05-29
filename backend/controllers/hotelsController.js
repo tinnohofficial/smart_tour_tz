@@ -198,53 +198,10 @@ exports.createHotel = async (req, res) => {
   }
 };
 
-exports.getHotelByManagerId = async (req, res) => {
-  const userId = req.user.id;
 
-  try {
-    const [rows] = await db.query(
-      "SELECT * FROM hotels WHERE id = ?",
-      [userId],
-    );
 
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "Hotel not found" });
-    }
-
-    const hotel = rows[0];
-
-    // Parse JSON fields if they exist
-    if (hotel.images) {
-      try {
-        hotel.images = JSON.parse(hotel.images);
-      } catch (e) {
-        // Keep as is if parsing fails
-      }
-    }
-
-    // Get user data as well
-    const [userRows] = await db.query(
-      "SELECT email, phone_number, status FROM users WHERE id = ?",
-      [userId],
-    );
-
-    const responseData = {
-      ...hotel,
-      email: userRows[0].email,
-      phone_number: userRows[0].phone_number,
-      status: userRows[0].status,
-    };
-
-    res.status(200).json(responseData);
-  } catch (error) {
-    console.error("Error fetching hotel details:", error);
-    res
-      .status(500)
-      .json({ message: "Failed to fetch hotel details", error: error.message });
-  }
-};
-
-exports.updateHotelByManagerId = async (req, res) => {
+exports.updateHotel = async (req, res) => {
+  const hotelId = req.params.id;
   const userId = req.user.id;
   const {
     name,
@@ -253,17 +210,44 @@ exports.updateHotelByManagerId = async (req, res) => {
     images,
     capacity,
     base_price_per_night,
+    is_available,
   } = req.body;
 
   try {
+    // Authorization check: ensure the hotel manager can only update their own hotel
+    if (hotelId !== userId.toString()) {
+      return res.status(403).json({ 
+        message: "Access denied. You can only update your own hotel." 
+      });
+    }
+
     // Check if hotel exists
     const [hotelRows] = await db.query(
       "SELECT id FROM hotels WHERE id = ?",
-      [userId],
+      [hotelId],
     );
 
     if (hotelRows.length === 0) {
       return res.status(404).json({ message: "Hotel not found" });
+    }
+
+    // Validate inputs if provided
+    if (capacity !== undefined && (isNaN(capacity) || parseInt(capacity) <= 0)) {
+      return res.status(400).json({
+        message: "Capacity must be a positive number"
+      });
+    }
+    
+    if (base_price_per_night !== undefined && (isNaN(base_price_per_night) || parseFloat(base_price_per_night) <= 0)) {
+      return res.status(400).json({
+        message: "Base price per night must be a positive number"
+      });
+    }
+
+    if (images !== undefined && !Array.isArray(images)) {
+      return res.status(400).json({
+        message: "Images must be an array of image URLs"
+      });
     }
 
     // Update the fields that are provided
@@ -292,71 +276,38 @@ exports.updateHotelByManagerId = async (req, res) => {
 
     if (capacity !== undefined) {
       updates.push("capacity = ?");
-      params.push(capacity);
+      params.push(parseInt(capacity));
     }
 
     if (base_price_per_night !== undefined) {
       updates.push("base_price_per_night = ?");
-      params.push(base_price_per_night);
+      params.push(parseFloat(base_price_per_night));
     }
 
-    if (req.body.is_available !== undefined) {
+    if (is_available !== undefined) {
       updates.push("is_available = ?");
-      params.push(req.body.is_available);
+      params.push(Boolean(is_available));
     }
 
     if (updates.length === 0) {
       return res.status(400).json({ message: "No fields to update" });
     }
 
-    // Add user_id to params for WHERE clause
-    params.push(userId);
+    // Add hotel_id to params for WHERE clause
+    params.push(hotelId);
 
     await db.query(
       `UPDATE hotels SET ${updates.join(", ")} WHERE id = ?`,
       params,
     );
 
-    res.status(200).json({ message: "Hotel profile updated successfully" });
+    res.status(200).json({ message: "Hotel updated successfully" });
   } catch (error) {
-    console.error("Error updating hotel profile:", error);
+    console.error("Error updating hotel:", error);
     res
       .status(500)
-      .json({ message: "Failed to update profile", error: error.message });
+      .json({ message: "Failed to update hotel", error: error.message });
   }
 };
 
-exports.toggleHotelAvailability = async (req, res) => {
-  const userId = req.user.id;
 
-  try {
-    // Check if hotel exists and get current availability
-    const [hotelRows] = await db.query(
-      "SELECT id, is_available FROM hotels WHERE id = ?",
-      [userId],
-    );
-
-    if (hotelRows.length === 0) {
-      return res.status(404).json({ message: "Hotel not found" });
-    }
-
-    const currentAvailability = hotelRows[0].is_available;
-    const newAvailability = !currentAvailability;
-
-    // Update availability status
-    await db.query(
-      "UPDATE hotels SET is_available = ? WHERE id = ?",
-      [newAvailability, userId],
-    );
-
-    res.status(200).json({ 
-      message: `Hotel availability updated to ${newAvailability ? 'available' : 'unavailable'}`,
-      is_available: newAvailability
-    });
-  } catch (error) {
-    console.error("Error toggling hotel availability:", error);
-    res
-      .status(500)
-      .json({ message: "Failed to update availability", error: error.message });
-  }
-};
