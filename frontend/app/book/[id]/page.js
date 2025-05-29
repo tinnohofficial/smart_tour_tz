@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useCallback, useEffect } from "react";
+import React, { useMemo, useCallback, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -68,7 +68,7 @@ import { toast } from "sonner";
 import { bookingCreationService } from "@/app/services/api";
 
 function BookLocation({ params }) {
-  const { id } = params;
+  const { id } = use(params);
   const destinationId = parseInt(id, 10);
 
   const router = useRouter();
