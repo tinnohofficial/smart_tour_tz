@@ -2,6 +2,7 @@
 const db = require("../config/db");
 const { createPaymentIntent } = require("../config/stripe");
 const blockchainService = require("../services/blockchainService");
+const exchangeRateService = require("../services/exchangeRateService");
 
 /**
  * Deposit funds into user's savings account
@@ -50,7 +51,10 @@ const depositFunds = async (req, res) => {
         [userWalletAddress, userId]
       );
 
-      const expectedUsdtAmount = await blockchainService.convertTzsToUsdt(depositAmount);
+      // Get conversion rates for display
+      const conversionRates = await exchangeRateService.getConversionRates(depositAmount);
+      const expectedUsdtAmount = conversionRates.usdt;
+      
       const depositCheck = await blockchainService.checkRecentDeposits(
         userWalletAddress, 
         expectedUsdtAmount
@@ -59,7 +63,8 @@ const depositFunds = async (req, res) => {
       if (!depositCheck.found) {
         return res.status(400).json({ 
           message: "Crypto deposit not found. Please ensure the transaction is confirmed.",
-          expectedAmount: expectedUsdtAmount
+          expectedAmount: expectedUsdtAmount,
+          conversionRates: conversionRates
         });
       }
 
@@ -70,7 +75,8 @@ const depositFunds = async (req, res) => {
         message: "Crypto deposit processed successfully",
         amount: depositAmount,
         currency: 'TZS',
-        transactionHash: depositCheck.transactionHash
+        transactionHash: depositCheck.transactionHash,
+        conversionRates: conversionRates
       });
     }
 
@@ -109,10 +115,14 @@ const getSavingsBalance = async (req, res) => {
     }
 
     // If user has a wallet address, also check live blockchain balance
+    let walletTokenBalance = { eth: 0, usdt: 0 };
     if (walletAddress) {
       try {
         const liveUsdtBalance = await blockchainService.getUserBalance(walletAddress);
-        const liveBalanceTzs = await blockchainService.convertUsdtToTzs(parseFloat(liveUsdtBalance));
+        const liveBalanceTzs = await exchangeRateService.convertUsdtToTzs(parseFloat(liveUsdtBalance));
+        
+        // Get wallet token balances
+        walletTokenBalance = await blockchainService.getWalletTokenBalance(walletAddress);
         
         // Update blockchain balance if there's a difference
         if (Math.abs(liveBalanceTzs - blockchainBalance) > 1) { // Tolerance of 1 TZS
@@ -127,11 +137,16 @@ const getSavingsBalance = async (req, res) => {
       }
     }
 
+    // Get current exchange rates for frontend display
+    const conversionRates = await exchangeRateService.getConversionRates(totalBalance);
+
     res.status(200).json({
       balance: totalBalance,
       blockchainBalance: blockchainBalance,
       currency: "TZS",
-      walletAddress: walletAddress
+      walletAddress: walletAddress,
+      walletTokenBalance: walletTokenBalance,
+      conversionRates: conversionRates
     });
   } catch (error) {
     console.error("Error fetching savings balance:", error);
@@ -289,7 +304,10 @@ const getLiveBlockchainBalance = async (req, res) => {
     
     // Get live USDT balance from blockchain
     const liveUsdtBalance = await blockchainService.getUserBalance(walletAddress);
-    const liveBalanceTzs = await blockchainService.convertUsdtToTzs(parseFloat(liveUsdtBalance));
+    const liveBalanceTzs = await exchangeRateService.convertUsdtToTzs(parseFloat(liveUsdtBalance));
+    
+    // Get wallet token balances
+    const walletTokenBalance = await blockchainService.getWalletTokenBalance(walletAddress);
     
     // Update database with live balance
     await db.query(
@@ -297,11 +315,16 @@ const getLiveBlockchainBalance = async (req, res) => {
       [liveBalanceTzs, userId]
     );
     
+    // Get conversion rates for display
+    const conversionRates = await exchangeRateService.getConversionRates(liveBalanceTzs);
+    
     res.status(200).json({
       balance: liveBalanceTzs,
       usdtBalance: liveUsdtBalance,
       currency: 'TZS',
-      walletAddress: walletAddress
+      walletAddress: walletAddress,
+      walletTokenBalance: walletTokenBalance,
+      conversionRates: conversionRates
     });
     
   } catch (error) {
@@ -313,10 +336,186 @@ const getLiveBlockchainBalance = async (req, res) => {
   }
 };
 
+/**
+ * Connect or update user's wallet address
+ */
+const connectWallet = async (req, res) => {
+  try {
+    const { walletAddress } = req.body;
+    const userId = req.user.id;
+
+    if (!walletAddress || !ethers.isAddress(walletAddress)) {
+      return res.status(400).json({ message: "Invalid wallet address" });
+    }
+
+    // Update user's wallet address
+    await db.query(
+      "UPDATE users SET wallet_address = ? WHERE id = ?",
+      [walletAddress, userId]
+    );
+
+    // Get wallet token balances
+    const walletTokenBalance = await blockchainService.getWalletTokenBalance(walletAddress);
+    
+    // Get vault balance
+    const vaultBalance = await blockchainService.getUserBalance(walletAddress);
+    
+    res.status(200).json({
+      message: "Wallet connected successfully",
+      walletAddress: walletAddress,
+      walletTokenBalance: walletTokenBalance,
+      vaultBalance: vaultBalance
+    });
+  } catch (error) {
+    console.error("Error connecting wallet:", error);
+    res.status(500).json({ 
+      message: "Failed to connect wallet", 
+      error: error.message 
+    });
+  }
+};
+
+/**
+ * Disconnect user's wallet
+ */
+const disconnectWallet = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    await db.query(
+      "UPDATE users SET wallet_address = NULL WHERE id = ?",
+      [userId]
+    );
+
+    res.status(200).json({
+      message: "Wallet disconnected successfully"
+    });
+  } catch (error) {
+    console.error("Error disconnecting wallet:", error);
+    res.status(500).json({ 
+      message: "Failed to disconnect wallet", 
+      error: error.message 
+    });
+  }
+};
+
+/**
+ * Get conversion rates for a TZS amount
+ */
+const getConversionRates = async (req, res) => {
+  try {
+    const { amount } = req.query;
+    
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+      return res.status(400).json({ message: "Valid amount parameter is required" });
+    }
+
+    const tzsAmount = Number(amount);
+    const conversionRates = await exchangeRateService.getConversionRates(tzsAmount);
+    
+    res.status(200).json({
+      success: true,
+      conversionRates: conversionRates
+    });
+  } catch (error) {
+    console.error("Error getting conversion rates:", error);
+    res.status(500).json({ 
+      message: "Failed to get conversion rates", 
+      error: error.message 
+    });
+  }
+};
+
+/**
+ * Get network information and contract status
+ */
+const getNetworkInfo = async (req, res) => {
+  try {
+    const networkInfo = await blockchainService.getNetworkInfo();
+    
+    res.status(200).json({
+      success: true,
+      networkInfo: networkInfo
+    });
+  } catch (error) {
+    console.error("Error getting network info:", error);
+    res.status(500).json({ 
+      message: "Failed to get network info", 
+      error: error.message 
+    });
+  }
+};
+
+/**
+ * Process automatic crypto payment (for checkout)
+ */
+const processAutomaticCryptoPayment = async (req, res) => {
+  try {
+    const { amount, walletAddress } = req.body;
+    const userId = req.user.id;
+
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+      return res.status(400).json({ message: "Invalid payment amount" });
+    }
+
+    if (!walletAddress || !ethers.isAddress(walletAddress)) {
+      return res.status(400).json({ message: "Invalid wallet address" });
+    }
+
+    const tzsAmount = Number(amount);
+    
+    // Process the automatic payment
+    const result = await blockchainService.processAutomaticPayment(walletAddress, tzsAmount);
+    
+    if (result.success) {
+      // Update database balance
+      await db.query(
+        "UPDATE savings_accounts SET blockchain_balance = blockchain_balance - ? WHERE user_id = ?",
+        [tzsAmount, userId]
+      );
+
+      // Create payment record
+      await db.query(
+        `INSERT INTO payments
+         (user_id, amount, payment_method, reference, status, currency, exchange_rate)
+         VALUES (?, ?, 'crypto', ?, 'successful', 'TZS', ?)`,
+        [userId, tzsAmount, result.transactionHash, result.exchangeRate]
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Crypto payment processed successfully",
+        transactionHash: result.transactionHash,
+        amount: tzsAmount,
+        amountUSDT: result.amountUSDT,
+        exchangeRate: result.exchangeRate
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: result.error || "Crypto payment failed"
+      });
+    }
+  } catch (error) {
+    console.error("Error processing automatic crypto payment:", error);
+    res.status(500).json({ 
+      message: "Failed to process crypto payment", 
+      error: error.message 
+    });
+  }
+};
+
+const { ethers } = require('ethers');
+
 module.exports = {
   depositFunds,
   getSavingsBalance,
   processCryptoDeposit,
   confirmStripePayment,
   getLiveBlockchainBalance,
+  connectWallet,
+  disconnectWallet,
+  getConversionRates,
+  getNetworkInfo,
+  processAutomaticCryptoPayment,
 };

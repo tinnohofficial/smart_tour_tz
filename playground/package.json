@@ -1,6 +1,18 @@
 {
 	"dependencies": {
+		"axios": "^1.9.0",
 		"form-data": "^4.0.2",
-		"node-fetch": "^3.3.2"
-	}
+		"node-fetch": "^2.7.0"
+	},
+	"name": "playground",
+	"version": "1.0.0",
+	"description": "",
+	"main": "test-image-compression.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"type": "commonjs"
 }

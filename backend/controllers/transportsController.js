@@ -8,11 +8,15 @@ exports.getTransports = async (req, res) => {
       SELECT t.*, 
              to_orig.name as origin_name,
              d.name as destination_name,
-             d.region as destination_region
+             d.region as destination_region,
+             ta.name as agency_name,
+             ta.contact_phone as agency_phone,
+             ta.contact_email as agency_email
       FROM transports t
       JOIN users u ON t.agency_id = u.id
       JOIN transport_origins to_orig ON t.origin_id = to_orig.id
       JOIN destinations d ON t.destination_id = d.id
+      JOIN travel_agencies ta ON t.agency_id = ta.id
       WHERE u.status = 'active'
     `;
     

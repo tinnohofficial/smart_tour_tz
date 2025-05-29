@@ -1,1 +1,18 @@
 This is a test upload file for Smart Tour Tanzania
+Plz implement the following features (requirements). These requirements are in random order so plz read through all of them and understand each of them, and other ones are dependent on other ones, and some might be unclear or vague plz be creative on those. 
+
+Important Note: Some of these requirements are already implemented others partially implemented, I want you to review each of them, if it is already implemented no need to touch it, if not yet implemented implement it, if partially implemented plz finish the implementation, additionally plz don't break things unless you are 100% sure that sth can be safely removed, be considerate on the state of the system a lot of work went it to it plz.
+```
+3. Currently the system has no payment system, so plz use sth like Stripe, I do understand stripe has no official support in Tanzania, but anyways just put it in there so that we can have a demo for showing the payment actually works. 
+
+4. On the part of blockchain integration, plz improve it, I want the users to be able to specify their accounts or when they connect via wallet such as metamask their accounts should be saved in the database (I think there is a table which keeps those account addresses am not sure plz check that) and their balances (savings) which they have put into our system (the vault) should be able to be seen in the frontend savings interface.
+
+5. Additionally we want the users (tourists) to be able to pay with crypto, if they do so we want them at the time of checkout to connect to metamask and then system checks for the deposit event in the smart contract, and if it has happened and it is the whole of specified amount we should allow them, I know this is tricky since we are using USDT in the blockchain but I guess we can use some service to compare it with the TZS price that we charged the user with so that the user will know an equivalent amount of USDT, BTC, ETH or another coin that is equivalent to the TZS amount.
+
+6. For payment using savings, if the user made payments using credit card such as visa or mastercard, then we just deduct the savings amount in the database, if it crypto we also deduct the savings amount in the database, so in the context of the database, whether it is crypto or fiat (TZS) savings we are going to treat them all exactly the same way, I think for the deducting the savings the vault contract has a function that can be called right, so if it is called an event should be emitted, and then the deduction has already happened. And we should update the savings balance table (which as i said earlier i think it is there but double check) and the balance update should be in TZS for the exchange rate as I told u be creative here, u may use a service or what else i don't know.
+
+7. The blockchain interactions should be automatic the `payFromSavings` function is called by the only the owner, but I want a way that in the booking process that the function should be invoked automatically, so I don't know how to do this does it require that either the backend or the frontend system to hold the private key of the admin or what, what ever it is plz look for the best way to put it and implement it perfectly.
+```
+
+Now execute. Good luck!
+

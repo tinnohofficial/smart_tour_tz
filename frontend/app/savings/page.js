@@ -16,6 +16,7 @@ import { Progress } from "@/components/ui/progress"
 import { formatDate } from "@/app/utils/dateUtils"
 import { formatTZS } from "@/app/utils/currency"
 import { loadStripe } from '@stripe/stripe-js'
+import { EnhancedPaymentDialog } from "@/app/components/enhanced-payment-dialog"
 
 // Initialize Stripe
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder');
@@ -32,6 +33,8 @@ export default function Savings() {
     balance,
     blockchainBalance,
     walletAddress,
+    walletTokenBalance,
+    conversionRates,
     savingDuration,
     depositAmount,
     isDepositing,
@@ -46,14 +49,29 @@ export default function Savings() {
     disconnectWallet,
     fetchBalance,
     confirmStripePayment,
+    getConversionRates,
+    processCryptoPayment,
+    depositToVault,
   } = useSavingsStore()
 
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [enhancedPaymentOpen, setEnhancedPaymentOpen] = useState(false)
 
   // Fetch balance on component mount
   useEffect(() => {
     fetchBalance()
   }, [])
+
+  const handleEnhancedPaymentSuccess = useCallback(async (paymentResult) => {
+    try {
+      toast.success(`Successfully deposited ${formatTZS(Number(depositAmount))}!`)
+      setEnhancedPaymentOpen(false)
+      setDepositAmount("")
+      await fetchBalance() // Refresh balance after successful payment
+    } catch (error) {
+      console.error("Error handling payment success:", error)
+    }
+  }, [depositAmount, fetchBalance, setDepositAmount])
 
   const handleDeposit = useCallback(async (method) => {
     if (!depositAmount || isNaN(Number(depositAmount)) || Number(depositAmount) <= 0) {
@@ -136,7 +154,7 @@ export default function Savings() {
               {isBalanceVisible ? formatTZS(balance) : "••••••"}
             </span>
           </div>
-          
+
           {/* Balance Breakdown */}
           {isBalanceVisible && (
             <div className="mt-4 grid grid-cols-2 gap-4">
@@ -147,6 +165,20 @@ export default function Savings() {
               <div className="bg-white/10 rounded-lg p-3">
                 <p className="text-sm text-amber-100">Crypto Balance</p>
                 <p className="text-xl font-semibold">{formatTZS(blockchainBalance)}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Live Wallet Balances */}
+          {isBalanceVisible && isWalletConnected && walletTokenBalance && (
+            <div className="mt-4 grid grid-cols-2 gap-4">
+              <div className="bg-blue-500/10 rounded-lg p-3">
+                <p className="text-sm text-blue-100">Wallet ETH</p>
+                <p className="text-lg font-semibold">{parseFloat(walletTokenBalance.eth).toFixed(4)} ETH</p>
+              </div>
+              <div className="bg-green-500/10 rounded-lg p-3">
+                <p className="text-sm text-green-100">Wallet USDT</p>
+                <p className="text-lg font-semibold">{parseFloat(walletTokenBalance.usdt).toFixed(2)} USDT</p>
               </div>
             </div>
           )}
@@ -189,6 +221,19 @@ export default function Savings() {
                 </div>
               </div>
             </div>
+
+            {/* Conversion Rates Display */}
+            {isBalanceVisible && conversionRates && (
+              <div className="bg-white/10 rounded-lg p-3 text-sm">
+                <p className="text-amber-100 mb-2">Current Exchange Rates:</p>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>1 USD = {conversionRates.rates.USD_TZS.toFixed(0)} TZS</div>
+                  <div>1 ETH = {conversionRates.rates.ETH_USD.toFixed(0)} USD</div>
+                  <div>1 USDT = {conversionRates.rates.USD_USDT.toFixed(2)} USD</div>
+                  <div>1 BTC = {(conversionRates.rates.BTC_USD/1000).toFixed(0)}k USD</div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <div className="absolute -right-8 -top-8 h-64 w-64 rounded-full bg-white/10"></div>
@@ -269,10 +314,25 @@ export default function Savings() {
       {/* Deposit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogTrigger asChild>
-          <Button size="lg" className="gap-2 text-white bg-amber-700 hover:bg-amber-800">
-            <BanknoteIcon className="h-5 w-5" />
-            Deposit Funds
-          </Button>
+          <div className="flex gap-3">
+            <Button 
+              size="lg" 
+              className="gap-2 text-white bg-amber-700 hover:bg-amber-800"
+              onClick={() => setEnhancedPaymentOpen(true)}
+            >
+              <BanknoteIcon className="h-5 w-5" />
+              Enhanced Deposit
+            </Button>
+            <Button 
+              size="lg" 
+              variant="outline"
+              className="gap-2"
+              onClick={() => setDialogOpen(true)}
+            >
+              <CreditCard className="h-5 w-5" />
+              Quick Deposit
+            </Button>
+          </div>
         </DialogTrigger>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -320,8 +380,8 @@ export default function Savings() {
                   <div className="text-center p-6 bg-gray-50 rounded-lg">
                     <Wallet className="h-12 w-12 mx-auto text-gray-400 mb-3" />
                     <p className="text-gray-600 mb-4">Connect your MetaMask wallet to deposit cryptocurrency</p>
-                    <Button 
-                      onClick={handleConnectWallet} 
+                    <Button
+                      onClick={handleConnectWallet}
                       disabled={isConnectingWallet}
                       className="text-white bg-amber-700 hover:bg-amber-800"
                     >
@@ -386,6 +446,14 @@ export default function Savings() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Enhanced Payment Dialog */}
+      <EnhancedPaymentDialog
+        isOpen={enhancedPaymentOpen}
+        onClose={() => setEnhancedPaymentOpen(false)}
+        amount={Number(depositAmount) || 100000}
+        onPaymentSuccess={handleEnhancedPaymentSuccess}
+      />
     </div>
   )
 }

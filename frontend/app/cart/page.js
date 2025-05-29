@@ -5,11 +5,13 @@ import CartComponent from '../../components/CartComponent'
 import { useCartStore } from '../../store/cartStore'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import { EnhancedPaymentDialog } from '@/app/components/enhanced-payment-dialog'
 
 export default function CartPage() {
   const router = useRouter()
-  const { checkoutCart } = useCartStore()
+  const { checkoutCart, getCartTotal } = useCartStore()
   const [isProcessing, setIsProcessing] = useState(false)
+  const [enhancedPaymentOpen, setEnhancedPaymentOpen] = useState(false)
 
   // Check if user is logged in and is a tourist
   useEffect(() => {
@@ -48,6 +50,17 @@ export default function CartPage() {
     }
   }
 
+  const handleEnhancedPaymentSuccess = async (paymentResult) => {
+    try {
+      toast.success('Cart checkout completed successfully!')
+      setEnhancedPaymentOpen(false)
+      router.push('/my-bookings')
+    } catch (error) {
+      console.error('Error handling payment success:', error)
+      toast.error('Error processing checkout confirmation')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4">
@@ -63,6 +76,15 @@ export default function CartPage() {
         <CartComponent 
           onCheckout={handleCheckout}
           isProcessing={isProcessing}
+          onEnhancedCheckout={() => setEnhancedPaymentOpen(true)}
+        />
+
+        <EnhancedPaymentDialog
+          isOpen={enhancedPaymentOpen}
+          onClose={() => setEnhancedPaymentOpen(false)}
+          amount={getCartTotal()}
+          onPaymentSuccess={handleEnhancedPaymentSuccess}
+          cartId={true}
         />
       </div>
     </div>

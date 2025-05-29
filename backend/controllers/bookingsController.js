@@ -1087,30 +1087,14 @@ exports.processBookingPayment = async (req, res) => {
           break;
 
         case "crypto":
-          // For crypto payments, check blockchain deposit and then process payment
+          // Enhanced crypto payment processing with automatic payment support
           const walletAddress = req.body.walletAddress;
+          const useVaultBalance = req.body.useVaultBalance || false;
+          
           if (!walletAddress) {
             await connection.rollback();
             connection.release();
             return res.status(400).json({ message: "Wallet address required for crypto payment" });
-          }
-
-          // Convert TZS amount to USDT for blockchain verification
-          const expectedUsdtAmount = await blockchainService.convertTzsToUsdt(booking.total_cost);
-          const depositCheck = await blockchainService.checkRecentDeposits(
-            walletAddress, 
-            expectedUsdtAmount,
-            600000 // 10 minutes window
-          );
-
-          if (!depositCheck.found) {
-            await connection.rollback();
-            connection.release();
-            return res.status(400).json({ 
-              message: "Crypto payment not found. Please ensure your transaction is confirmed.",
-              expectedAmount: expectedUsdtAmount,
-              currency: 'USDT'
-            });
           }
 
           // Update user's wallet address if not already set
@@ -1119,8 +1103,55 @@ exports.processBookingPayment = async (req, res) => {
             [walletAddress, userId]
           );
 
+          let cryptoPaymentResult;
+          
+          if (useVaultBalance) {
+            // Use vault balance for automatic payment
+            cryptoPaymentResult = await blockchainService.processAutomaticPayment(
+              walletAddress, 
+              booking.total_cost
+            );
+            
+            if (!cryptoPaymentResult.success) {
+              await connection.rollback();
+              connection.release();
+              return res.status(400).json({ 
+                message: cryptoPaymentResult.error || "Crypto payment from vault failed",
+                errorDetails: cryptoPaymentResult
+              });
+            }
+            
+            // Update blockchain balance in database
+            await connection.query(
+              "UPDATE savings_accounts SET blockchain_balance = blockchain_balance - ? WHERE user_id = ?",
+              [booking.total_cost, userId]
+            );
+            
+            paymentReference = cryptoPaymentResult.transactionHash;
+          } else {
+            // Check for recent deposits (new payment)
+            const expectedUsdtAmount = await blockchainService.convertTzsToUsdt(booking.total_cost);
+            const depositCheck = await blockchainService.checkRecentDeposits(
+              walletAddress, 
+              expectedUsdtAmount,
+              600000 // 10 minutes window
+            );
+
+            if (!depositCheck.found) {
+              await connection.rollback();
+              connection.release();
+              return res.status(400).json({ 
+                message: "Crypto payment not found. Please ensure your transaction is confirmed.",
+                expectedAmount: expectedUsdtAmount,
+                currency: 'USDT',
+                walletAddress: walletAddress
+              });
+            }
+            
+            paymentReference = depositCheck.transactionHash;
+          }
+
           paymentSuccess = true;
-          paymentReference = depositCheck.transactionHash;
           break;
 
         case "savings":

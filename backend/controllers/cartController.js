@@ -557,19 +557,76 @@ exports.checkoutCart = async (req, res) => {
         paymentReference = `SAVINGS_${Date.now()}`;
 
       } else if (paymentMethod === 'crypto') {
-        // Handle crypto payment through blockchain service
-        try {
-          const cryptoResult = await blockchainService.processPayment(userId, paymentAmount, walletSignature);
-          if (!cryptoResult.success) {
-            await connection.rollback();
-            connection.release();
-            return res.status(400).json({ message: cryptoResult.message || "Crypto payment failed" });
-          }
-          paymentReference = cryptoResult.transactionHash || `CRYPTO_${Date.now()}`;
-        } catch (cryptoError) {
+        // Enhanced crypto payment processing with automatic payment support
+        const walletAddress = req.body.walletAddress;
+        const useVaultBalance = req.body.useVaultBalance || false;
+        
+        if (!walletAddress) {
           await connection.rollback();
           connection.release();
-          return res.status(400).json({ message: "Crypto payment processing failed" });
+          return res.status(400).json({ message: "Wallet address required for crypto payment" });
+        }
+
+        // Update user's wallet address if not already set
+        await connection.query(
+          "UPDATE users SET wallet_address = ? WHERE id = ? AND wallet_address IS NULL",
+          [walletAddress, userId]
+        );
+
+        try {
+          let cryptoPaymentResult;
+          
+          if (useVaultBalance) {
+            // Use vault balance for automatic payment
+            cryptoPaymentResult = await blockchainService.processAutomaticPayment(
+              walletAddress, 
+              paymentAmount
+            );
+            
+            if (!cryptoPaymentResult.success) {
+              await connection.rollback();
+              connection.release();
+              return res.status(400).json({ 
+                message: cryptoPaymentResult.error || "Crypto payment from vault failed",
+                errorDetails: cryptoPaymentResult
+              });
+            }
+            
+            // Update blockchain balance in database
+            await connection.query(
+              "UPDATE savings_accounts SET blockchain_balance = blockchain_balance - ? WHERE user_id = ?",
+              [paymentAmount, userId]
+            );
+            
+            paymentReference = cryptoPaymentResult.transactionHash;
+          } else {
+            // Check for recent deposits (new payment)
+            const blockchainService = require('../services/blockchainService');
+            const expectedUsdtAmount = await blockchainService.convertTzsToUsdt(paymentAmount);
+            const depositCheck = await blockchainService.checkRecentDeposits(
+              walletAddress, 
+              expectedUsdtAmount,
+              600000 // 10 minutes window
+            );
+
+            if (!depositCheck.found) {
+              await connection.rollback();
+              connection.release();
+              return res.status(400).json({ 
+                message: "Crypto payment not found. Please ensure your transaction is confirmed.",
+                expectedAmount: expectedUsdtAmount,
+                currency: 'USDT',
+                walletAddress: walletAddress
+              });
+            }
+            
+            paymentReference = depositCheck.transactionHash;
+          }
+        } catch (cryptoError) {
+          console.error('Crypto payment error:', cryptoError);
+          await connection.rollback();
+          connection.release();
+          return res.status(400).json({ message: "Crypto payment processing failed", error: cryptoError.message });
         }
 
       } else if (paymentMethod === 'stripe') {

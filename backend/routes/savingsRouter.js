@@ -36,4 +36,42 @@ router.get(
   savingsController.getLiveBlockchainBalance,
 );
 
+// Connect wallet
+router.post(
+  "/connect-wallet",
+  authenticateToken,
+  checkRole("tourist"),
+  savingsController.connectWallet,
+);
+
+// Disconnect wallet
+router.post(
+  "/disconnect-wallet",
+  authenticateToken,
+  checkRole("tourist"),
+  savingsController.disconnectWallet,
+);
+
+// Get conversion rates
+router.get(
+  "/conversion-rates",
+  authenticateToken,
+  savingsController.getConversionRates,
+);
+
+// Get network info
+router.get(
+  "/network-info",
+  authenticateToken,
+  savingsController.getNetworkInfo,
+);
+
+// Process automatic crypto payment
+router.post(
+  "/crypto-payment",
+  authenticateToken,
+  checkRole("tourist"),
+  savingsController.processAutomaticCryptoPayment,
+);
+
 module.exports = router;

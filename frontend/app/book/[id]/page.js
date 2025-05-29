@@ -48,6 +48,7 @@ import { RouteProtection } from "@/components/route-protection"
 // Import shared utilities
 import { formatBookingDate } from "@/app/utils/dateUtils"
 import { TransportIcon } from "@/app/components/shared/TransportIcon"
+import { EnhancedPaymentDialog } from "@/app/components/enhanced-payment-dialog"
 import { formatTZS } from "@/app/utils/currency"
 import { debounce } from "lodash"
 import { toast } from "sonner"
@@ -77,10 +78,9 @@ function BookLocation({ params }) {
     agreedToTerms,
     paymentMethod,
     isPaymentDialogOpen,
-    savingsBalance,
-    walletAddress,
-    isWalletConnected,
-    isConnectingWallet,
+    isEnhancedPaymentOpen,
+    setIsEnhancedPaymentOpen,
+    processEnhancedPayment,
     setStartDate,
     setEndDate,
     setSelectedOrigin,
@@ -256,6 +256,18 @@ function BookLocation({ params }) {
     }, [agreedToTerms, setIsPaymentDialogOpen, setErrors]
   )
 
+  const handleEnhancedPaymentSuccess = useCallback(async (paymentResult) => {
+    try {
+      toast.success(`Booking confirmed! Payment of ${formatTZS(totalPrice)} processed successfully.`);
+      setIsEnhancedPaymentOpen(false);
+      resetBooking();
+      router.push("/my-bookings");
+    } catch (error) {
+      console.error("Error handling payment success:", error);
+      toast.error("Error processing booking confirmation");
+    }
+  }, [totalPrice, resetBooking, router])
+
   const processPayment = useCallback(async () => {
     if (!paymentMethod) {
       toast.error("Please select a payment method");
@@ -275,22 +287,22 @@ function BookLocation({ params }) {
 
     try {
       // Create booking first
-      const bookingData = {
-        destinationId: parseInt(id, 10),
-        startDate,
-        endDate,
-        transportRoute: selectedTransportRoute,
-        hotel: selectedHotel,
-        activities: selectedActivities,
-        activitySchedules,
-        flexibleOptions,
-        totalPrice
-      };
+      const booking = await createBooking(
+        id,
+        {
+          startDate,
+          endDate,
+          selectedOrigin,
+          selectedTransportRoute,
+          selectedHotel,
+          selectedActivities,
+          activitySchedules,
+          flexibleOptions
+        }
+      );
 
-      const booking = await createBooking(bookingData);
-      
-      if (!booking.success) {
-        toast.error(booking.error || "Failed to create booking");
+      if (booking.error) {
+        toast.error(booking.error);
         return;
       }
 
@@ -301,18 +313,16 @@ function BookLocation({ params }) {
         case "crypto":
           // For crypto payments, we need the wallet address
           paymentResult = await bookingCreationService.processPayment(booking.bookingId, {
-            paymentMethod: "crypto",
-            walletAddress: walletAddress
+            paymentMethod: "crypto"
           });
           break;
-          
+
         case "savings":
           paymentResult = await bookingCreationService.processPayment(booking.bookingId, {
             paymentMethod: "savings"
           });
           break;
-          
-        case "credit":
+
         default:
           paymentResult = await bookingCreationService.processPayment(booking.bookingId, {
             paymentMethod: "external"
@@ -328,25 +338,24 @@ function BookLocation({ params }) {
       } else {
         toast.error(paymentResult?.error || "Payment processing failed");
       }
-      
+
     } catch (error) {
       console.error("Error processing payment:", error);
       toast.error("Failed to process payment. Please try again.");
     }
   }, [
     paymentMethod,
-    isWalletConnected,
     savingsBalance,
     totalPrice,
     id,
     startDate,
     endDate,
+    selectedOrigin,
     selectedTransportRoute,
     selectedHotel,
     selectedActivities,
     activitySchedules,
     flexibleOptions,
-    walletAddress,
     createBooking,
     setIsPaymentDialogOpen,
     resetBooking,
@@ -898,23 +907,93 @@ function BookLocation({ params }) {
                           >
                             <CardContent className="p-6">
                               <div className="flex justify-between items-start">
-                                <div className="flex items-start gap-4">
+                                <div className="flex items-start gap-4 flex-1">
                                   <div className="p-2 rounded-lg bg-blue-100">
                                     {getTransportIcon(route.transportation_type)}
                                   </div>
-                                  <div>
+                                  <div className="flex-1">
                                     <h4 className="text-lg font-semibold mb-1">
-                                      {route.origin} → {route.destination}
+                                      {route.origin_name} → {route.destination_name}
                                     </h4>
                                     <div className="flex items-center gap-2 mb-2">
                                       <Badge variant="outline" className="bg-blue-50 border-blue-200">
                                         {route.transportation_type}
                                       </Badge>
+                                      {route.agency_name && (
+                                        <span className="text-sm text-gray-600">by {route.agency_name}</span>
+                                      )}
                                     </div>
-                                    <p className="text-gray-600 text-sm">{route.description}</p>
+                                    
+                                    {/* Multi-leg journey details */}
+                                    {route.route_details && route.route_details.legs && route.route_details.legs.length > 1 ? (
+                                      <div className="mt-3 space-y-2">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <Badge variant="secondary" className="bg-green-100 text-green-800">
+                                            Multi-leg Journey ({route.route_details.legs.length} legs)
+                                          </Badge>
+                                          {route.route_details.total_duration && (
+                                            <span className="text-xs text-gray-600">
+                                              Total: {route.route_details.total_duration}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="space-y-2 max-h-32 overflow-y-auto">
+                                          {route.route_details.legs.map((leg, legIndex) => (
+                                            <div key={legIndex} className="bg-gray-50 p-3 rounded text-sm">
+                                              <div className="flex items-center justify-between mb-1">
+                                                <span className="font-medium text-blue-700">
+                                                  Leg {legIndex + 1}: {leg.departure} → {leg.arrival}
+                                                </span>
+                                                {leg.carrier && (
+                                                  <span className="text-xs text-gray-600">{leg.carrier}</span>
+                                                )}
+                                              </div>
+                                              {(leg.departure_time || leg.arrival_time || leg.flight_number) && (
+                                                <div className="text-xs text-gray-600 space-y-1">
+                                                  {(leg.departure_time || leg.arrival_time) && (
+                                                    <p>
+                                                      {leg.departure_time && `Dep: ${leg.departure_time}`}
+                                                      {leg.departure_time && leg.arrival_time && ' → '}
+                                                      {leg.arrival_time && `Arr: ${leg.arrival_time}`}
+                                                    </p>
+                                                  )}
+                                                  {leg.flight_number && (
+                                                    <p>Flight: {leg.flight_number}</p>
+                                                  )}
+                                                  {leg.duration_hours && (
+                                                    <p>Duration: {leg.duration_hours}h</p>
+                                                  )}
+                                                </div>
+                                              )}
+                                            </div>
+                                          ))}
+                                        </div>
+                                        {route.route_details.booking_instructions && (
+                                          <div className="mt-2 p-2 bg-amber-50 rounded text-xs text-amber-800">
+                                            <strong>Instructions:</strong> {route.route_details.booking_instructions}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <div className="mt-2">
+                                        {route.description && (
+                                          <p className="text-gray-600 text-sm">{route.description}</p>
+                                        )}
+                                        {route.route_details && typeof route.route_details === 'string' && (
+                                          <p className="text-gray-600 text-sm">{route.route_details}</p>
+                                        )}
+                                      </div>
+                                    )}
+                                    
+                                    {/* Contact information */}
+                                    {route.agency_phone && (
+                                      <div className="mt-2 text-xs text-gray-500">
+                                        Contact: {route.agency_phone}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
-                                <div className="text-right">
+                                <div className="text-right ml-4">
                                   <div className="text-xl font-bold">${route.cost}</div>
                                   {selectedTransportRoute === route.id.toString() && (
                                     <div className="flex items-center gap-2 text-amber-600 mt-2">
@@ -1452,28 +1531,76 @@ function BookLocation({ params }) {
                       )}
                       
                       {selectedRoute && (
-                        <div className="flex items-start gap-3 mb-4 pt-4 border-t">
-                          <div className="h-9 w-9 rounded-full bg-amber-50 flex-shrink-0 flex items-center justify-center">
-                            {getTransportIcon(selectedRoute.transportation_type)}
-                          </div>
-                          <div className="flex-grow">
-                            <div className="flex justify-between">
-                              <div>
-                                <h4 className="font-medium">{selectedRoute.transportation_type || "Transport"}</h4>
-                                <p className="text-sm text-gray-500">
-                                  {selectedRoute.origin} to {selectedRoute.destination}
-                                </p>
-                                {selectedRoute.agency_name && (
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    Provider: {selectedRoute.agency_name}
+                        <div className="mb-4 pt-4 border-t">
+                          <div className="flex items-start gap-3 mb-3">
+                            <div className="h-9 w-9 rounded-full bg-amber-50 flex-shrink-0 flex items-center justify-center">
+                              {getTransportIcon(selectedRoute.transportation_type)}
+                            </div>
+                            <div className="flex-grow">
+                              <div className="flex justify-between">
+                                <div>
+                                  <h4 className="font-medium">{selectedRoute.transportation_type || "Transport"}</h4>
+                                  <p className="text-sm text-gray-500">
+                                    {selectedRoute.origin_name} to {selectedRoute.destination_name}
                                   </p>
-                                )}
-                              </div>
-                              <div className="text-right">
-                                <div className="text-sm font-medium text-amber-600">${selectedRoute.cost}</div>
+                                  {selectedRoute.agency_name && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      Provider: {selectedRoute.agency_name}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-sm font-medium text-amber-600">${selectedRoute.cost}</div>
+                                </div>
                               </div>
                             </div>
                           </div>
+                          
+                          {/* Multi-leg journey details for review */}
+                          {selectedRoute.route_details && selectedRoute.route_details.legs && selectedRoute.route_details.legs.length > 1 && (
+                            <div className="bg-blue-50 p-3 rounded-md">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
+                                  Multi-leg Journey
+                                </Badge>
+                                {selectedRoute.route_details.total_duration && (
+                                  <span className="text-xs text-gray-600">
+                                    Total: {selectedRoute.route_details.total_duration}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="space-y-2">
+                                {selectedRoute.route_details.legs.map((leg, legIndex) => (
+                                  <div key={legIndex} className="bg-white p-2 rounded text-xs">
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-medium text-blue-700">
+                                        {leg.departure} → {leg.arrival}
+                                      </span>
+                                      {leg.carrier && (
+                                        <span className="text-gray-600">{leg.carrier}</span>
+                                      )}
+                                    </div>
+                                    {(leg.departure_time || leg.flight_number) && (
+                                      <div className="mt-1 text-gray-600">
+                                        {leg.departure_time && `Dep: ${leg.departure_time}`}
+                                        {leg.flight_number && ` • ${leg.flight_number}`}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                              {selectedRoute.route_details.booking_instructions && (
+                                <div className="mt-2 p-2 bg-amber-100 rounded text-xs text-amber-800">
+                                  <strong>Important:</strong> {selectedRoute.route_details.booking_instructions}
+                                </div>
+                              )}
+                              {selectedRoute.agency_phone && (
+                                <div className="mt-2 text-xs text-gray-600">
+                                  <strong>Contact for details:</strong> {selectedRoute.agency_phone}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )}
                     </CardContent>
@@ -1638,6 +1765,14 @@ function BookLocation({ params }) {
                             >
                               <CreditCard className="mr-2 h-4 w-4" />
                               Pay Now
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={() => setIsEnhancedPaymentOpen(true)}
+                              className="w-full text-white bg-green-700 hover:bg-green-800"
+                            >
+                              <Wallet className="mr-2 h-4 w-4" />
+                              Enhanced Payment
                             </Button>
                           </div>
                           
@@ -1826,7 +1961,6 @@ function BookLocation({ params }) {
               onClick={processPayment}
               disabled={
                 (paymentMethod === "savings" && savingsBalance < totalPrice) ||
-                (paymentMethod === "crypto" && !isWalletConnected) ||
                 !paymentMethod
               }
             >
@@ -1835,6 +1969,15 @@ function BookLocation({ params }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Enhanced Payment Dialog */}
+      <EnhancedPaymentDialog
+        isOpen={isEnhancedPaymentOpen}
+        onClose={() => setIsEnhancedPaymentOpen(false)}
+        amount={totalPrice}
+        onPaymentSuccess={handleEnhancedPaymentSuccess}
+        bookingId={null}
+      />
     </div>
   )
 }

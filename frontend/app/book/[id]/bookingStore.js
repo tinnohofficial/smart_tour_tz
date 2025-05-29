@@ -36,10 +36,8 @@ export const useBookingStore = create((set, get) => ({
   isPaymentDialogOpen: false,
   savingsBalance: 2000, // Mock savings balance
   
-  // Crypto payment state
-  walletAddress: null,
-  isWalletConnected: false,
-  isConnectingWallet: false,
+  // Enhanced payment state
+  isEnhancedPaymentOpen: false,
   
   // API data
   destination: null,
@@ -269,36 +267,63 @@ export const useBookingStore = create((set, get) => ({
   setAgreedToTerms: (agreed) => set({ agreedToTerms: agreed, errors: {} }),
   setPaymentMethod: (method) => set({ paymentMethod: method }),
   setIsPaymentDialogOpen: (isOpen) => set({ isPaymentDialogOpen: isOpen }),
+  setIsEnhancedPaymentOpen: (isOpen) => set({ isEnhancedPaymentOpen: isOpen }),
 
-  // Crypto wallet actions
-  connectWallet: async () => {
-    set({ isConnectingWallet: true });
+  // Enhanced payment processing
+  processEnhancedPayment: async (paymentResult) => {
     try {
-      if (typeof window !== 'undefined' && window.ethereum) {
-        const accounts = await window.ethereum.request({ 
-          method: 'eth_requestAccounts' 
-        });
-        if (accounts.length > 0) {
-          set({ 
-            walletAddress: accounts[0], 
-            isWalletConnected: true,
-            isConnectingWallet: false 
-          });
-          return { success: true, address: accounts[0] };
-        }
+      const { step, startDate, endDate, selectedTransportRoute, selectedHotel, selectedActivities, activitySchedules, flexibleOptions } = get();
+      const state = get();
+      
+      // Create booking first
+      const bookingData = {
+        startDate,
+        endDate,
+        selectedOrigin: state.selectedOrigin,
+        selectedTransportRoute: state.selectedTransportRoute,
+        selectedHotel: state.selectedHotel,
+        selectedActivities: state.selectedActivities,
+        activitySchedules: state.activitySchedules,
+        flexibleOptions: state.flexibleOptions
+      };
+
+      const booking = await bookingCreationService.createBooking(
+        state.destination?.id,
+        bookingData
+      );
+
+      if (booking.error) {
+        throw new Error(booking.error);
+      }
+
+      // Process payment with booking ID
+      const endpoint = `/api/bookings/${booking.bookingId}/pay`;
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          paymentMethod: paymentResult.method,
+          ...paymentResult.data
+        })
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        return { success: true, ...result };
       } else {
-        throw new Error('MetaMask not found');
+        throw new Error(result.message || 'Payment failed');
       }
     } catch (error) {
-      set({ isConnectingWallet: false });
+      console.error('Enhanced payment error:', error);
       return { success: false, error: error.message };
     }
   },
-
-  disconnectWallet: () => set({ 
-    walletAddress: null, 
-    isWalletConnected: false 
-  }),
 
   resetBooking: () => set({
     step: 1,
@@ -318,6 +343,7 @@ export const useBookingStore = create((set, get) => ({
     agreedToTerms: false,
     paymentMethod: "",
     isPaymentDialogOpen: false,
+    isEnhancedPaymentOpen: false,
     // Keep destination and other API data
   }),
 

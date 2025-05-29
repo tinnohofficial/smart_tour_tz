@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { transportOriginsService, destinationsService, uploadService } from "@/app/services/api"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
@@ -28,7 +29,7 @@ export default function TravelAgentProfile() {
   const [name, setName] = useState("")
   const [routes, setRoutes] = useState([])
   const [isApproved, setIsApproved] = useState(false)
-  
+
   // New state for origins and destinations
   const [origins, setOrigins] = useState([])
   const [destinations, setDestinations] = useState([])
@@ -37,9 +38,10 @@ export default function TravelAgentProfile() {
   const [newRoute, setNewRoute] = useState({
     origin_id: '',
     destination_id: '',
-    transport_type: 'bus',
-    price: '',
-    description: ''
+    transportation_type: 'bus',
+    cost: '',
+    description: '',
+    route_details: ''
   })
 
   // Fetch origins and destinations on component mount
@@ -60,7 +62,7 @@ export default function TravelAgentProfile() {
         setIsLoadingData(false)
       }
     }
-    
+
     fetchData()
   }, [])
 
@@ -88,40 +90,24 @@ export default function TravelAgentProfile() {
         const data = await response.json()
         setProfileData(data)
         setName(data.name || "")
-        
-        // Process routes to ensure schedule_details is properly formatted
+
+        // Process routes to ensure route_details is properly formatted
         const processedRoutes = (data.routes || []).map(route => {
-          // Format any objects in description field
-          let formattedDescription = route.description;
-          if (route.description && typeof route.description === 'object') {
-            // If description looks like schedule_details
-            if (route.description.frequency !== undefined || route.description.departure_time !== undefined) {
-              formattedDescription = `${route.description.frequency || ''} ${route.description.departure_time ? `at ${route.description.departure_time}` : ''}`.trim();
-            } else {
-              // For other objects, stringify them safely
-              formattedDescription = JSON.stringify(route.description);
-            }
+          // Format route_details if it's an object
+          let formattedRouteDetails = route.route_details;
+          if (route.route_details && typeof route.route_details === 'object') {
+            formattedRouteDetails = JSON.stringify(route.route_details, null, 2);
           }
 
-          // If schedule_details is present, ensure it's properly handled
-          if (route.schedule_details && typeof route.schedule_details === 'object') {
-            return {
-              ...route,
-              description: formattedDescription,
-              // Store schedule_details but don't render it directly
-              schedule_details_formatted: `${route.schedule_details.frequency || ''} ${route.schedule_details.departure_time ? `at ${route.schedule_details.departure_time}` : ''}`.trim()
-            };
-          }
-          
           return {
             ...route,
-            description: formattedDescription
+            route_details_formatted: formattedRouteDetails || ''
           };
         });
-        
+
         setRoutes(processedRoutes)
-        setDocumentUrl(data.document_url ? 
-          (Array.isArray(data.document_url) ? data.document_url : [data.document_url]) : 
+        setDocumentUrl(data.document_url ?
+          (Array.isArray(data.document_url) ? data.document_url : [data.document_url]) :
           [])
         setIsApproved(data.status === 'active')
         setIsSaved(true)
@@ -150,7 +136,7 @@ export default function TravelAgentProfile() {
       // Upload any new documents first
       setIsUploading(true)
       const uploadedDocUrls = []
-      
+
       for (const docFile of documentUrl) {
         if (docFile instanceof File) {
           try {
@@ -176,11 +162,35 @@ export default function TravelAgentProfile() {
         return
       }
 
-      // Prepare data for submission using the correct field names
+      // Prepare data for submission with parsed route_details
+      const processedRoutes = routes.map(route => {
+        let route_details = null;
+        if (route.route_details) {
+          try {
+            // Try to parse as JSON if it's a string
+            route_details = typeof route.route_details === 'string'
+              ? JSON.parse(route.route_details)
+              : route.route_details;
+          } catch (e) {
+            // If parsing fails, keep as string
+            route_details = route.route_details;
+          }
+        }
+
+        return {
+          origin_id: route.origin_id,
+          destination_id: route.destination_id,
+          transportation_type: route.transportation_type,
+          cost: route.cost,
+          description: route.description,
+          route_details
+        };
+      });
+
       const profileData = {
         name: name,
         document_url: uploadedDocUrls,
-        routes: routes
+        routes: processedRoutes
       }
 
       const method = isSaved ? 'PUT' : 'POST'
@@ -202,7 +212,7 @@ export default function TravelAgentProfile() {
       setIsSaved(true)
       setProfileData(responseData)
       setDocumentUrl(uploadedDocUrls)
-      
+
       toast.success('Profile saved successfully!', {
         description: isSaved ? 'Your profile has been updated.' : 'Your profile is now pending approval by the administrator.',
       })
@@ -218,8 +228,8 @@ export default function TravelAgentProfile() {
   }
 
   const handleAddRoute = () => {
-    if (!newRoute.origin_id || !newRoute.destination_id || !newRoute.price) {
-      toast.error("Origin, destination, and price are required for a route")
+    if (!newRoute.origin_id || !newRoute.destination_id || !newRoute.cost) {
+      toast.error("Origin, destination, and cost are required for a route")
       return
     }
 
@@ -228,10 +238,21 @@ export default function TravelAgentProfile() {
       return
     }
 
-    // Validate price is a number
-    if (isNaN(parseFloat(newRoute.price))) {
-      toast.error("Price must be a valid number")
+    // Validate cost is a number
+    if (isNaN(parseFloat(newRoute.cost))) {
+      toast.error("Cost must be a valid number")
       return
+    }
+
+    // Parse route_details if provided
+    let route_details = null;
+    if (newRoute.route_details.trim()) {
+      try {
+        route_details = JSON.parse(newRoute.route_details);
+      } catch (e) {
+        toast.error("Route details must be valid JSON format")
+        return
+      }
     }
 
     // Find origin and destination names for display
@@ -244,9 +265,9 @@ export default function TravelAgentProfile() {
         ...newRoute,
         origin: originName, // Keep for display compatibility
         destination: destinationName, // Keep for display compatibility
-        price: parseFloat(newRoute.price),
-        // Add empty schedule_details_formatted to maintain consistent structure
-        schedule_details_formatted: ''
+        cost: parseFloat(newRoute.cost),
+        route_details,
+        route_details_formatted: newRoute.route_details || ''
       }
     ])
 
@@ -254,9 +275,10 @@ export default function TravelAgentProfile() {
     setNewRoute({
       origin_id: '',
       destination_id: '',
-      transport_type: 'bus',
-      price: '',
-      description: ''
+      transportation_type: 'bus',
+      cost: '',
+      description: '',
+      route_details: ''
     })
   }
 
@@ -278,208 +300,158 @@ export default function TravelAgentProfile() {
     }
   }
 
-  const safeRenderText = (value) => {
-    if (value === null || value === undefined) {
-      return '';
+  // Helper function to safely render text content
+  const safeRenderText = (text) => {
+    if (typeof text === 'string') {
+      return text;
     }
-    
-    if (typeof value === 'object') {
-      // If it looks like a schedule_details object
-      if (value.frequency !== undefined || value.departure_time !== undefined) {
-        return `${value.frequency || ''} ${value.departure_time ? `at ${value.departure_time}` : ''}`.trim();
-      }
-      // Otherwise stringify
-      return JSON.stringify(value);
-    }
-    
-    return value;
-  };
+    return JSON.stringify(text);
+  }
 
   if (isLoading) {
     return (
-      <div className="flex h-[80vh] items-center justify-center">
+      <div className="flex h-screen items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-700 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading travel agency profile data...</p>
+          <p className="mt-4 text-gray-600">Loading profile...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="container px-1">
-      {/* Page Header */}
-      <div className="bg-amber-700 p-4 rounded-lg mb-6">
-        <div className="flex flex-col md:flex-row justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-bold text-white">Travel Agency Profile</h1>
-            <p className="text-amber-100 text-sm">Manage your agency information and transport routes</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Profile Form */}
-      <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-          {/* Left Column - Agency Preview Card */}
-          <div className="md:col-span-4">
-            <Card className="bg-white border-0 py-0 shadow-md overflow-hidden">
-              <div className="bg-gradient-to-br from-amber-700 to-amber-800 h-24"></div>
-              <div className="px-6 pb-6 -mt-12 flex flex-col items-center">
-                <div className="w-24 h-24 rounded-full bg-amber-100 border-4 border-white shadow-md flex items-center justify-center mb-3">
-                  {name ? (
-                    <span className="text-3xl font-semibold text-amber-700">{name.charAt(0)}</span>
-                  ) : (
-                    <Briefcase className="h-10 w-10 text-amber-600" />
-                  )}
-                </div>
-                
-                <h2 className="text-xl font-semibold">{name || "Agency Name"}</h2>
-                
-                <div className="flex gap-2 mt-4">
-                  <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-200 border-0">Travel Agency</Badge>
-                  {isApproved ? (
-                    <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-0">
-                      <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                      Verified
-                    </Badge>
-                  ) : (
-                    <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-200 border-0">
-                      Pending
-                    </Badge>
-                  )}
-                </div>
-
-                <div className="w-full mt-6">
-                  <div className="flex items-center gap-2 py-2 border-t">
-                    <Car className="h-4 w-4 text-amber-700" />
-                    <span className="text-sm font-medium">Routes:</span>
-                    <span className="text-sm text-gray-600">{routes?.length || 0} transport routes</span>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 py-2 border-t">
-                    <UploadCloud className="h-4 w-4 text-green-600" />
-                    <span className="text-sm font-medium">Documents:</span>
-                    <span className="text-sm text-gray-600">{documentUrl?.length || 0} uploaded</span>
-                  </div>
+    <div className="min-h-screen bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white shadow-lg rounded-lg overflow-hidden">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-amber-600 to-amber-700 px-6 py-8">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="h-12 w-12 bg-white rounded-full flex items-center justify-center">
+                  <Briefcase className="h-6 w-6 text-amber-600" />
                 </div>
               </div>
-            </Card>
+              <div className="ml-4">
+                <h1 className="text-2xl font-bold text-white">Travel Agent Profile</h1>
+                <p className="text-amber-100">Manage your agency information and transport routes</p>
+              </div>
+            </div>
           </div>
 
-          {/* Right Column - Profile Form */}
-          <div className="md:col-span-8 space-y-6">
-            {/* Agency Information Card */}
-            <Card className="shadow-sm py-0">
-              <CardHeader className="bg-gray-50 border-b p-4 flex flex-row items-start">
-                <Briefcase className="h-5 w-5 text-amber-700 mt-0.5 mr-2" />
+          {/* Status Alert */}
+          {!isApproved && isSaved && (
+            <div className="mx-6 mt-6">
+              <Alert className="bg-yellow-50 border-yellow-200">
+                <AlertCircle className="h-4 w-4 text-yellow-700" />
+                <AlertTitle className="text-yellow-800">Profile Under Review</AlertTitle>
+                <AlertDescription className="text-yellow-700">
+                  Your profile is currently being reviewed by our administrators. You'll be notified once it's approved.
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+
+          {isApproved && (
+            <div className="mx-6 mt-6">
+              <Alert className="bg-green-50 border-green-200">
+                <CheckCircle className="h-4 w-4 text-green-700" />
+                <AlertTitle className="text-green-800">Profile Approved</AlertTitle>
+                <AlertDescription className="text-green-700">
+                  Your travel agency profile has been approved! You can now receive booking requests.
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="p-6 space-y-8">
+            {/* Agency Information */}
+            <Card>
+              <CardHeader className="bg-gray-50 border-b">
                 <div>
                   <CardTitle className="text-base font-semibold">Agency Information</CardTitle>
                   <CardDescription>Basic information about your travel agency</CardDescription>
                 </div>
               </CardHeader>
-              
               <CardContent className="p-6 space-y-6">
-                <div className="grid gap-6">
-                  <div className="space-y-2">
-                    <label htmlFor="name" className="text-sm font-medium text-gray-700">Agency Name</label>
-                    <Input
-                      id="name"
-                      name="name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Safari Adventures"
-                      className="border-gray-300 focus:border-amber-600"
-                    />
-                  </div>
-                  
-                  <Alert className="bg-amber-50 border-amber-200">
-                    <AlertCircle className="h-4 w-4 text-amber-700" />
-                    <AlertDescription className="text-amber-700 text-sm">
-                      Contact information from your account will be used for agency communication.
-                    </AlertDescription>
-                  </Alert>
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-sm font-medium text-gray-700">Agency Name*</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    required
+                    placeholder="Enter your travel agency name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </div>
 
-                  <div className="space-y-2">
-                    <label htmlFor="documentUrl" className="text-sm font-medium text-gray-700">Legal Documents</label>
-                    <FileUploader
-                      onChange={handleFileChange}
-                      maxFiles={3}
-                      acceptedFileTypes="application/pdf,image/*"
-                      value={documentUrl}
-                    />
-                    <div className="flex items-start gap-2 mt-2 bg-gray-50 p-2 rounded-md">
-                      <Camera className="h-4 w-4 text-amber-700 mt-0.5 flex-shrink-0" />
-                      <p className="text-sm text-gray-600">
-                        Upload your business license and other legal documents (PDF or images).
-                      </p>
-                    </div>
+                <Alert className="bg-amber-50 border-amber-200">
+                  <AlertCircle className="h-4 w-4 text-amber-700" />
+                  <AlertDescription className="text-amber-700 text-sm">
+                    Contact information from your account will be used for agency communication.
+                  </AlertDescription>
+                </Alert>
+
+
+                <div className="space-y-2">
+                  <label htmlFor="documentUrl" className="text-sm font-medium text-gray-700">Legal Documents</label>
+                  <FileUploader
+                    onChange={handleFileChange}
+                    maxFiles={3}
+                    acceptedFileTypes="application/pdf,image/*"
+                    value={documentUrl}
+                  />
+                  <div className="flex items-start gap-2 mt-2 bg-gray-50 p-2 rounded-md">
+                    <Camera className="h-4 w-4 text-amber-700 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-gray-600">
+                      Upload your business license and other legal documents (PDF or images).
+                    </p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Transport Routes Card */}
-            <Card className="shadow-sm py-0">
-              <CardHeader className="bg-gray-50 border-b p-4 flex flex-row items-start">
-                <Car className="h-5 w-5 text-amber-700 mt-0.5 mr-2" />
+            {/* Transport Routes */}
+            <Card>
+              <CardHeader className="bg-gray-50 border-b">
                 <div>
                   <CardTitle className="text-base font-semibold">Transport Routes</CardTitle>
                   <CardDescription>Add or modify your transportation services</CardDescription>
                 </div>
               </CardHeader>
-              
-              <CardContent className="p-6 space-y-6">
-                {/* Routes list */}
-                {routes.length > 0 ? (
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-medium text-gray-700">Current Routes ({routes.length})</h3>
-                    <div className="grid grid-cols-1 gap-3">
+              <CardContent className="p-6">
+                {/* Existing routes display */}
+                {routes.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-sm font-medium mb-4">Current Routes ({routes.length})</h3>
+                    <div className="space-y-3">
                       {routes.map((route, index) => (
-                        <div key={index} className="border rounded-md p-4 relative">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute top-2 right-2 h-7 w-7"
-                            onClick={() => removeRoute(index)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                          
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-xs text-gray-500">Origin</p>
-                              <p className="font-medium">{route.origin}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-500">Destination</p>
-                              <p className="font-medium">{route.destination}</p>
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-4 mt-3">
-                            <div className="flex items-center">
-                              <div className="mr-2 w-5 h-5 bg-gray-100 rounded-full flex items-center justify-center">
-                                {getTransportIcon(route.transport_type)}
+                        <div key={index} className="border rounded-md p-4 bg-white hover:bg-gray-50">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 rounded-lg bg-blue-100">
+                                {getTransportIcon(route.transportation_type)}
                               </div>
                               <div>
-                                <p className="text-xs text-gray-500">Type</p>
-                                <p className="font-medium capitalize">{route.transport_type || 'Car'}</p>
+                                <h4 className="font-medium">{route.origin} → {route.destination}</h4>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Badge variant="outline" className="bg-blue-50 border-blue-200">
+                                    {route.transportation_type}
+                                  </Badge>
+                                  <span className="text-sm text-gray-600">${route.cost}</span>
+                                </div>
                               </div>
                             </div>
-                            <div>
-                              <p className="text-xs text-gray-500">Price</p>
-                              <p className="font-medium">${parseFloat(route.price).toFixed(2)}</p>
-                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeRoute(index)}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
-                          
-                          {/* Show schedule details if present */}
-                          {route.schedule_details_formatted && (
-                            <div className="mt-2">
-                              <p className="text-xs text-gray-500">Schedule</p>
-                              <p className="text-sm">{route.schedule_details_formatted}</p>
-                            </div>
-                          )}
                           
                           {route.description && (
                             <div className="mt-3 border-t pt-2">
@@ -487,15 +459,21 @@ export default function TravelAgentProfile() {
                               <p className="text-sm">{safeRenderText(route.description)}</p>
                             </div>
                           )}
+
+                          {route.route_details && (
+                            <div className="mt-3 border-t pt-2">
+                              <p className="text-xs text-gray-500 mb-2">Route Details</p>
+                              <div className="bg-gray-50 p-3 rounded text-sm font-mono text-gray-700 overflow-x-auto">
+                                {typeof route.route_details === 'object' 
+                                  ? JSON.stringify(route.route_details, null, 2)
+                                  : route.route_details
+                                }
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-6 border rounded-md bg-gray-50">
-                    <Car className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                    <p className="text-gray-500">No routes added yet</p>
-                    <p className="text-sm text-gray-400">Add your first transport route below</p>
                   </div>
                 )}
 
@@ -555,8 +533,8 @@ export default function TravelAgentProfile() {
                     <div className="space-y-2">
                       <Label htmlFor="transport_type">Transport Type*</Label>
                       <Select 
-                        value={newRoute.transport_type}
-                        onValueChange={(value) => setNewRoute({...newRoute, transport_type: value})}
+                        value={newRoute.transportation_type}
+                        onValueChange={(value) => setNewRoute({...newRoute, transportation_type: value})}
                       >
                         <SelectTrigger id="transport_type">
                           <SelectValue placeholder="Select type" />
@@ -576,8 +554,8 @@ export default function TravelAgentProfile() {
                         id="price"
                         type="number"
                         placeholder="e.g., 50"
-                        value={newRoute.price}
-                        onChange={(e) => setNewRoute({...newRoute, price: e.target.value})}
+                        value={newRoute.cost}
+                        onChange={(e) => setNewRoute({...newRoute, cost: e.target.value})}
                       />
                     </div>
                   </div>
@@ -592,6 +570,49 @@ export default function TravelAgentProfile() {
                     />
                   </div>
 
+                  <div className="space-y-2 mb-4">
+                    <Label htmlFor="route_details">Detailed Route Information (JSON)</Label>
+                    <Textarea
+                      id="route_details"
+                      placeholder={`{
+  "legs": [
+    {
+      "departure": "Manchester Airport",
+      "arrival": "Doha International",
+      "carrier": "Qatar Airways",
+      "departure_time": "14:30",
+      "arrival_time": "23:45",
+      "flight_number": "QR23",
+      "duration_hours": 7.5
+    },
+    {
+      "departure": "Doha International",
+      "arrival": "Kilimanjaro Airport", 
+      "carrier": "Qatar Airways",
+      "departure_time": "02:15",
+      "arrival_time": "08:30",
+      "flight_number": "QR1463",
+      "duration_hours": 4.5
+    }
+  ],
+  "total_duration": "24.5 hours",
+  "booking_instructions": "Check-in 3 hours before departure. Layover in Doha.",
+  "included_services": ["meals", "baggage", "seat_selection"]
+}`}
+                      value={newRoute.route_details}
+                      onChange={(e) => setNewRoute({...newRoute, route_details: e.target.value})}
+                      rows={12}
+                      className="font-mono text-sm"
+                    />
+                    <div className="flex items-start gap-2 mt-2 bg-blue-50 p-3 rounded-md">
+                      <MapPin className="h-4 w-4 text-blue-700 mt-0.5 flex-shrink-0" />
+                      <div className="text-sm text-blue-800">
+                        <p className="font-medium mb-1">Multi-leg Route Support</p>
+                        <p>Use JSON format to specify complex routes with multiple transportation legs, carrier details, timing, and special instructions. This gives you complete flexibility to describe your transport service.</p>
+                      </div>
+                    </div>
+                  </div>
+
                   <Button 
                     type="button" 
                     onClick={handleAddRoute}
@@ -601,32 +622,31 @@ export default function TravelAgentProfile() {
                   </Button>
                 </div>
               </CardContent>
-              
-              <CardFooter className="bg-gray-50 border-t px-6 py-4">
-                <div className="w-full flex justify-end">
-                  <Button 
-                    type="submit" 
-                    className="bg-amber-700 hover:bg-amber-800 text-white px-6" 
-                    disabled={isSubmitting || isUploading}
-                  >
-                    {(isSubmitting || isUploading) ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {isUploading ? "Uploading..." : "Saving..."}
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        Save Changes
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </CardFooter>
             </Card>
-          </div>
+
+            {/* Submit Button */}
+            <div className="flex justify-end pt-6 border-t">
+              <Button 
+                type="submit" 
+                className="bg-amber-700 hover:bg-amber-800 text-white px-8 py-2" 
+                disabled={isSubmitting || isUploading}
+              >
+                {(isSubmitting || isUploading) ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {isUploading ? "Uploading..." : "Saving..."}
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Profile
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
         </div>
-      </form>
+      </div>
     </div>
   )
 }
