@@ -285,7 +285,7 @@ export default function TourGuideCompleteProfile() {
                         <SelectContent>
                           {destinations.map((destination) => (
                             <SelectItem key={destination.id} value={destination.id.toString()}>
-                              {destination.name} - {destination.region}
+                              {destination.name}
                             </SelectItem>
                           ))}
                         </SelectContent>

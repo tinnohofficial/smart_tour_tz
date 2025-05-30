@@ -12,7 +12,6 @@ export const useRegisterStore = create((set) => ({
   },
   tourGuideFormData: {
     fullName: "",
-    location: "",
     expertise: "",
     licenseDocuments: null,
   },
@@ -38,7 +37,7 @@ export const useRegisterStore = create((set) => ({
 
   resetAllForms: () => set({
     basicFormData: { email: "", password: "", confirmPassword: "", phoneNumber: "", role: "tourist" },
-    tourGuideFormData: { fullName: "", location: "", expertise: "", licenseDocuments: null },
+    tourGuideFormData: { fullName: "", expertise: "", licenseDocuments: null },
     hotelManagerFormData: { hotelName: "", hotelCapacity: "", hotelFacilities: "", hotelImages: null },
     travelAgentFormData: { companyName: "", travelRoutes: "", legalDocuments: null }
   })

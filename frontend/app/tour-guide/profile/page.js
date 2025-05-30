@@ -153,10 +153,10 @@ export default function TourGuideProfile() {
                 
                 <h2 className="text-xl font-semibold">{fullName || "Your Name"}</h2>
                 
-                {(destination_name && destination_region) && (
+                {destination_name && (
                   <div className="flex items-center text-gray-600 mt-1 text-sm">
                     <MapPin className="h-3.5 w-3.5 mr-1" />
-                    <span>{destination_name}, {destination_region}</span>
+                    <span>{destination_name}</span>
                   </div>
                 )}
                 
@@ -243,7 +243,7 @@ export default function TourGuideProfile() {
                         <SelectContent>
                           {destinations.map((destination) => (
                             <SelectItem key={destination.id} value={destination.id.toString()}>
-                              {destination.name} - {destination.region}
+                              {destination.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
