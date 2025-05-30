@@ -211,7 +211,7 @@ export default function HotelManagerCompleteProfile() {
             <p className="text-amber-100">
               {userStatus === 'rejected' 
                 ? 'Your previous application was rejected. Please review the feedback and resubmit your hotel details.'
-                : 'Provide your hotel details to complete registration and start receiving bookings.'
+                : 'Provide your hotel details to submit your application to offer services on our platform.'
               }
             </p>
           </div>
