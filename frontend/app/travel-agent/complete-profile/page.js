@@ -10,7 +10,6 @@ import {
   Trash2,
   Loader2,
   ChevronRight,
-  CheckCircle2,
   FileText,
   DollarSign,
 } from "lucide-react";
@@ -31,7 +30,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { FileUploader } from "../../components/file-uploader";
 import { toast } from "sonner";
 import {
@@ -343,70 +341,21 @@ export default function TravelAgentCompleteProfile() {
 
   return (
     <RouteProtection allowedRoles={["travel_agent"]}>
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50">
+      <div className="min-h-screen bg-gray-50">
         <div className="container max-w-5xl mx-auto px-4 py-8">
           {/* Header Section */}
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Briefcase className="h-8 w-8 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {userStatus === "rejected"
-                ? "Resubmit Your Travel Agency Profile"
-                : "Complete Your Travel Agency Profile"}
+          <div className="bg-amber-700 p-6 rounded-lg mb-6 text-center">
+            <Briefcase className="h-12 w-12 text-white mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-white mb-2">
+              {userStatus === "rejected" ? 'Resubmit Your Travel Agency Profile' : 'Complete Your Travel Agency Profile'}
             </h1>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              {userStatus === "rejected"
-                ? "Your previous application was rejected. Please review the feedback and resubmit your agency details and transport routes."
-                : "Welcome to Smart Tour Tanzania! Please provide your agency details and transport routes to complete your registration. Your agency will be reviewed by our administrators before activation."}
+            <p className="text-amber-100">
+              {userStatus === "rejected" 
+                ? 'Your previous application was rejected. Please review the feedback and resubmit your agency details and transport routes.'
+                : 'Provide your agency details and transport routes to submit your application to offer services on our platform.'
+              }
             </p>
           </div>
-
-          {/* Progress Steps */}
-          <div className="flex items-center justify-center mb-8">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                  <CheckCircle2 className="h-5 w-5 text-white" />
-                </div>
-                <span className="ml-2 text-sm font-medium text-green-600">
-                  Account Created
-                </span>
-              </div>
-              <div className="w-8 h-1 bg-amber-200"></div>
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-amber-600 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">2</span>
-                </div>
-                <span className="ml-2 text-sm font-medium text-amber-600">
-                  Complete Profile
-                </span>
-              </div>
-              <div className="w-8 h-1 bg-gray-200"></div>
-              <div className="flex items-center">
-                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                  <span className="text-gray-500 text-sm font-medium">3</span>
-                </div>
-                <span className="ml-2 text-sm font-medium text-gray-500">
-                  Admin Approval
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Important Notice */}
-          <Alert className="mb-6 border-amber-200 bg-amber-50">
-            <Briefcase className="h-5 w-5 text-amber-600" />
-            <AlertTitle className="text-amber-800">
-              Important Information
-            </AlertTitle>
-            <AlertDescription className="text-amber-700">
-              After completing your agency profile, it will be submitted for
-              review. Your transport routes will be available for tourist
-              bookings once approved by our administrators. This typically takes
-              1-2 business days.
-            </AlertDescription>
-          </Alert>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Agency Information */}
@@ -689,14 +638,6 @@ export default function TravelAgentCompleteProfile() {
               </CardFooter>
             </Card>
           </form>
-
-          {/* Next Steps Info */}
-          <div className="mt-6 text-center text-sm text-gray-600">
-            <p>
-              After submission, you'll be redirected to your dashboard where you
-              can monitor your application status.
-            </p>
-          </div>
         </div>
       </div>
     </RouteProtection>
