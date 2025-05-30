@@ -1,5 +1,28 @@
 const db = require("../config/db");
 
+// Helper function to ensure transport origin exists or create it
+async function ensureTransportOrigin(originName, connection = null) {
+  const dbConnection = connection || db;
+  
+  // First try to find existing origin by name
+  const [existingOrigins] = await dbConnection.query(
+    "SELECT id FROM transport_origins WHERE name = ?",
+    [originName]
+  );
+  
+  if (existingOrigins.length > 0) {
+    return existingOrigins[0].id;
+  }
+  
+  // Create new origin if it doesn't exist
+  const [result] = await dbConnection.query(
+    "INSERT INTO transport_origins (name, country) VALUES (?, 'Tanzania')",
+    [originName]
+  );
+  
+  return result.insertId;
+}
+
 exports.createTravelAgency = async (req, res) => {
   const { name, document_url, routes, contact_email, contact_phone } = req.body;
   const userId = req.user.id;
@@ -58,12 +81,16 @@ exports.createTravelAgency = async (req, res) => {
       if (routes && Array.isArray(routes) && routes.length > 0) {
         // Validate routes data
         for (const route of routes) {
-          if (!route.origin_id || !route.destination_id || !route.transportation_type || !route.cost) {
-            throw new Error("Each route must have origin_id, destination_id, transportation_type, and cost");
+          if (!route.origin_name || !route.destination_id || !route.transportation_type || !route.cost) {
+            throw new Error("Each route must have origin_name, destination_id, transportation_type, and cost");
           }
           
-          if (isNaN(parseInt(route.origin_id)) || isNaN(parseInt(route.destination_id))) {
-            throw new Error("origin_id and destination_id must be valid numbers");
+          if (!route.origin_name.trim()) {
+            throw new Error("origin_name cannot be empty");
+          }
+          
+          if (isNaN(parseInt(route.destination_id))) {
+            throw new Error("destination_id must be a valid number");
           }
           
           if (isNaN(parseFloat(route.cost)) || parseFloat(route.cost) <= 0) {
@@ -71,19 +98,22 @@ exports.createTravelAgency = async (req, res) => {
           }
         }
 
-        // Insert new routes
+        // Insert new routes with implicit origin management
         for (const route of routes) {
+          // Ensure origin exists or create it implicitly
+          const originId = await ensureTransportOrigin(route.origin_name.trim(), connection);
+
           await connection.query(
             `INSERT INTO transports
              (agency_id, origin_id, destination_id, transportation_type, cost, description)
              VALUES (?, ?, ?, ?, ?, ?)`,
             [
               userId, // Now using the user's ID directly as agency_id
-              parseInt(route.origin_id),
+              originId,
               parseInt(route.destination_id),
               route.transportation_type, // Client sends transportation_type
               parseFloat(route.cost), // Client sends cost
-              route.description || `Transport from origin ${route.origin_id} to destination ${route.destination_id} by ${route.transportation_type}`,
+              route.description || `Transport from ${route.origin_name.trim()} to destination ${route.destination_id} by ${route.transportation_type}`,
             ],
           );
         }

@@ -336,16 +336,6 @@ export default function HotelManagerDashboard() {
               <Hotel className="mr-2 h-4 w-4 text-emerald-600" />
               <span>Update Hotel Profile</span>
             </Button>
-
-            <Button variant="outline" className="w-full justify-start">
-              <User className="mr-2 h-4 w-4 text-amber-600" />
-              <span>Manage Staff</span>
-            </Button>
-
-            <Button variant="outline" className="w-full justify-start">
-              <BarChart3 className="mr-2 h-4 w-4 text-violet-600" />
-              <span>View Reports</span>
-            </Button>
           </CardContent>
         </Card>
       </div>

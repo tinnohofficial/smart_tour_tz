@@ -72,44 +72,44 @@ export default function TravelAgentCompleteProfile() {
   useEffect(() => {
     const checkAccess = async () => {
       try {
-        const token = localStorage.getItem('token')
+        const token = localStorage.getItem("token");
         if (!token) {
-          router.push('/login')
-          return
+          router.push("/login");
+          return;
         }
 
         try {
-          const data = await travelAgentService.getProfile()
-          setUserStatus(data.status || 'pending_profile')
-          
+          const data = await travelAgentService.getProfile();
+          setUserStatus(data.status || "pending_profile");
+
           // If user is active or pending approval, redirect them away
-          if (data.status === 'active') {
-            router.push('/travel-agent/dashboard')
-            return
-          } else if (data.status === 'pending_approval') {
-            router.push('/travel-agent/pending-status')
-            return
-          } else if (data.status === 'rejected') {
+          if (data.status === "active") {
+            router.push("/travel-agent/dashboard");
+            return;
+          } else if (data.status === "pending_approval") {
+            router.push("/travel-agent/pending-status");
+            return;
+          } else if (data.status === "rejected") {
             // Allow rejected users to resubmit
-            setUserStatus('rejected')
+            setUserStatus("rejected");
           }
         } catch (error) {
           if (error.response?.status === 404) {
             // No profile exists - this is expected for new users
-            setUserStatus('pending_profile')
+            setUserStatus("pending_profile");
           } else {
-            console.error('Error fetching profile:', error)
-            apiUtils.handleAuthError(error, router)
-            return
+            console.error("Error fetching profile:", error);
+            apiUtils.handleAuthError(error, router);
+            return;
           }
         }
       } catch (error) {
-        console.error("Error checking access:", error)
-        router.push('/login')
+        console.error("Error checking access:", error);
+        router.push("/login");
       } finally {
-        setIsCheckingAccess(false)
+        setIsCheckingAccess(false);
       }
-    }
+    };
 
     const fetchData = async () => {
       setIsLoadingData(true);
@@ -130,12 +130,12 @@ export default function TravelAgentCompleteProfile() {
 
   // Show loading while checking access
   if (isCheckingAccess) {
-    return <LoadingSpinner message="Checking access..." />
+    return <LoadingSpinner message="Checking access..." />;
   }
 
   // Don't render if user shouldn't have access
-  if (userStatus !== 'pending_profile' && userStatus !== 'rejected') {
-    return null
+  if (userStatus !== "pending_profile" && userStatus !== "rejected") {
+    return null;
   }
 
   const handleInputChange = (field, value) => {
@@ -175,8 +175,6 @@ export default function TravelAgentCompleteProfile() {
   const handleFileChange = (files) => {
     setDocumentFiles(files);
   };
-
-
 
   const getDestinationName = (destId) => {
     const destination = destinations.find((d) => d.id === parseInt(destId));
@@ -353,13 +351,14 @@ export default function TravelAgentCompleteProfile() {
               <Briefcase className="h-8 w-8 text-white" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {userStatus === 'rejected' ? 'Resubmit Your Travel Agency Profile' : 'Complete Your Travel Agency Profile'}
+              {userStatus === "rejected"
+                ? "Resubmit Your Travel Agency Profile"
+                : "Complete Your Travel Agency Profile"}
             </h1>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              {userStatus === 'rejected' 
-                ? 'Your previous application was rejected. Please review the feedback and resubmit your agency details and transport routes.'
-                : 'Welcome to Smart Tour Tanzania! Please provide your agency details and transport routes to complete your registration. Your agency will be reviewed by our administrators before activation.'
-              }
+              {userStatus === "rejected"
+                ? "Your previous application was rejected. Please review the feedback and resubmit your agency details and transport routes."
+                : "Welcome to Smart Tour Tanzania! Please provide your agency details and transport routes to complete your registration. Your agency will be reviewed by our administrators before activation."}
             </p>
           </div>
 
@@ -498,13 +497,6 @@ export default function TravelAgentCompleteProfile() {
                     value={documentFiles}
                     uploadPrompt="Upload business license, registration certificates, etc."
                   />
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p className="text-sm text-blue-800">
-                      <strong>Required:</strong> Please upload your business
-                      license, registration certificates, or other relevant
-                      business documents (PDF or image format). Maximum 3 files.
-                    </p>
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -564,7 +556,11 @@ export default function TravelAgentCompleteProfile() {
                             placeholder="Enter origin city/location"
                             value={route.origin_name}
                             onChange={(e) =>
-                              handleRouteChange(index, "origin_name", e.target.value)
+                              handleRouteChange(
+                                index,
+                                "origin_name",
+                                e.target.value,
+                              )
                             }
                             className="w-full"
                           />
@@ -670,14 +666,7 @@ export default function TravelAgentCompleteProfile() {
             <Card className="shadow-lg">
               <CardFooter className="bg-gray-50 border-t">
                 <div className="w-full flex flex-col sm:flex-row gap-3 sm:justify-between">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => router.push("/travel-agent/dashboard")}
-                    disabled={isSubmitting}
-                  >
-                    Complete Later
-                  </Button>
+                  <div></div>
 
                   <Button
                     type="submit"

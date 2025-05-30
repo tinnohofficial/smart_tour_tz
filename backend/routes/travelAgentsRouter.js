@@ -28,4 +28,34 @@ router.put(
   travelAgentsController.updateTravelAgentProfile,
 );
 
+// Profile endpoints for current user
+router.post(
+  "/profile",
+  authenticateToken,
+  checkRole("travel_agent", false),
+  travelAgentsController.createTravelAgency,
+);
+
+router.get(
+  "/profile",
+  authenticateToken,
+  checkRole("travel_agent", false),
+  (req, res) => {
+    // Redirect to get agency by user ID
+    req.params.id = req.user.id;
+    travelAgentsController.getAgency(req, res);
+  }
+);
+
+router.put(
+  "/profile",
+  authenticateToken,
+  checkRole("travel_agent"),
+  (req, res) => {
+    // Redirect to update agency by user ID
+    req.params.id = req.user.id;
+    travelAgentsController.updateTravelAgentProfile(req, res);
+  }
+);
+
 module.exports = router;
