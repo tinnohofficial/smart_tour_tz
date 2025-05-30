@@ -25,26 +25,28 @@ CREATE TABLE tour_guides (
     user_id INT PRIMARY KEY,
     full_name VARCHAR(255) NOT NULL,
     license_document_url VARCHAR(512),
-    location VARCHAR(255),
+    destination_id INT NOT NULL,
     expertise TEXT, -- JSON object with expertise details
     available BOOLEAN DEFAULT TRUE, -- Whether the tour guide is available for new assignments
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
-    INDEX idx_tour_guides_location (location),
+    FOREIGN KEY (destination_id) REFERENCES destinations (id) ON DELETE CASCADE,
+    INDEX idx_tour_guides_destination (destination_id),
     INDEX idx_tour_guides_full_name (full_name)
 );
 
 CREATE TABLE hotels (
     id INT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    location VARCHAR(255) NOT NULL,
+    destination_id INT NOT NULL,
     description TEXT,
     images TEXT, -- JSON array of image URLs
     capacity INT,
     base_price_per_night DECIMAL(10, 2) CHECK (base_price_per_night > 0),
     is_available BOOLEAN DEFAULT TRUE, -- Hotel availability status for bookings
     FOREIGN KEY (id) REFERENCES users (id) ON DELETE CASCADE,
-    INDEX idx_hotels_location (location),
+    FOREIGN KEY (destination_id) REFERENCES destinations (id) ON DELETE CASCADE,
+    INDEX idx_hotels_destination (destination_id),
     INDEX idx_hotels_name (name)
 );
 

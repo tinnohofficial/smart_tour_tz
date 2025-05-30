@@ -14,7 +14,9 @@ export const useProfileStore = create((set, get) => ({
 
   // Form data
   fullName: "",
-  location: "",
+  destination_id: "",
+  destination_name: "",
+  destination_region: "",
   expertise: {
     general: "",
     activities: []
@@ -33,7 +35,9 @@ export const useProfileStore = create((set, get) => ({
         set({
           profileData: data,
           fullName: data.full_name || "",
-          location: data.location || "",
+          destination_id: data.destination_id || "",
+          destination_name: data.destination_name || "",
+          destination_region: data.destination_region || "",
           expertise: typeof data.expertise === 'object' ? data.expertise : { general: data.expertise || "", activities: [] },
           licenseUrl: data.license_document_url || "",
           activityExpertise: data.activity_expertise || [],
@@ -76,7 +80,7 @@ export const useProfileStore = create((set, get) => ({
 
         const profileData = {
           full_name: formData.full_name,
-          location: formData.location,
+          destination_id: formData.destination_id,
           expertise: expertiseData,
           activity_expertise: get().activityExpertise,
           license_document_url: formData.license_document_url || get().licenseUrl
@@ -87,7 +91,9 @@ export const useProfileStore = create((set, get) => ({
         set({
           profileData: updatedData,
           fullName: updatedData.full_name,
-          location: updatedData.location,
+          destination_id: updatedData.destination_id,
+          destination_name: updatedData.destination_name,
+          destination_region: updatedData.destination_region,
           expertise: updatedData.expertise,
           licenseUrl: updatedData.license_document_url,
           activityExpertise: updatedData.activity_expertise,
@@ -124,5 +130,26 @@ export const useProfileStore = create((set, get) => ({
         }
       }
     )
-  }
+  },
+
+  // Setters for form fields
+  setFullName: (fullName) => set({ fullName }),
+  setDestination: (destination_id, destination_name, destination_region) => 
+    set({ destination_id, destination_name, destination_region }),
+  setExpertise: (expertise) => set({ expertise }),
+  setActivityExpertise: (activityExpertise) => set({ activityExpertise }),
+  setLicenseUrl: (licenseUrl) => set({ licenseUrl }),
+  
+  // Reset form
+  resetForm: () => set({
+    fullName: "",
+    destination_id: "",
+    destination_name: "",
+    destination_region: "",
+    expertise: { general: "", activities: [] },
+    licenseUrl: "",
+    activityExpertise: [],
+    licenseFile: null,
+    error: null
+  })
 }))

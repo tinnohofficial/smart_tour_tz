@@ -21,9 +21,10 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileUploader } from "../../components/file-uploader";
 import { toast } from "sonner";
-import { tourGuideService, uploadService, apiUtils } from "@/app/services/api";
+import { tourGuideService, uploadService, destinationsService, apiUtils } from "@/app/services/api";
 import { RouteProtection } from "@/components/route-protection";
 import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner";
 
@@ -34,11 +35,29 @@ export default function TourGuideCompleteProfile() {
   const [licenseFile, setLicenseFile] = useState(null);
   const [userStatus, setUserStatus] = useState(null);
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+  const [destinations, setDestinations] = useState([]);
+  const [isLoadingDestinations, setIsLoadingDestinations] = useState(true);
   const [formData, setFormData] = useState({
     fullName: "",
-    location: "",
+    destination_id: "",
     expertise: "",
   });
+
+  useEffect(() => {
+    const loadDestinations = async () => {
+      try {
+        const destinationsData = await destinationsService.getAllDestinations();
+        setDestinations(destinationsData);
+      } catch (error) {
+        console.error('Error loading destinations:', error);
+        toast.error('Failed to load destinations');
+      } finally {
+        setIsLoadingDestinations(false);
+      }
+    };
+
+    loadDestinations();
+  }, []);
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -116,8 +135,8 @@ export default function TourGuideCompleteProfile() {
       return;
     }
 
-    if (!formData.location.trim()) {
-      toast.error("Please enter your location");
+    if (!formData.destination_id) {
+      toast.error("Please select your destination");
       return;
     }
 
@@ -143,7 +162,7 @@ export default function TourGuideCompleteProfile() {
       // Create profile with uploaded document URL
       const profileData = {
         full_name: formData.fullName.trim(),
-        location: formData.location.trim(),
+        destination_id: parseInt(formData.destination_id),
         expertise: formData.expertise.trim(),
         license_document_url: licenseUrl,
       };
@@ -248,24 +267,33 @@ export default function TourGuideCompleteProfile() {
 
                   <div className="space-y-2">
                     <label
-                      htmlFor="location"
+                      htmlFor="destination"
                       className="text-sm font-medium text-gray-700"
                     >
-                      Location *
+                      Primary Destination *
                     </label>
                     <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                      <Input
-                        id="location"
-                        value={formData.location}
-                        onChange={(e) =>
-                          handleInputChange("location", e.target.value)
-                        }
-                        className="pl-10 border-gray-300 focus:border-amber-500"
-                        placeholder="City, Region, Tanzania"
-                        required
-                      />
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 z-10" />
+                      <Select
+                        value={formData.destination_id}
+                        onValueChange={(value) => handleInputChange("destination_id", value)}
+                        disabled={isLoadingDestinations}
+                      >
+                        <SelectTrigger className="pl-10 border-gray-300 focus:border-amber-500">
+                          <SelectValue placeholder={isLoadingDestinations ? "Loading destinations..." : "Select your primary destination"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {destinations.map((destination) => (
+                            <SelectItem key={destination.id} value={destination.id.toString()}>
+                              {destination.name} - {destination.region}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
+                    <p className="text-sm text-gray-500">
+                      Select the destination where you primarily offer tour guide services
+                    </p>
                   </div>
                 </div>
 

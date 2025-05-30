@@ -1,8 +1,11 @@
 const db = require("../config/db");
 
+/**
+ * Create a tour guide profile
+ */
 exports.createTourGuide = async (req, res) => {
   const userId = req.user.id;
-  const { full_name, license_document_url, location, expertise, activity_expertise } = req.body;
+  const { full_name, license_document_url, destination_id, expertise, activity_expertise } = req.body;
 
   console.log("Tour guide profile submission:", {
     userId,
@@ -11,10 +14,10 @@ exports.createTourGuide = async (req, res) => {
     userStatus: req.user.status
   });
 
-  if (!full_name || !location || !expertise) {
+  if (!full_name || !destination_id || !expertise) {
     return res
       .status(400)
-      .json({ message: "Full name, location, and expertise are required." });
+      .json({ message: "Full name, destination_id, and expertise are required." });
   }
 
   try {
@@ -27,6 +30,18 @@ exports.createTourGuide = async (req, res) => {
     if (userRows.length === 0) {
       return res.status(404).json({ 
         message: "Tour guide user not found. Please check your account." 
+      });
+    }
+
+    // Verify destination exists
+    const [destinationRows] = await db.query(
+      "SELECT id, name FROM destinations WHERE id = ?",
+      [destination_id]
+    );
+
+    if (destinationRows.length === 0) {
+      return res.status(400).json({ 
+        message: "Invalid destination selected." 
       });
     }
 
@@ -48,19 +63,19 @@ exports.createTourGuide = async (req, res) => {
     
     try {
       await connection.query(
-        `INSERT INTO tour_guides (user_id, full_name, license_document_url, location, expertise)
+        `INSERT INTO tour_guides (user_id, full_name, license_document_url, destination_id, expertise)
          VALUES (?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE
          full_name = VALUES(full_name),
          license_document_url = VALUES(license_document_url),
-         location = VALUES(location),
+         destination_id = VALUES(destination_id),
          expertise = VALUES(expertise)`,
-        [userId, full_name, license_document_url, location, expertise],
+        [userId, full_name, license_document_url, destination_id, expertise],
       );
       
       // If activity expertise is provided, validate them
       if (activity_expertise && Array.isArray(activity_expertise) && activity_expertise.length > 0) {
-        // Check if the activities exist (and are in the specified location)
+        // Check if the activities exist
         const placeholders = activity_expertise.map(() => "?").join(",");
         const [activityRows] = await connection.query(
           `SELECT id, name FROM activities WHERE id IN (${placeholders})`,
@@ -72,7 +87,6 @@ exports.createTourGuide = async (req, res) => {
         }
         
         // Store the activity expertise information as JSON in the expertise field
-        // This assumes expertise is already a text field that can store this information
         const expertiseData = {
           general: expertise,
           activities: activityRows.map(a => ({ id: a.id, name: a.name }))
@@ -124,9 +138,10 @@ exports.getTourGuide = async (req, res) => {
 
   try {
     const [rows] = await db.query(
-      `SELECT tg.*, u.status 
+      `SELECT tg.*, u.status, d.name as destination_name, d.region as destination_region
        FROM tour_guides tg 
        JOIN users u ON tg.user_id = u.id 
+       JOIN destinations d ON tg.destination_id = d.id
        WHERE tg.user_id = ?`,
       [guideId],
     );
@@ -170,7 +185,7 @@ exports.updateGuideProfile = async (req, res) => {
     });
   }
 
-  const { full_name, location, expertise, activity_expertise, available } = req.body;
+  const { full_name, destination_id, expertise, activity_expertise, available } = req.body;
 
   try {
     // Verify the user exists first
@@ -178,6 +193,20 @@ exports.updateGuideProfile = async (req, res) => {
     
     if (userRows.length === 0) {
       return res.status(404).json({ message: "User not found. Cannot update tour guide profile." });
+    }
+
+    // Verify destination exists if provided
+    if (destination_id !== undefined) {
+      const [destinationRows] = await db.query(
+        "SELECT id, name FROM destinations WHERE id = ?",
+        [destination_id]
+      );
+
+      if (destinationRows.length === 0) {
+        return res.status(400).json({ 
+          message: "Invalid destination selected." 
+        });
+      }
     }
     
     // Check if profile exists
@@ -204,9 +233,9 @@ exports.updateGuideProfile = async (req, res) => {
         params.push(full_name);
       }
 
-      if (location !== undefined) {
-        updates.push("location = ?");
-        params.push(location);
+      if (destination_id !== undefined) {
+        updates.push("destination_id = ?");
+        params.push(destination_id);
       }
 
       if (available !== undefined) {
@@ -278,6 +307,65 @@ exports.updateGuideProfile = async (req, res) => {
     res
       .status(500)
       .json({ message: "Failed to update profile", error: error.message });
+  }
+};
+
+/**
+ * Get all tour guides for admin
+ */
+exports.getAllTourGuides = async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT tg.*, u.email, u.status, d.name as destination_name, d.region as destination_region
+       FROM tour_guides tg 
+       JOIN users u ON tg.user_id = u.id 
+       JOIN destinations d ON tg.destination_id = d.id
+       ORDER BY tg.created_at DESC`
+    );
+
+    res.status(200).json(rows);
+  } catch (error) {
+    console.error("Error fetching tour guides:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to fetch tour guides", error: error.message });
+  }
+};
+
+/**
+ * Get all approved and available tour guides for public listing
+ */
+exports.getAvailableTourGuides = async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT tg.user_id, tg.full_name, tg.expertise, tg.available, 
+              d.name as destination_name, d.region as destination_region
+       FROM tour_guides tg 
+       JOIN users u ON tg.user_id = u.id 
+       JOIN destinations d ON tg.destination_id = d.id
+       WHERE u.status = 'approved' AND tg.available = 1
+       ORDER BY tg.full_name ASC`
+    );
+
+    // Parse expertise JSON for each guide
+    const guides = rows.map(guide => {
+      if (guide.expertise) {
+        try {
+          guide.expertise = JSON.parse(guide.expertise);
+        } catch (e) {
+          // If not valid JSON, keep as is
+          console.log("Could not parse guide expertise JSON:", e);
+        }
+      }
+      return guide;
+    });
+
+    res.status(200).json(guides);
+  } catch (error) {
+    console.error("Error fetching available tour guides:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to fetch available tour guides", error: error.message });
   }
 };
 

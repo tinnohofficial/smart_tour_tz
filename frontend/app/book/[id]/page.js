@@ -230,8 +230,8 @@ function BookLocation({ params }) {
   // Fetch related data when destination is loaded
   useEffect(() => {
     if (destination) {
-      // Fetch hotels in this location - prioritize using the region
-      fetchHotels(destination.region || destination.name);
+      // Fetch hotels at this destination using destination ID for exact matching
+      fetchHotels(destination.id);
 
       // Fetch activities for this destination
       fetchActivities(destinationId);
@@ -2169,11 +2169,7 @@ function BookLocation({ params }) {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="cardNumber">Card Number</Label>
-                  <Input
-                    id="cardNumber"
-                    type="text"
-                    placeholder="1234 5678 9012 3456"
-                  />
+                  <Input id="cardNumber" type="text" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -2187,7 +2183,7 @@ function BookLocation({ params }) {
                 </div>
                 <div>
                   <Label htmlFor="nameOnCard">Name on Card</Label>
-                  <Input id="nameOnCard" type="text" placeholder="John Doe" />
+                  <Input id="nameOnCard" type="text" />
                 </div>
               </div>
             </TabsContent>

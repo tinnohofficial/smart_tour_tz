@@ -479,9 +479,10 @@ exports.getGuideAssignedBookings = async (req, res) => {
       
       // Get hotel information for this booking
       const [hotelResults] = await db.query(
-        `SELECT h.id, h.name, h.location, h.description, bi.item_details
+        `SELECT h.id, h.name, h.destination_id, d.name as destination_name, d.region as destination_region, h.description, bi.item_details
          FROM booking_items bi
          JOIN hotels h ON bi.item_type = 'hotel' AND bi.id = h.id
+         JOIN destinations d ON h.destination_id = d.id
          WHERE bi.booking_id = ?
          AND bi.item_type = 'hotel'`,
         [rows[i].booking_id]
@@ -771,9 +772,11 @@ exports.assignTourGuide = async (req, res) => {
       
       // Verify the guide exists, is active, and is available
       const [guideRows] = await connection.query(
-        `SELECT u.id, tg.expertise, tg.location, tg.full_name, tg.available
+        `SELECT u.id, tg.expertise, tg.full_name, tg.available, 
+                d.name as destination_name, d.region as destination_region
          FROM users u
          JOIN tour_guides tg ON u.id = tg.user_id
+         JOIN destinations d ON tg.destination_id = d.id
          WHERE u.id = ? AND u.role = 'tour_guide' AND u.status = 'active'`,
         [guideId]
       );
@@ -822,7 +825,8 @@ exports.assignTourGuide = async (req, res) => {
             assigned_by: "admin",
             assigned_at: new Date().toISOString(),
             guide_name: guideRows[0].full_name,
-            location: guideRows[0].location
+            destination_name: guideRows[0].destination_name,
+            destination_region: guideRows[0].destination_region
           }),
           placeholder.id
         ]
@@ -839,7 +843,8 @@ exports.assignTourGuide = async (req, res) => {
         message: "Tour guide assigned successfully", 
         guide: {
           id: guideRows[0].id,
-          location: guideRows[0].location
+          destination_name: guideRows[0].destination_name,
+          destination_region: guideRows[0].destination_region
         }
       });
     } catch (error) {
@@ -916,75 +921,44 @@ exports.getEligibleGuidesForBooking = async (req, res) => {
   const { bookingId } = req.params;
   
   try {
-    // Get booking details to determine location
-    const [bookingItems] = await db.query(
-      `SELECT bi.*, h.location as hotel_location, a.destination_id
-       FROM booking_items bi
-       LEFT JOIN hotels h ON bi.item_type = 'hotel' AND bi.id = h.id
-       LEFT JOIN activities a ON bi.item_type = 'activity' AND bi.id = a.id
-       WHERE bi.booking_id = ?`,
+    // Get booking details to find destination
+    const [bookingRows] = await db.query(
+      "SELECT destination_id FROM bookings WHERE id = ? AND status = 'confirmed'",
       [bookingId]
     );
     
-    if (bookingItems.length === 0) {
-      return res.status(404).json({ message: "Booking not found" });
+    if (bookingRows.length === 0) {
+      return res.status(404).json({ message: "Booking not found or not confirmed" });
     }
     
-    // Get hotel location or destination from activities
-    let location = null;
-    let destinationId = null;
+    const { destination_id } = bookingRows[0];
     
-    for (const item of bookingItems) {
-      if (item.item_type === 'hotel' && item.hotel_location) {
-        location = item.hotel_location;
-      }
-      if (item.item_type === 'activity' && item.destination_id) {
-        destinationId = item.destination_id;
-      }
-    }
-    
-    // If we have activity destination, get its location
-    if (destinationId && !location) {
-      const [destinationRows] = await db.query(
-        "SELECT name, region FROM destinations WHERE id = ?", 
-        [destinationId]
-      );
-      
-      if (destinationRows.length > 0) {
-        location = destinationRows[0].region || destinationRows[0].name;
-      }
-    }
-    
-    if (!location) {
-      return res.status(400).json({ message: "Could not determine booking location" });
+    if (!destination_id) {
+      return res.status(400).json({ message: "Could not determine booking destination" });
     }
     
     // Get activities for this booking
+    const [bookingItems] = await db.query(
+      "SELECT id, item_type FROM booking_items WHERE booking_id = ?",
+      [bookingId]
+    );
+    
     const activityIds = bookingItems
       .filter(item => item.item_type === 'activity')
       .map(item => item.id);
     
-    // Find tour guides based on location, expertise, and availability
+    // Find tour guides based on destination match, expertise, and availability
     const [guides] = await db.query(
-      `SELECT u.id, u.email, tg.full_name, tg.location, tg.expertise, tg.user_id, tg.available
+      `SELECT u.id, u.email, tg.full_name, tg.destination_id, tg.expertise, tg.user_id, tg.available,
+              d.name as destination_name, d.region as destination_region
        FROM tour_guides tg
        JOIN users u ON tg.user_id = u.id
+       JOIN destinations d ON tg.destination_id = d.id
        WHERE u.role = 'tour_guide' AND u.status = 'active'
        AND tg.available = TRUE
-       AND (tg.location LIKE ? OR ? LIKE CONCAT('%', tg.location, '%'))
-       ORDER BY 
-         CASE WHEN tg.location = ? THEN 1
-              WHEN tg.location LIKE ? THEN 2
-              WHEN ? LIKE CONCAT('%', tg.location, '%') THEN 3
-              ELSE 4
-         END`,
-      [
-        `%${location}%`, 
-        location, 
-        location, 
-        `%${location}%`, 
-        location
-      ]
+       AND tg.destination_id = ?
+       ORDER BY tg.full_name`,
+      [destination_id]
     );
     
     // Process expertise to find those that match the activities
@@ -1409,19 +1383,21 @@ exports.getGuideBookingDetails = async (req, res) => {
                 ELSE 'Unknown'
               END as item_name,
               CASE 
-                WHEN bi.item_type = 'hotel' THEN h.location
+                WHEN bi.item_type = 'hotel' THEN CONCAT(d_hotel.name, ', ', d_hotel.region)
                 WHEN bi.item_type = 'activity' THEN a.description
                 WHEN bi.item_type = 'transport' THEN 'Transport'
-                WHEN bi.item_type = 'tour_guide' THEN tg.location
+                WHEN bi.item_type = 'tour_guide' THEN CONCAT(d_tg.name, ', ', d_tg.region)
                 ELSE 'N/A'
               END as item_description
        FROM booking_items bi
        LEFT JOIN hotels h ON bi.item_type = 'hotel' AND bi.id = h.id
+       LEFT JOIN destinations d_hotel ON bi.item_type = 'hotel' AND h.destination_id = d_hotel.id
        LEFT JOIN activities a ON bi.item_type = 'activity' AND bi.id = a.id
        LEFT JOIN transports t ON bi.item_type = 'transport' AND bi.id = t.id
        LEFT JOIN transport_origins to_orig ON bi.item_type = 'transport' AND t.origin_id = to_orig.id
        LEFT JOIN destinations dest ON bi.item_type = 'transport' AND t.destination_id = dest.id
        LEFT JOIN tour_guides tg ON bi.item_type = 'tour_guide' AND bi.id = tg.user_id
+       LEFT JOIN destinations d_tg ON bi.item_type = 'tour_guide' AND tg.destination_id = d_tg.id
        WHERE bi.booking_id = ?
        ORDER BY bi.item_type`,
       [bookingId]

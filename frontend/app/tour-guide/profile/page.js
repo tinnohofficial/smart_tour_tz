@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { MapPin, Award, User, Loader2, Save, Camera, FileText, CheckCircle, AlertCircle, ChevronRight, Building } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,8 +10,10 @@ import { Switch } from "@/components/ui/switch"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { FileUploader } from "../../components/file-uploader"
 import { useProfileStore } from "./store"
+import { destinationsService } from "@/app/services/api"
 
 export default function TourGuideProfile() {
   const {
@@ -21,7 +23,9 @@ export default function TourGuideProfile() {
     isUploading,
     error,
     fullName,
-    location,
+    destination_id,
+    destination_name,
+    destination_region,
     expertise,
     licenseUrl,
     isAvailable,
@@ -31,15 +35,34 @@ export default function TourGuideProfile() {
     setLicenseFile
   } = useProfileStore()
 
+  // Local state for destinations
+  const [destinations, setDestinations] = useState([])
+  const [isLoadingDestinations, setIsLoadingDestinations] = useState(true)
+
   useEffect(() => {
     fetchProfile()
   }, [fetchProfile])
+
+  useEffect(() => {
+    const loadDestinations = async () => {
+      try {
+        const destinationsData = await destinationsService.getAllDestinations()
+        setDestinations(destinationsData)
+      } catch (error) {
+        console.error('Error loading destinations:', error)
+      } finally {
+        setIsLoadingDestinations(false)
+      }
+    }
+    
+    loadDestinations()
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     const formData = {
       full_name: e.target.fullName.value,
-      location: e.target.location.value,
+      destination_id: e.target.destination.value || destination_id,
       expertise: e.target.expertise.value,
     }
     await updateProfile(formData)
@@ -130,10 +153,10 @@ export default function TourGuideProfile() {
                 
                 <h2 className="text-xl font-semibold">{fullName || "Your Name"}</h2>
                 
-                {location && (
+                {(destination_name && destination_region) && (
                   <div className="flex items-center text-gray-600 mt-1 text-sm">
                     <MapPin className="h-3.5 w-3.5 mr-1" />
-                    <span>{location}</span>
+                    <span>{destination_name}, {destination_region}</span>
                   </div>
                 )}
                 
@@ -194,17 +217,47 @@ export default function TourGuideProfile() {
                   </div>
 
                   <div className="space-y-2">
-                    <label htmlFor="location" className="text-sm font-medium text-gray-700">Location</label>
+                    <label htmlFor="destination" className="text-sm font-medium text-gray-700">Primary Destination</label>
                     <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                      <Input
-                        id="location"
-                        name="location"
-                        className="pl-10 border-gray-300 focus:border-amber-600"
-                        defaultValue={location}
-                        placeholder="City, Country"
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 z-10" />
+                      <Select
+                        value={destination_id?.toString() || ""}
+                        onValueChange={(value) => {
+                          const selectedDest = destinations.find(d => d.id.toString() === value)
+                          if (selectedDest) {
+                            // Update the hidden input for form submission
+                            const hiddenInput = document.getElementById('destination')
+                            if (hiddenInput) hiddenInput.value = value
+                          }
+                        }}
+                        disabled={isLoadingDestinations}
+                      >
+                        <SelectTrigger 
+                          className="pl-10 border-gray-300 focus:border-amber-600"
+                          id="destination-select"
+                        >
+                          <SelectValue 
+                            placeholder={isLoadingDestinations ? "Loading destinations..." : "Select your primary destination"} 
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {destinations.map((destination) => (
+                            <SelectItem key={destination.id} value={destination.id.toString()}>
+                              {destination.name} - {destination.region}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <input 
+                        type="hidden" 
+                        id="destination" 
+                        name="destination" 
+                        defaultValue={destination_id}
                       />
                     </div>
+                    <p className="text-sm text-gray-500">
+                      Select the destination where you primarily offer tour guide services
+                    </p>
                   </div>
                 </div>
               </CardContent>

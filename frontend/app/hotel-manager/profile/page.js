@@ -9,15 +9,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { FileUploader } from "../../components/file-uploader"
 import { useProfileStore } from "./store"
 import { formatTZS } from "@/app/utils/currency"
-import { hotelManagerService, apiUtils } from "@/app/services/api"
+import { hotelManagerService, destinationsService, apiUtils } from "@/app/services/api"
 
 export default function HotelManagerProfile() {
   const router = useRouter()
   const [userStatus, setUserStatus] = useState(null)
   const [isCheckingAccess, setIsCheckingAccess] = useState(true)
+  const [destinations, setDestinations] = useState([])
+  const [isLoadingDestinations, setIsLoadingDestinations] = useState(true)
   
   const {
     profileData,
@@ -25,7 +28,7 @@ export default function HotelManagerProfile() {
     isSubmitting,
     isUploading,
     hotelName,
-    hotelLocation,
+    hotelDestinationId,
     hotelDescription,
     hotelCapacity,
     accommodationCosts,
@@ -84,6 +87,24 @@ export default function HotelManagerProfile() {
     checkAccess()
   }, [fetchProfile, router])
 
+  // Fetch destinations for the dropdown
+  useEffect(() => {
+    const fetchDestinations = async () => {
+      try {
+        setIsLoadingDestinations(true)
+        const destinationsData = await destinationsService.getAllDestinations()
+        setDestinations(destinationsData)
+      } catch (error) {
+        console.error('Error fetching destinations:', error)
+        // Non-blocking error - just log it
+      } finally {
+        setIsLoadingDestinations(false)
+      }
+    }
+
+    fetchDestinations()
+  }, [])
+
   // Show loading while checking access
   if (isCheckingAccess) {
     return (
@@ -105,7 +126,7 @@ export default function HotelManagerProfile() {
     e.preventDefault()
     const formData = {
       hotelName: e.target.hotelName.value,
-      hotelLocation: e.target.hotelLocation.value,
+      hotelDestinationId: e.target.hotelDestinationId.value,
       hotelDescription: e.target.hotelDescription.value,
       hotelCapacity: e.target.hotelCapacity.value,
       accommodationCosts: e.target.accommodationCosts.value,

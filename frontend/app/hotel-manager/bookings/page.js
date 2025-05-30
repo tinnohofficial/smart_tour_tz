@@ -1,20 +1,26 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Calendar, Clock, FileText, CheckCircle2, Loader2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
-import { format } from "date-fns"
-import { useBookingsStore } from "./store"
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
-import { formatDateWithFormat } from "@/app/utils/dateUtils"
-import { formatTZS } from "@/app/utils/currency"
-import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner"
+import { useEffect, useState } from "react";
+import { Calendar, Clock, FileText, CheckCircle2, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { format } from "date-fns";
+import { useBookingsStore } from "./store";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { formatDateWithFormat } from "@/app/utils/dateUtils";
+import { formatTZS } from "@/app/utils/currency";
+import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner";
 
 export default function HotelManagerBookings() {
   const {
@@ -28,17 +34,17 @@ export default function HotelManagerBookings() {
     setIsRoomDialogOpen,
     updateRoomDetails,
     toggleAmenity,
-    confirmRoom
-  } = useBookingsStore()
+    confirmRoom,
+  } = useBookingsStore();
 
   useEffect(() => {
-    fetchBookings()
-  }, [fetchBookings])
+    fetchBookings();
+  }, [fetchBookings]);
 
   const handleOpenRoomDialog = (booking) => {
-    setSelectedBooking(booking)
-    setIsRoomDialogOpen(true)
-  }
+    setSelectedBooking(booking);
+    setIsRoomDialogOpen(true);
+  };
 
   const amenities = [
     { id: "wifi", label: "Free WiFi" },
@@ -47,13 +53,14 @@ export default function HotelManagerBookings() {
     { id: "tv", label: "Flat-screen TV" },
     { id: "minibar", label: "Mini Bar" },
     { id: "safe", label: "Safe" },
-    { id: "balcony", label: "Balcony/Terrace" }
-  ]
+    { id: "balcony", label: "Balcony/Terrace" },
+  ];
 
-  const formatDate = (dateString) => formatDateWithFormat(dateString, "MMM dd, yyyy", dateString)
+  const formatDate = (dateString) =>
+    formatDateWithFormat(dateString, "MMM dd, yyyy", dateString);
 
   if (isLoading) {
-    return <LoadingSpinner message="Loading bookings..." />
+    return <LoadingSpinner message="Loading bookings..." />;
   }
 
   return (
@@ -62,15 +69,21 @@ export default function HotelManagerBookings() {
       <div className="bg-amber-700 p-4 rounded-lg mb-6">
         <div>
           <h1 className="text-xl font-bold text-white">Bookings Management</h1>
-          <p className="text-amber-100 text-sm">Manage guest bookings and assign rooms</p>
+          <p className="text-amber-100 text-sm">
+            Manage guest bookings and assign rooms
+          </p>
         </div>
       </div>
 
       {bookings.length === 0 ? (
         <div className="text-center py-12">
           <CheckCircle2 className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-xl font-medium text-gray-700">No pending bookings</h2>
-          <p className="text-gray-500 mt-2">All guest bookings have been processed</p>
+          <h2 className="text-xl font-medium text-gray-700">
+            No pending bookings
+          </h2>
+          <p className="text-gray-500 mt-2">
+            All guest bookings have been processed
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4">
@@ -80,9 +93,11 @@ export default function HotelManagerBookings() {
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                   <div>
                     <Badge className="mb-1">#{booking.booking_id}</Badge>
-                    <CardTitle className="text-base font-medium">{booking.tourist_email}</CardTitle>
+                    <CardTitle className="text-base font-medium">
+                      {booking.tourist_email}
+                    </CardTitle>
                   </div>
-                  <Button 
+                  <Button
                     onClick={() => handleOpenRoomDialog(booking)}
                     className="bg-amber-700 hover:bg-amber-800 text-white"
                   >
@@ -97,7 +112,13 @@ export default function HotelManagerBookings() {
                     <div>
                       <p className="text-sm font-medium">Check-in/out</p>
                       <p className="text-sm text-gray-500">
-                        {booking.start_date ? formatDate(booking.start_date) : 'Not specified'} - {booking.end_date ? formatDate(booking.end_date) : 'Not specified'}
+                        {booking.start_date
+                          ? formatDate(booking.start_date)
+                          : "Not specified"}{" "}
+                        -{" "}
+                        {booking.end_date
+                          ? formatDate(booking.end_date)
+                          : "Not specified"}
                       </p>
                     </div>
                   </div>
@@ -106,16 +127,19 @@ export default function HotelManagerBookings() {
                     <div>
                       <p className="text-sm font-medium">Status</p>
                       <p className="text-sm text-gray-500">
-                        {booking.provider_status === 'pending' ? 'Pending Room Assignment' : booking.provider_status}
+                        {booking.provider_status === "pending"
+                          ? "Pending Room Assignment"
+                          : booking.provider_status}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
                     <FileText className="h-4 w-4 text-gray-500 mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium">Booking Cost</p>                <p className="text-sm text-gray-500">
-                  {formatTZS(Number(booking.cost))}
-                </p>
+                      <p className="text-sm font-medium">Booking Cost</p>{" "}
+                      <p className="text-sm text-gray-500">
+                        {formatTZS(Number(booking.cost))}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -129,9 +153,11 @@ export default function HotelManagerBookings() {
       <Dialog open={isRoomDialogOpen} onOpenChange={setIsRoomDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Assign Room for Booking #{selectedBooking?.booking_id}</DialogTitle>
+            <DialogTitle>
+              Assign Room for Booking #{selectedBooking?.booking_id}
+            </DialogTitle>
           </DialogHeader>
-          
+
           {/* Form to assign a room */}
           <div className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-4">
@@ -142,7 +168,9 @@ export default function HotelManagerBookings() {
                   type="text"
                   placeholder="e.g., 101"
                   value={roomDetails.roomNumber}
-                  onChange={(e) => updateRoomDetails('roomNumber', e.target.value)}
+                  onChange={(e) =>
+                    updateRoomDetails("roomNumber", e.target.value)
+                  }
                   required
                 />
               </div>
@@ -151,9 +179,10 @@ export default function HotelManagerBookings() {
                 <Input
                   id="roomType"
                   type="text"
-                  placeholder="e.g., Deluxe Double"
                   value={roomDetails.roomType}
-                  onChange={(e) => updateRoomDetails('roomType', e.target.value)}
+                  onChange={(e) =>
+                    updateRoomDetails("roomType", e.target.value)
+                  }
                   required
                 />
               </div>
@@ -166,7 +195,7 @@ export default function HotelManagerBookings() {
                   id="checkIn"
                   type="date"
                   value={roomDetails.checkIn}
-                  onChange={(e) => updateRoomDetails('checkIn', e.target.value)}
+                  onChange={(e) => updateRoomDetails("checkIn", e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -175,7 +204,9 @@ export default function HotelManagerBookings() {
                   id="checkOut"
                   type="date"
                   value={roomDetails.checkOut}
-                  onChange={(e) => updateRoomDetails('checkOut', e.target.value)}
+                  onChange={(e) =>
+                    updateRoomDetails("checkOut", e.target.value)
+                  }
                 />
               </div>
             </div>
@@ -187,7 +218,9 @@ export default function HotelManagerBookings() {
                 type="text"
                 placeholder="Any special requests from the guest"
                 value={roomDetails.specialRequests}
-                onChange={(e) => updateRoomDetails('specialRequests', e.target.value)}
+                onChange={(e) =>
+                  updateRoomDetails("specialRequests", e.target.value)
+                }
               />
             </div>
 
@@ -196,9 +229,11 @@ export default function HotelManagerBookings() {
               <div className="grid grid-cols-2 gap-2">
                 {amenities.map((amenity) => (
                   <div key={amenity.id} className="flex items-center space-x-2">
-                    <Checkbox 
-                      id={amenity.id} 
-                      checked={(roomDetails.amenities || []).includes(amenity.id)}
+                    <Checkbox
+                      id={amenity.id}
+                      checked={(roomDetails.amenities || []).includes(
+                        amenity.id,
+                      )}
                       onCheckedChange={() => toggleAmenity(amenity.id)}
                     />
                     <label
@@ -216,7 +251,8 @@ export default function HotelManagerBookings() {
           <Alert className="bg-yellow-50 text-yellow-800 border-yellow-200">
             <AlertTitle className="text-yellow-800">Important</AlertTitle>
             <AlertDescription className="text-yellow-700">
-              Make sure the room is actually available for the specified dates before confirming.
+              Make sure the room is actually available for the specified dates
+              before confirming.
             </AlertDescription>
           </Alert>
 
@@ -228,7 +264,7 @@ export default function HotelManagerBookings() {
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               className="bg-amber-700 hover:bg-amber-800"
               onClick={() => selectedBooking && confirmRoom(selectedBooking.id)}
             >
@@ -238,5 +274,5 @@ export default function HotelManagerBookings() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

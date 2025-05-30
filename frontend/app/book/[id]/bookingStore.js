@@ -131,12 +131,11 @@ export const useBookingStore = create((set, get) => ({
     )
   },
 
-  fetchHotels: async (location) => {
+  fetchHotels: async (destinationId) => {
     return apiUtils.withLoadingAndError(
       async () => {
-        // For now, we'll use a mock API call since hotels service isn't in the shared API yet
-        // This would be replaced with a proper hotels service call
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/hotels${location ? `?location=${encodeURIComponent(location)}` : ''}`)
+        // Use destination_id parameter instead of location string
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/hotels${destinationId ? `?destination_id=${destinationId}` : ''}`)
         if (!response.ok) {
           throw new Error(`Failed to fetch hotels: ${response.statusText}`)
         }

@@ -29,13 +29,23 @@ const addTestHotel = async () => {
 
     // 2. Create hotel
     try {
+      // First get Serengeti destination ID
+      const [serengetiDest] = await db.query(
+        "SELECT id FROM destinations WHERE name = ?",
+        ["Serengeti National Park"]
+      );
+      
+      if (serengetiDest.length === 0) {
+        throw new Error("Serengeti National Park destination not found. Please run createTestData.js first.");
+      }
+      
       const [hotelResult] = await db.query(
-        `INSERT INTO hotels (id, name, location, description, capacity, base_price_per_night)
+        `INSERT INTO hotels (id, name, destination_id, description, capacity, base_price_per_night)
          VALUES (?, ?, ?, ?, ?, ?)`,
         [
           hotelManagerId,
           "Safari Lodge Serengeti",
-          "Serengeti National Park",
+          serengetiDest[0].id,
           "Luxury safari lodge with stunning wildlife views",
           50,
           120.00
@@ -71,13 +81,23 @@ const addTestHotel = async () => {
     }
 
     try {
+      // First get Mount Kilimanjaro destination ID
+      const [kiliDest] = await db.query(
+        "SELECT id FROM destinations WHERE name = ?",
+        ["Mount Kilimanjaro"]
+      );
+      
+      if (kiliDest.length === 0) {
+        throw new Error("Mount Kilimanjaro destination not found. Please run createTestData.js first.");
+      }
+      
       const [hotel2Result] = await db.query(
-        `INSERT INTO hotels (id, name, location, description, capacity, base_price_per_night)
+        `INSERT INTO hotels (id, name, destination_id, description, capacity, base_price_per_night)
          VALUES (?, ?, ?, ?, ?, ?)`,
         [
           hotelManager2Id,
           "Kilimanjaro View Lodge",
-          "Mount Kilimanjaro",
+          kiliDest[0].id,
           "Mountain lodge with breathtaking views of Kilimanjaro",
           30,
           95.00

@@ -22,9 +22,10 @@ import {
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileUploader } from "../../components/file-uploader";
 import { toast } from "sonner";
-import { hotelManagerService, uploadService, apiUtils } from "@/app/services/api";
+import { hotelManagerService, uploadService, destinationsService, apiUtils } from "@/app/services/api";
 import { RouteProtection } from "@/components/route-protection";
 import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner";
 
@@ -35,9 +36,11 @@ export default function HotelManagerCompleteProfile() {
   const [hotelImages, setHotelImages] = useState([]);
   const [userStatus, setUserStatus] = useState(null);
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+  const [destinations, setDestinations] = useState([]);
+  const [isLoadingDestinations, setIsLoadingDestinations] = useState(true);
   const [formData, setFormData] = useState({
     name: "",
-    location: "",
+    destination_id: "",
     description: "",
     capacity: "",
     base_price_per_night: "",
@@ -88,6 +91,24 @@ export default function HotelManagerCompleteProfile() {
     checkAccess()
   }, [router])
 
+  // Fetch destinations for the dropdown
+  useEffect(() => {
+    const fetchDestinations = async () => {
+      try {
+        setIsLoadingDestinations(true)
+        const destinationsData = await destinationsService.getAllDestinations()
+        setDestinations(destinationsData)
+      } catch (error) {
+        console.error('Error fetching destinations:', error)
+        toast.error('Failed to load destinations. Please refresh the page.')
+      } finally {
+        setIsLoadingDestinations(false)
+      }
+    }
+
+    fetchDestinations()
+  }, [])
+
   // Show loading while checking access
   if (isCheckingAccess) {
     return <LoadingSpinner message="Checking access..." />
@@ -117,8 +138,8 @@ export default function HotelManagerCompleteProfile() {
       return;
     }
 
-    if (!formData.location.trim()) {
-      toast.error("Please enter your hotel location");
+    if (!formData.destination_id) {
+      toast.error("Please select your hotel destination");
       return;
     }
 
@@ -161,7 +182,7 @@ export default function HotelManagerCompleteProfile() {
       // Create hotel profile
       const profileData = {
         name: formData.name.trim(),
-        location: formData.location.trim(),
+        destination_id: parseInt(formData.destination_id),
         description: formData.description.trim(),
         capacity: parseInt(formData.capacity),
         base_price_per_night: parseFloat(formData.base_price_per_night),
@@ -240,22 +261,31 @@ export default function HotelManagerCompleteProfile() {
 
                   <div className="space-y-2">
                     <label
-                      htmlFor="location"
+                      htmlFor="destination"
                       className="text-sm font-medium text-gray-700"
                     >
-                      Location *
+                      Destination *
                     </label>
                     <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                      <Input
-                        id="location"
-                        value={formData.location}
-                        onChange={(e) =>
-                          handleInputChange("location", e.target.value)
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 z-10" />
+                      <Select
+                        value={formData.destination_id}
+                        onValueChange={(value) =>
+                          handleInputChange("destination_id", value)
                         }
-                        className="pl-10 border-gray-300 focus:border-amber-500"
-                        required
-                      />
+                        disabled={isLoadingDestinations}
+                      >
+                        <SelectTrigger className="pl-10 border-gray-300 focus:border-amber-500">
+                          <SelectValue placeholder={isLoadingDestinations ? "Loading destinations..." : "Select destination"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {destinations.map((destination) => (
+                            <SelectItem key={destination.id} value={destination.id.toString()}>
+                              {destination.name} - {destination.region}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </div>

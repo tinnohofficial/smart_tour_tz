@@ -689,7 +689,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"full_name\": \"John Smith\",\n    \"license_document_url\": \"https://example.com/license.pdf\",\n    \"location\": \"Zanzibar, Tanzania\",\n    \"expertise\": \"Historical tours, Local culture\",\n    \"activity_expertise\": [1, 2]\n}"
+              "raw": "{\n    \"full_name\": \"John Smith\",\n    \"license_document_url\": \"https://example.com/license.pdf\",\n    \"destination_id\": 1,\n    \"expertise\": \"Historical tours, Local culture\",\n    \"activity_expertise\": [1, 2]\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/tour-guides/profile",
@@ -735,7 +735,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"full_name\": \"John D. Smith\",\n    \"location\": \"Zanzibar, Tanzania\",\n    \"expertise\": \"Historical tours, Local culture, Wildlife safaris\",\n    \"activity_expertise\": [1, 2, 3]\n}"
+              "raw": "{\n    \"full_name\": \"John D. Smith\",\n    \"destination_id\": 2,\n    \"expertise\": \"Historical tours, Local culture, Wildlife safaris\",\n    \"activity_expertise\": [1, 2, 3]\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/tour-guides/profile",

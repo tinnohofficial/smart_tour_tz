@@ -2,21 +2,22 @@ const db = require("../config/db");
 
 exports.getAllHotels = async (req, res) => {
     try {
-        const { location } = req.query;
+        const { destination_id } = req.query;
         
         let query = `
-            SELECT h.* 
+            SELECT h.*, d.name as destination_name, d.region as destination_region
             FROM hotels h
             JOIN users u ON h.id = u.id
+            JOIN destinations d ON h.destination_id = d.id
             WHERE u.status = 'active' AND h.is_available = TRUE
         `;
         
         const params = [];
         
-        // If location query param is provided, filter hotels by location
-        if (location) {
-            query += ` AND h.location LIKE ?`;
-            params.push(`%${location}%`);
+        // If destination_id query param is provided, filter hotels by exact destination match
+        if (destination_id) {
+            query += ` AND h.destination_id = ?`;
+            params.push(destination_id);
         }
         
         const [rows] = await db.query(query, params);
@@ -32,9 +33,10 @@ exports.getHotelById = async (req, res) => {
 
     try {
         const [rows] = await db.query(
-            `SELECT h.*, u.status 
+            `SELECT h.*, u.status, d.name as destination_name, d.region as destination_region 
              FROM hotels h 
              JOIN users u ON h.id = u.id 
+             JOIN destinations d ON h.destination_id = d.id
              WHERE h.id = ?`, 
             [hotelId]
         );
@@ -64,7 +66,7 @@ exports.getHotelById = async (req, res) => {
 exports.createHotel = async (req, res) => {
   const {
     name,
-    location,
+    destination_id,
     description,
     images,
     capacity,
@@ -80,9 +82,28 @@ exports.createHotel = async (req, res) => {
   });
 
   // Validate required fields
-  if (!name || !location || !description || !capacity || !base_price_per_night) {
+  if (!name || !destination_id || !description || !capacity || !base_price_per_night) {
     return res.status(400).json({
-      message: "Required fields missing: name, location, description, capacity, and base_price_per_night are required"
+      message: "Required fields missing: name, destination_id, description, capacity, and base_price_per_night are required"
+    });
+  }
+  
+  // Validate destination_id exists
+  if (isNaN(destination_id) || parseInt(destination_id) <= 0) {
+    return res.status(400).json({
+      message: "destination_id must be a valid positive number"
+    });
+  }
+
+  // Check if destination exists
+  const [destinationRows] = await db.query(
+    "SELECT id FROM destinations WHERE id = ?",
+    [destination_id]
+  );
+
+  if (destinationRows.length === 0) {
+    return res.status(400).json({
+      message: "Invalid destination_id. Destination does not exist."
     });
   }
   
@@ -152,7 +173,7 @@ exports.createHotel = async (req, res) => {
         `INSERT INTO hotels (
             id,
             name,
-            location,
+            destination_id,
             description,
             images,
             capacity,
@@ -162,7 +183,7 @@ exports.createHotel = async (req, res) => {
         [
           userId,
           name,
-          location,
+          parseInt(destination_id),
           description,
           JSON.stringify(images || []),
           parseInt(capacity),
@@ -211,7 +232,7 @@ exports.updateHotel = async (req, res) => {
   const userId = req.user.id;
   const {
     name,
-    location,
+    destination_id,
     description,
     images,
     capacity,
@@ -235,6 +256,27 @@ exports.updateHotel = async (req, res) => {
 
     if (hotelRows.length === 0) {
       return res.status(404).json({ message: "Hotel not found" });
+    }
+
+    // Validate destination_id if provided
+    if (destination_id !== undefined) {
+      if (isNaN(destination_id) || parseInt(destination_id) <= 0) {
+        return res.status(400).json({
+          message: "destination_id must be a valid positive number"
+        });
+      }
+      
+      // Check if destination exists
+      const [destinationRows] = await db.query(
+        "SELECT id FROM destinations WHERE id = ?",
+        [destination_id]
+      );
+
+      if (destinationRows.length === 0) {
+        return res.status(400).json({
+          message: "Invalid destination_id. Destination does not exist."
+        });
+      }
     }
 
     // Validate inputs if provided
@@ -265,9 +307,9 @@ exports.updateHotel = async (req, res) => {
       params.push(name);
     }
 
-    if (location !== undefined) {
-      updates.push("location = ?");
-      params.push(location);
+    if (destination_id !== undefined) {
+      updates.push("destination_id = ?");
+      params.push(parseInt(destination_id));
     }
 
     if (description !== undefined) {

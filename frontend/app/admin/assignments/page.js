@@ -209,7 +209,7 @@ export default function AssignmentsPage() {
                         // Read eligibleGuides from store
                         eligibleGuides.map((guide) => (
                           <SelectItem key={guide.id} value={guide.id.toString()}>
-                            {guide.name} - {guide.location}
+                            {guide.name} - {guide.destination_name}, {guide.destination_region}
                           </SelectItem>
                         ))
                       )}
@@ -228,7 +228,7 @@ export default function AssignmentsPage() {
                        return (
                           <div key={guide.id} className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm">
                             <div><span className="text-muted-foreground">Name:</span> <span className="break-words">{guide.name}</span></div>
-                            <div><span className="text-muted-foreground">Location:</span> <span className="break-words">{guide.location}</span></div>
+                            <div><span className="text-muted-foreground">Location:</span> <span className="break-words">{guide.destination_name}, {guide.destination_region}</span></div>
                             <div className="col-span-full"><span className="text-muted-foreground">Expertise:</span> <span className="break-words">{guide.expertise}</span></div>
                             <div className="col-span-full">
                                 <span className="text-muted-foreground">Availability:</span>{' '}

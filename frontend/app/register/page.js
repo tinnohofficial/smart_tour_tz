@@ -179,12 +179,12 @@ export default function Register() {
       } else {
         // For other roles, check their status and redirect accordingly
         const userStatus = data.user.status;
-        
+
         if (userStatus === "pending_profile") {
           // New users need to complete their profile first
           const profileCompletionPath = {
             tour_guide: "/tour-guide/complete-profile",
-            hotel_manager: "/hotel-manager/complete-profile", 
+            hotel_manager: "/hotel-manager/complete-profile",
             travel_agent: "/travel-agent/complete-profile",
           }[selectedRole];
 
@@ -192,7 +192,7 @@ export default function Register() {
             router.push(profileCompletionPath);
           } else {
             // Fallback to dashboard
-            router.push(`/${selectedRole.replace('_', '-')}/dashboard`);
+            router.push(`/${selectedRole.replace("_", "-")}/dashboard`);
           }
         } else {
           // For other statuses, go to dashboard
@@ -223,9 +223,6 @@ export default function Register() {
               Create an Account
             </CardTitle>
           </div>
-          <CardDescription className="text-gray-500">
-            Enter your details to create your Smart Tour account
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={onBasicSubmit} className="space-y-6">
@@ -239,7 +236,6 @@ export default function Register() {
                 </label>
                 <Input
                   id="email"
-                  placeholder="your.email@example.com"
                   value={basicFormData.email}
                   onChange={(e) => setBasicFormData({ email: e.target.value })}
                 />
@@ -256,7 +252,6 @@ export default function Register() {
                   <Input
                     type="password"
                     id="password"
-                    placeholder="••••••••"
                     value={basicFormData.password}
                     onChange={(e) =>
                       setBasicFormData({ password: e.target.value })
@@ -274,7 +269,6 @@ export default function Register() {
                   <Input
                     type="password"
                     id="confirmPassword"
-                    placeholder="••••••••"
                     value={basicFormData.confirmPassword}
                     onChange={(e) =>
                       setBasicFormData({ confirmPassword: e.target.value })
@@ -323,10 +317,6 @@ export default function Register() {
                     <SelectItem value="travel_agent">Travel Agent</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-gray-500">
-                  Select your role in the system. Additional information may be
-                  required.
-                </p>
               </div>
             </div>
 

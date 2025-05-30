@@ -347,13 +347,14 @@ export default function TravelAgentCompleteProfile() {
           <div className="bg-amber-700 p-6 rounded-lg mb-6 text-center">
             <Briefcase className="h-12 w-12 text-white mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-white mb-2">
-              {userStatus === "rejected" ? 'Resubmit Your Travel Agency Profile' : 'Complete Your Travel Agency Profile'}
+              {userStatus === "rejected"
+                ? "Resubmit Your Travel Agency Profile"
+                : "Complete Your Travel Agency Profile"}
             </h1>
             <p className="text-amber-100">
-              {userStatus === "rejected" 
-                ? 'Your previous application was rejected. Please review the feedback and resubmit your agency details and transport routes.'
-                : 'Provide your agency details and transport routes to submit your application to offer services on our platform.'
-              }
+              {userStatus === "rejected"
+                ? "Your previous application was rejected. Please review the feedback and resubmit your agency details and transport routes."
+                : "Provide your agency details and transport routes to submit your application to offer services on our platform."}
             </p>
           </div>
 
@@ -385,7 +386,6 @@ export default function TravelAgentCompleteProfile() {
                       onChange={(e) =>
                         handleInputChange("name", e.target.value)
                       }
-                      placeholder="Tanzania Safari Tours & Transport"
                       className="border-gray-300 focus:border-amber-500"
                       required
                     />
@@ -405,7 +405,6 @@ export default function TravelAgentCompleteProfile() {
                       onChange={(e) =>
                         handleInputChange("contactEmail", e.target.value)
                       }
-                      placeholder="info@youragency.com"
                       className="border-gray-300 focus:border-amber-500"
                       required
                     />
@@ -424,7 +423,6 @@ export default function TravelAgentCompleteProfile() {
                       onChange={(e) =>
                         handleInputChange("contactPhone", e.target.value)
                       }
-                      placeholder="+255 744 123 456"
                       className="border-gray-300 focus:border-amber-500"
                       required
                     />
@@ -502,7 +500,6 @@ export default function TravelAgentCompleteProfile() {
                           </label>
                           <Input
                             type="text"
-                            placeholder="Enter origin city/location"
                             value={route.origin_name}
                             onChange={(e) =>
                               handleRouteChange(
@@ -581,8 +578,7 @@ export default function TravelAgentCompleteProfile() {
                               onChange={(e) =>
                                 handleRouteChange(index, "cost", e.target.value)
                               }
-                              className="pl-10 border-gray-300 focus:border-amber-500"
-                              placeholder="50000"
+                              className="pl-3 border-gray-300 focus:border-amber-500"
                             />
                           </div>
                         </div>
