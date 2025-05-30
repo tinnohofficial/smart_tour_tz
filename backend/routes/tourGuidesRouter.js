@@ -28,4 +28,19 @@ router.put(
   tourGuideController.updateGuideProfile,
 );
 
+// Tour guide manager profile routes
+router.get(
+  "/manager/profile",
+  authenticateToken,
+  checkRole("tour_guide"),
+  tourGuideController.getManagerProfile,
+);
+
+router.put(
+  "/manager/profile",
+  authenticateToken,
+  checkRole("tour_guide"),
+  tourGuideController.updateManagerProfile,
+);
+
 module.exports = router;

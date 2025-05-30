@@ -18,7 +18,7 @@ export const useProfileStore = create((set, get) => ({
 
   // Form data
   hotelName: "",
-  hotelLocation: "",
+  hotelDestinationId: "",
   hotelDescription: "",
   hotelCapacity: "",
   accommodationCosts: "",
@@ -34,7 +34,7 @@ export const useProfileStore = create((set, get) => ({
         set({
           profileData: data,
           hotelName: data.name || "",
-          hotelLocation: data.location || "",
+          hotelDestinationId: data.destination_id ? data.destination_id.toString() : "",
           hotelDescription: data.description || "",
           hotelCapacity: data.capacity || "",
           // Format price to maintain decimal precision
@@ -97,7 +97,7 @@ export const useProfileStore = create((set, get) => ({
         // Prepare hotel data for submission
         const profileData = {
           name: formData.hotelName,
-          location: formData.hotelLocation,
+          destination_id: parseInt(formData.hotelDestinationId),
           description: formData.hotelDescription,
           capacity: formData.hotelCapacity,
           base_price_per_night: price,
@@ -118,7 +118,7 @@ export const useProfileStore = create((set, get) => ({
         set({
           profileData: updatedData,
           hotelName: updatedData.name || profileData.name,
-          hotelLocation: updatedData.location || profileData.location,
+          hotelDestinationId: updatedData.destination_id ? updatedData.destination_id.toString() : profileData.destination_id,
           hotelDescription: updatedData.description || profileData.description,
           hotelCapacity: updatedData.capacity || profileData.capacity,
           // Format price to maintain decimal precision
@@ -156,7 +156,7 @@ export const useProfileStore = create((set, get) => ({
     return get().updateProfile(
       {
         hotelName: currentState.hotelName,
-        hotelLocation: currentState.hotelLocation,
+        hotelDestinationId: currentState.hotelDestinationId,
         hotelDescription: currentState.hotelDescription,
         hotelCapacity: currentState.hotelCapacity,
         accommodationCosts: currentState.accommodationCosts,

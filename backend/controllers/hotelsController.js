@@ -5,7 +5,8 @@ exports.getAllHotels = async (req, res) => {
         const { destination_id } = req.query;
         
         let query = `
-            SELECT h.*, d.name as destination_name, d.region as destination_region
+            SELECT h.*, d.name as destination_name, d.region as destination_region,
+                   d.name as location
             FROM hotels h
             JOIN users u ON h.id = u.id
             JOIN destinations d ON h.destination_id = d.id
@@ -21,7 +22,14 @@ exports.getAllHotels = async (req, res) => {
         }
         
         const [rows] = await db.query(query, params);
-        res.status(200).json(rows);
+        
+        // Parse images for each hotel
+        const hotels = rows.map(hotel => ({
+            ...hotel,
+            images: hotel.images ? JSON.parse(hotel.images) : []
+        }));
+        
+        res.status(200).json(hotels);
     } catch (error) {
         console.error("Error fetching hotels:", error);
         res.status(500).json({ message: "Failed to fetch hotels", error: error.message });
@@ -33,7 +41,8 @@ exports.getHotelById = async (req, res) => {
 
     try {
         const [rows] = await db.query(
-            `SELECT h.*, u.status, d.name as destination_name, d.region as destination_region 
+            `SELECT h.*, u.status, d.name as destination_name, d.region as destination_region,
+                    d.name as location
              FROM hotels h 
              JOIN users u ON h.id = u.id 
              JOIN destinations d ON h.destination_id = d.id
@@ -52,7 +61,7 @@ exports.getHotelById = async (req, res) => {
             try {
                 hotel.images = JSON.parse(hotel.images);
             } catch (e) {
-                // Keep as is if parsing fails
+                hotel.images = [];
             }
         }
 
@@ -225,7 +234,164 @@ exports.createHotel = async (req, res) => {
   }
 };
 
+exports.getManagerProfile = async (req, res) => {
+  const userId = req.user.id;
 
+  try {
+    const [rows] = await db.query(
+      `SELECT h.*, u.status, d.name as destination_name, d.region as destination_region,
+              d.name as location
+       FROM hotels h 
+       JOIN users u ON h.id = u.id 
+       JOIN destinations d ON h.destination_id = d.id
+       WHERE h.id = ?`, 
+      [userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Hotel profile not found" });
+    }
+
+    const hotel = rows[0];
+
+    // Parse JSON fields if they exist
+    if (hotel.images) {
+      try {
+        hotel.images = JSON.parse(hotel.images);
+      } catch (e) {
+        hotel.images = [];
+      }
+    }
+
+    res.status(200).json(hotel);
+  } catch (error) {
+    console.error("Error fetching hotel manager profile:", error);
+    res.status(500).json({ message: "Failed to fetch hotel profile", error: error.message });
+  }
+};
+
+exports.updateManagerProfile = async (req, res) => {
+  const userId = req.user.id;
+  const {
+    name,
+    destination_id,
+    description,
+    images,
+    capacity,
+    base_price_per_night,
+    is_available,
+  } = req.body;
+
+  try {
+    // Check if hotel exists
+    const [hotelRows] = await db.query(
+      "SELECT id FROM hotels WHERE id = ?",
+      [userId],
+    );
+
+    if (hotelRows.length === 0) {
+      return res.status(404).json({ message: "Hotel not found" });
+    }
+
+    // Validate destination_id if provided
+    if (destination_id !== undefined) {
+      if (isNaN(destination_id) || parseInt(destination_id) <= 0) {
+        return res.status(400).json({
+          message: "destination_id must be a valid positive number"
+        });
+      }
+      
+      // Check if destination exists
+      const [destinationRows] = await db.query(
+        "SELECT id FROM destinations WHERE id = ?",
+        [destination_id]
+      );
+
+      if (destinationRows.length === 0) {
+        return res.status(400).json({
+          message: "Invalid destination_id. Destination does not exist."
+        });
+      }
+    }
+
+    // Validate inputs if provided
+    if (capacity !== undefined && (isNaN(capacity) || parseInt(capacity) <= 0)) {
+      return res.status(400).json({
+        message: "Capacity must be a positive number"
+      });
+    }
+    
+    if (base_price_per_night !== undefined && (isNaN(base_price_per_night) || parseFloat(base_price_per_night) <= 0)) {
+      return res.status(400).json({
+        message: "Base price per night must be a positive number"
+      });
+    }
+
+    if (images !== undefined && !Array.isArray(images)) {
+      return res.status(400).json({
+        message: "Images must be an array of image URLs"
+      });
+    }
+
+    // Update the fields that are provided
+    const updates = [];
+    const params = [];
+
+    if (name !== undefined) {
+      updates.push("name = ?");
+      params.push(name);
+    }
+
+    if (destination_id !== undefined) {
+      updates.push("destination_id = ?");
+      params.push(parseInt(destination_id));
+    }
+
+    if (description !== undefined) {
+      updates.push("description = ?");
+      params.push(description);
+    }
+
+    if (images !== undefined) {
+      updates.push("images = ?");
+      params.push(JSON.stringify(images));
+    }
+
+    if (capacity !== undefined) {
+      updates.push("capacity = ?");
+      params.push(parseInt(capacity));
+    }
+
+    if (base_price_per_night !== undefined) {
+      updates.push("base_price_per_night = ?");
+      params.push(parseFloat(base_price_per_night));
+    }
+
+    if (is_available !== undefined) {
+      updates.push("is_available = ?");
+      params.push(Boolean(is_available));
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ message: "No fields to update" });
+    }
+
+    // Add hotel_id to params for WHERE clause
+    params.push(userId);
+
+    await db.query(
+      `UPDATE hotels SET ${updates.join(", ")} WHERE id = ?`,
+      params,
+    );
+
+    res.status(200).json({ message: "Hotel profile updated successfully" });
+  } catch (error) {
+    console.error("Error updating hotel manager profile:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to update hotel profile", error: error.message });
+  }
+};
 
 exports.updateHotel = async (req, res) => {
   const hotelId = req.params.id;
@@ -357,5 +523,3 @@ exports.updateHotel = async (req, res) => {
       .json({ message: "Failed to update hotel", error: error.message });
   }
 };
-
-

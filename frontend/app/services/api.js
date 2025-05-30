@@ -118,14 +118,7 @@ export const authService = {
 // Hotel Manager Service
 export const hotelManagerService = {
   async getProfile() {
-    // Get current user's ID from token payload
-    const token = localStorage.getItem('token')
-    if (!token) throw new Error('No authentication token found')
-    
-    const payload = JSON.parse(atob(token.split('.')[1]))
-    const userId = payload.id
-    
-    return apiRequest(`/hotels/${userId}`)
+    return apiRequest('/hotels/manager/profile')
   },
 
   async createProfile(profileData) {
@@ -136,14 +129,7 @@ export const hotelManagerService = {
   },
 
   async updateProfile(profileData) {
-    // Get current user's ID from token payload
-    const token = localStorage.getItem('token')
-    if (!token) throw new Error('No authentication token found')
-    
-    const payload = JSON.parse(atob(token.split('.')[1]))
-    const userId = payload.id
-    
-    return apiRequest(`/hotels/${userId}`, {
+    return apiRequest('/hotels/manager/profile', {
       method: 'PUT',
       body: JSON.stringify(profileData)
     })
@@ -188,14 +174,7 @@ export const travelAgentService = {
 // Tour Guide Service
 export const tourGuideService = {
   async getProfile() {
-    // Get current user's ID from token payload
-    const token = localStorage.getItem('token')
-    if (!token) throw new Error('No authentication token found')
-    
-    const payload = JSON.parse(atob(token.split('.')[1]))
-    const userId = payload.id
-    
-    return apiRequest(`/tour-guides/${userId}`)
+    return apiRequest('/tour-guides/manager/profile')
   },
 
   async createProfile(profileData) {
@@ -206,16 +185,16 @@ export const tourGuideService = {
   },
 
   async updateProfile(profileData) {
-    // Get current user's ID from token payload
-    const token = localStorage.getItem('token')
-    if (!token) throw new Error('No authentication token found')
-    
-    const payload = JSON.parse(atob(token.split('.')[1]))
-    const userId = payload.id
-    
-    return apiRequest(`/tour-guides/${userId}`, {
+    return apiRequest('/tour-guides/manager/profile', {
       method: 'PUT',
       body: JSON.stringify(profileData)
+    })
+  },
+
+  async updateAvailability(available) {
+    return apiRequest('/tour-guides/manager/profile', {
+      method: 'PUT',
+      body: JSON.stringify({ available })
     })
   }
 }

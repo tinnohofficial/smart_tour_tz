@@ -25,4 +25,19 @@ router.put(
   hotelsController.updateHotel,
 );
 
+// Hotel manager profile routes
+router.get(
+  "/manager/profile",
+  authenticateToken,
+  checkRole("hotel_manager"),
+  hotelsController.getManagerProfile,
+);
+
+router.put(
+  "/manager/profile",
+  authenticateToken,
+  checkRole("hotel_manager"),
+  hotelsController.updateManagerProfile,
+);
+
 module.exports = router;

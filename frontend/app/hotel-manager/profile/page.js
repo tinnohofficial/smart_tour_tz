@@ -233,16 +233,36 @@ export default function HotelManagerProfile() {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="hotelLocation" className="text-sm font-medium text-gray-700">Location *</label>
+                <label htmlFor="hotelDestinationId" className="text-sm font-medium text-gray-700">Destination *</label>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                  <Input
-                    id="hotelLocation"
-                    name="hotelLocation"
-                    className="pl-10 border-gray-300 focus:border-amber-600"
-                    defaultValue={hotelLocation}
-                    placeholder="City, Tanzania"
-                    required
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 z-10" />
+                  <Select
+                    value={hotelDestinationId}
+                    onValueChange={(value) => {
+                      // Update the form input value
+                      const form = document.querySelector('form');
+                      if (form) {
+                        const input = form.querySelector('input[name="hotelDestinationId"]');
+                        if (input) input.value = value;
+                      }
+                    }}
+                    disabled={isLoadingDestinations}
+                  >
+                    <SelectTrigger className="pl-10 border-gray-300 focus:border-amber-600">
+                      <SelectValue placeholder={isLoadingDestinations ? "Loading destinations..." : "Select destination"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {destinations.map((destination) => (
+                        <SelectItem key={destination.id} value={destination.id.toString()}>
+                          {destination.name} - {destination.region}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <input
+                    type="hidden"
+                    name="hotelDestinationId"
+                    defaultValue={hotelDestinationId}
                   />
                 </div>
               </div>
