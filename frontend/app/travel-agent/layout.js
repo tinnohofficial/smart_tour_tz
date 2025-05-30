@@ -2,13 +2,13 @@
 
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
-import { BarChart3, MapPin, Briefcase, LogOut, Menu, X, Lock, Car, Package } from "lucide-react"
+import { BarChart3, MapPin, Briefcase, LogOut, Menu, X, Lock, Car, Package, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { useLayoutStore } from "@/app/store/layoutStore"
-
 import { RouteProtection } from "@/components/route-protection"
+import { publishAuthChange } from "@/components/Navbar"
 import { travelAgentService, apiUtils } from "@/app/services/api"
 import { useEffect, useState } from "react"
 
@@ -26,36 +26,23 @@ export default function TravelAgentLayout({ children }) {
       try {
         const token = localStorage.getItem('token')
         if (!token) {
-          // Redirect to login if no token
           router.push('/login')
           return
         }
 
-        // Fetch user profile to check status using shared API service
-        const data = await apiUtils.withLoadingAndError(
-          () => travelAgentService.getProfile(),
-          {
-            onSuccess: (data) => {
-              setUserStatus(data.status || 'pending_profile')
-              setHasProfile(true)
-            },
-            onError: (error) => {
-              if (error.response?.status === 404) {
-                // User has no profile yet
-                setUserStatus('pending_profile')
-                setHasProfile(false)
-                
-                // Redirect to profile completion page if user has no profile
-                if (!pathname.includes('/complete-profile') && !pathname.includes('/dashboard') && !pathname.includes('/password')) {
-                  router.push('/travel-agent/complete-profile')
-                }
-              } else {
-                console.error('Error fetching profile:', error)
-                apiUtils.handleAuthError(error, router)
-              }
-            }
+        try {
+          const data = await travelAgentService.getProfile()
+          setUserStatus(data.status || 'pending_profile')
+          setHasProfile(true)
+        } catch (error) {
+          if (error.response?.status === 404) {
+            setUserStatus('pending_profile')
+            setHasProfile(false)
+          } else {
+            console.error('Error fetching profile:', error)
+            apiUtils.handleAuthError(error, router)
           }
-        )
+        }
       } catch (error) {
         console.error("Error fetching user profile:", error)
       } finally {
@@ -72,15 +59,13 @@ export default function TravelAgentLayout({ children }) {
       label: "Dashboard",
       icon: <BarChart3 className="h-5 w-5" />,
       active: pathname === "/travel-agent/dashboard",
-      // Always show dashboard
-      show: true
+      show: userStatus === 'active'
     },
     {
       href: "/travel-agent/bookings",
       label: "Manage Bookings",
       icon: <Package className="h-5 w-5" />,
       active: pathname === "/travel-agent/bookings",
-      // Only show bookings if user has completed profile and is active
       show: userStatus === 'active'
     },
     {
@@ -88,7 +73,6 @@ export default function TravelAgentLayout({ children }) {
       label: "Transport Routes",
       icon: <Car className="h-5 w-5" />,
       active: pathname === "/travel-agent/routes",
-      // Only show routes if user has completed profile and is active
       show: userStatus === 'active'
     },
     {
@@ -96,62 +80,55 @@ export default function TravelAgentLayout({ children }) {
       label: "Agency Profile",
       icon: <Briefcase className="h-5 w-5" />,
       active: pathname === "/travel-agent/profile",
-      // Always show profile - users need to access it to complete initial setup
-      show: true
+      show: userStatus === 'active'
+    },
+    {
+      href: "/travel-agent/pending-status",
+      label: "Application Status",
+      icon: <User className="h-5 w-5" />,
+      active: pathname === "/travel-agent/pending-status",
+      show: userStatus === 'pending_approval' || userStatus === 'rejected'
     },
     {
       href: "/travel-agent/password",
       label: "Change Password",
       icon: <Lock className="h-5 w-5" />,
       active: pathname === "/travel-agent/password",
-      // Always show password change
       show: true
     }
   ]
 
-  // Allow access only to specific pages based on user status
   const shouldRestrictAccess = () => {
-    if (isLoading) return true // Don't render content while checking
+    if (isLoading) return true
     
     if (!hasProfile && userStatus === 'pending_profile') {
-      // Allow access only to complete-profile, dashboard, and password pages
-      return !['/travel-agent/complete-profile', '/travel-agent/dashboard', '/travel-agent/password'].includes(pathname)
+      return !['/travel-agent/complete-profile', '/travel-agent/password'].includes(pathname)
     }
     
-    if (userStatus === 'pending_approval') {
-      // Allow access to dashboard, profile (read-only), and password when pending approval
-      return !['/travel-agent/dashboard', '/travel-agent/profile', '/travel-agent/password'].includes(pathname)
+    if (hasProfile && (userStatus === 'pending_approval' || userStatus === 'rejected')) {
+      return !['/travel-agent/pending-status', '/travel-agent/password'].includes(pathname)
+    }
+    
+    if (userStatus === 'active') {
+      return ['/travel-agent/complete-profile', '/travel-agent/pending-status'].includes(pathname)
     }
     
     return false
   }
 
   const handleLogout = () => {
-    try {
-      // Clear all auth-related data from localStorage
-      localStorage.removeItem('token')
-      localStorage.removeItem('userData')
-      localStorage.removeItem('role')
-      
-      // Add a small delay before redirecting to ensure storage is cleared
-      setTimeout(() => {
-        // Redirect to login page
-        router.push('/login?message=You have been logged out successfully')
-      }, 100)
-    } catch (error) {
-      console.error('Logout error:', error)
-      // Ensure navigation to login even if there was an error
-      router.push('/login')
-    }
+    localStorage.removeItem('token')
+    localStorage.removeItem('userData')
+    publishAuthChange()
+    router.push('/login')
   }
 
-  // Show loading state while checking profile
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Smart Tour Tanzania...</p>
+          <p className="mt-4 text-gray-600">Smart Tour Tanzania</p>
         </div>
       </div>
     )
@@ -160,12 +137,10 @@ export default function TravelAgentLayout({ children }) {
   return (
     <RouteProtection allowedRoles={['travel_agent']}>
       <div className="flex h-screen bg-amber-50">
-        {/* Mobile sidebar backdrop */}
         {isSidebarOpen && (
           <div className="fixed inset-0 z-20 bg-black/50 md:hidden" onClick={() => setIsSidebarOpen(false)} />
         )}
 
-        {/* Sidebar */}
         <aside
           className={cn(
             "fixed inset-y-0 left-0 z-30 w-64 transform bg-amber-900 transition-transform duration-200 ease-in-out md:translate-x-0",
@@ -216,9 +191,7 @@ export default function TravelAgentLayout({ children }) {
           </div>
         </aside>
 
-        {/* Main content */}
         <div className="flex flex-1 flex-col bg-white md:pl-64">
-          {/* Top navigation */}
           <header className="sticky top-0 left-0 z-10 bg-transparent shadow-sm md:hidden">
             <div className="flex h-16 items-center justify-between px-4">
               <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSidebarOpen(true)}>
@@ -234,56 +207,53 @@ export default function TravelAgentLayout({ children }) {
             </div>
           </header>
 
-          {/* Page content */}
           <main className="flex-1 px-6 py-6">
-
-
-            {/* Show content based on access restrictions */}
             {shouldRestrictAccess() ? (
-              pathname !== '/travel-agent/dashboard' && pathname !== '/travel-agent/password' && (
-                <div className="text-center py-10">
-                  {userStatus === 'pending_approval' && pathname === '/travel-agent/profile' ? (
-                    // Show message specific to pending approval users trying to access profile
-                    <div>
-                      <Briefcase className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-                      <h2 className="text-xl font-semibold text-gray-700">Profile Under Review</h2>
-                      <p className="text-gray-500 mb-6">Your agency profile is currently under review and cannot be modified. You will be able to access your profile again once it&apos;s approved.</p>
-                      <Button 
-                        onClick={() => router.push('/travel-agent/dashboard')}
-                        className="bg-amber-700 hover:bg-amber-800"
-                      >
-                        Go to Dashboard
-                      </Button>
-                    </div>
-                  ) : userStatus === 'pending_profile' && !hasProfile ? (
-                    // Show message for users who need to complete their profile
-                    <div>
-                      <Briefcase className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-                      <h2 className="text-xl font-semibold text-gray-700">Complete Your Agency Profile</h2>
-                      <p className="text-gray-500 mb-6">You need to complete your travel agency profile to access all features.</p>
-                      <Button 
-                        onClick={() => router.push('/travel-agent/complete-profile')}
-                        className="bg-amber-700 hover:bg-amber-800"
-                      >
-                        Complete Profile Now
-                      </Button>
-                    </div>
-                  ) : (
-                    // Standard message for other restricted access
-                    <div>
-                      <Briefcase className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-                      <h2 className="text-xl font-semibold text-gray-700">Access Restricted</h2>
-                      <p className="text-gray-500 mb-6">Please complete the required steps to access this page.</p>
-                      <Button 
-                        onClick={() => router.push('/travel-agent/dashboard')}
-                        className="bg-amber-700 hover:bg-amber-800"
-                      >
-                        Go to Dashboard
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              )
+              <div className="text-center py-10">
+                {!hasProfile && userStatus === 'pending_profile' ? (
+                  <>
+                    <Briefcase className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+                    <h2 className="text-xl font-semibold text-gray-700">Complete Your Agency Profile</h2>
+                    <p className="text-gray-500 mb-6">You need to complete your travel agency profile to access this page.</p>
+                    <Button 
+                      onClick={() => router.push('/travel-agent/complete-profile')}
+                      className="bg-amber-700 hover:bg-amber-800"
+                    >
+                      Complete Profile Now
+                    </Button>
+                  </>
+                ) : hasProfile && (userStatus === 'pending_approval' || userStatus === 'rejected') ? (
+                  <>
+                    <User className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+                    <h2 className="text-xl font-semibold text-gray-700">Check Your Application Status</h2>
+                    <p className="text-gray-500 mb-6">View your application status and submitted details.</p>
+                    <Button 
+                      onClick={() => router.push('/travel-agent/pending-status')}
+                      className="bg-amber-700 hover:bg-amber-800"
+                    >
+                      View Application Status
+                    </Button>
+                  </>
+                ) : userStatus === 'active' ? (
+                  <>
+                    <Briefcase className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+                    <h2 className="text-xl font-semibold text-gray-700">Access Restricted</h2>
+                    <p className="text-gray-500 mb-6">This page is not available for approved travel agents.</p>
+                    <Button 
+                      onClick={() => router.push('/travel-agent/dashboard')}
+                      className="bg-amber-700 hover:bg-amber-800"
+                    >
+                      Go to Dashboard
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Briefcase className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+                    <h2 className="text-xl font-semibold text-gray-700">Access Restricted</h2>
+                    <p className="text-gray-500 mb-6">You don't have permission to access this page.</p>
+                  </>
+                )}
+              </div>
             ) : (
               children
             )}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { MapPin, Award, FileText, Loader2, ChevronRight, CheckCircle2, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -10,19 +10,77 @@ import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { FileUploader } from "../../components/file-uploader"
 import { toast } from "sonner"
-import { tourGuideService, uploadService } from "@/app/services/api"
+import { tourGuideService, uploadService, apiUtils } from "@/app/services/api"
 import { RouteProtection } from "@/components/route-protection"
+import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner"
 
 export default function TourGuideCompleteProfile() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [licenseFile, setLicenseFile] = useState(null)
+  const [userStatus, setUserStatus] = useState(null)
+  const [isCheckingAccess, setIsCheckingAccess] = useState(true)
   const [formData, setFormData] = useState({
     fullName: "",
     location: "",
     expertise: ""
   })
+
+  useEffect(() => {
+    const checkAccess = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) {
+          router.push('/login')
+          return
+        }
+
+        try {
+          const data = await tourGuideService.getProfile()
+          setUserStatus(data.status || 'pending_profile')
+          
+          // If user is active or pending approval, redirect them away
+          if (data.status === 'active') {
+            router.push('/tour-guide/dashboard')
+            return
+          } else if (data.status === 'pending_approval') {
+            router.push('/tour-guide/pending-status')
+            return
+          } else if (data.status === 'rejected') {
+            // Allow rejected users to resubmit
+            setUserStatus('rejected')
+          }
+        } catch (error) {
+          if (error.response?.status === 404) {
+            // No profile exists - this is expected for new users
+            setUserStatus('pending_profile')
+          } else {
+            console.error('Error fetching profile:', error)
+            apiUtils.handleAuthError(error, router)
+            return
+          }
+        }
+      } catch (error) {
+        console.error("Error checking access:", error)
+        router.push('/login')
+      } finally {
+        setIsCheckingAccess(false)
+      }
+    }
+
+    checkAccess()
+  }, [router])
+
+  // Show loading while checking access
+  if (isCheckingAccess) {
+    return <LoadingSpinner message="Checking access..." />
+  }
+
+  // Don't render if user shouldn't have access
+  if (userStatus !== 'pending_profile' && userStatus !== 'rejected') {
+    return null
+  }
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -78,12 +136,14 @@ export default function TourGuideCompleteProfile() {
 
       await tourGuideService.createProfile(profileData)
 
-      toast.success("Profile completed successfully!", {
+      toast.success("Tour guide profile completed successfully!", {
         description: "Your profile is now under review by administrators."
       })
-
-      // Redirect to dashboard after successful submission
-      router.push("/tour-guide/dashboard")
+      
+      // Redirect to pending status page after successful submission
+      setTimeout(() => {
+        router.push("/tour-guide/pending-status")
+      }, 1500)
 
     } catch (error) {
       console.error("Profile submission error:", error)
@@ -119,10 +179,14 @@ export default function TourGuideCompleteProfile() {
             <div className="w-16 h-16 bg-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <User className="h-8 w-8 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Complete Your Tour Guide Profile</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              {userStatus === 'rejected' ? 'Resubmit Your Tour Guide Profile' : 'Complete Your Tour Guide Profile'}
+            </h1>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Welcome to Smart Tour Tanzania! Please provide your professional details to complete your registration. 
-              Your profile will be reviewed by our administrators before activation.
+              {userStatus === 'rejected' 
+                ? 'Your previous application was rejected. Please review the feedback and resubmit your professional details.'
+                : 'Welcome to Smart Tour Tanzania! Please provide your professional details to complete your registration. Your profile will be reviewed by our administrators before activation.'
+              }
             </p>
           </div>
 

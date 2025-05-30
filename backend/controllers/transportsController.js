@@ -1,5 +1,60 @@
 const db = require("../config/db");
 
+// Helper function to ensure transport origin exists or create it
+async function ensureTransportOrigin(originName, connection = null) {
+  const dbConnection = connection || db;
+  
+  // First try to find existing origin by name
+  const [existingOrigins] = await dbConnection.query(
+    "SELECT id FROM transport_origins WHERE name = ?",
+    [originName]
+  );
+  
+  if (existingOrigins.length > 0) {
+    return existingOrigins[0].id;
+  }
+  
+  // Create new origin if it doesn't exist
+  const [result] = await dbConnection.query(
+    "INSERT INTO transport_origins (name, country) VALUES (?, 'Tanzania')",
+    [originName]
+  );
+  
+  return result.insertId;
+}
+
+// Helper function to clean up unused transport origins
+async function cleanupUnusedOrigins(connection = null) {
+  const dbConnection = connection || db;
+  
+  // Delete origins that are not referenced by any transport routes
+  await dbConnection.query(`
+    DELETE FROM transport_origins 
+    WHERE id NOT IN (
+      SELECT DISTINCT origin_id FROM transports
+    )
+  `);
+}
+
+// Get all available transport origins (moved from transportOriginsController)
+exports.getAllOrigins = async (req, res) => {
+  try {
+    const [origins] = await db.query(`
+      SELECT DISTINCT to_orig.id, to_orig.name, to_orig.description, to_orig.country 
+      FROM transport_origins to_orig
+      INNER JOIN transports t ON to_orig.id = t.origin_id
+      ORDER BY to_orig.name ASC
+    `);
+    res.status(200).json(origins);
+  } catch (error) {
+    console.error("Error fetching transport origins:", error);
+    res.status(500).json({ 
+      message: "Failed to fetch transport origins", 
+      error: error.message 
+    });
+  }
+};
+
 exports.getTransports = async (req, res) => {
   try {
     const { origin_id, destination_id } = req.query;
@@ -106,7 +161,7 @@ exports.getTransportById = async (req, res) => {
 
 exports.createTransport = async (req, res) => {
   const {
-    origin_id,
+    origin_name,
     destination_id,
     transportation_type,
     cost,
@@ -118,10 +173,10 @@ exports.createTransport = async (req, res) => {
   const agency_id = req.user.id;
 
   // Validate required fields
-  if (!origin_id || !destination_id || !cost) {
+  if (!origin_name || !destination_id || !cost) {
     return res.status(400).json({
       message:
-        "Required fields missing: origin_id, destination_id, and cost are required",
+        "Required fields missing: origin_name, destination_id, and cost are required",
     });
   }
   
@@ -142,82 +197,100 @@ exports.createTransport = async (req, res) => {
     }
   }
   
-  // Validate that origin and destination are different
-  if (origin_id === destination_id) {
+  // Validate origin name
+  if (!origin_name.trim()) {
     return res.status(400).json({
-      message: "Origin and destination must be different"
+      message: "Origin name cannot be empty"
     });
   }
 
   try {
-    // Verify the user is an active travel agent with a profile
-    const [agencyRows] = await db.query(
-      "SELECT ta.id FROM travel_agencies ta JOIN users u ON ta.id = u.id WHERE ta.id = ? AND u.status = 'active' AND u.role = 'travel_agent'",
-      [agency_id],
-    );
+    const connection = await db.getConnection();
+    await connection.beginTransaction();
 
-    if (agencyRows.length === 0) {
-      return res.status(404).json({ message: "Travel agency profile not found or not active" });
+    try {
+      // Verify the user is an active travel agent with a profile
+      const [agencyRows] = await connection.query(
+        "SELECT ta.id FROM travel_agencies ta JOIN users u ON ta.id = u.id WHERE ta.id = ? AND u.status = 'active' AND u.role = 'travel_agent'",
+        [agency_id],
+      );
+
+      if (agencyRows.length === 0) {
+        await connection.rollback();
+        connection.release();
+        return res.status(404).json({ message: "Travel agency profile not found or not active" });
+      }
+      
+      // Verify the destination exists
+      const [destinationRows] = await connection.query(
+        "SELECT id, name FROM destinations WHERE id = ?",
+        [destination_id]
+      );
+      
+      if (destinationRows.length === 0) {
+        await connection.rollback();
+        connection.release();
+        return res.status(400).json({ message: "Invalid destination ID" });
+      }
+
+      // Ensure origin exists or create it implicitly
+      const origin_id = await ensureTransportOrigin(origin_name.trim(), connection);
+
+      // Validate that origin and destination are different
+      if (origin_id === destination_id) {
+        await connection.rollback();
+        connection.release();
+        return res.status(400).json({
+          message: "Origin and destination must be different"
+        });
+      }
+
+      // Create the transport
+      const [result] = await connection.query(
+        `INSERT INTO transports (
+          agency_id,
+          origin_id,
+          destination_id,
+          transportation_type,
+          cost,
+          description,
+          route_details
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          agency_id,
+          origin_id,
+          destination_id,
+          transportation_type || 'bus',
+          cost,
+          description || null,
+          route_details ? JSON.stringify(route_details) : null
+        ],
+      );
+
+      // Fetch the newly created transport to return complete data
+      const [newTransport] = await connection.query(
+        `SELECT t.*, 
+                to_origin.name as origin_name, 
+                d.name as destination_name 
+         FROM transports t
+         JOIN transport_origins to_origin ON t.origin_id = to_origin.id
+         JOIN destinations d ON t.destination_id = d.id
+         WHERE t.id = ?`,
+        [result.insertId]
+      );
+
+      await connection.commit();
+      connection.release();
+
+      res.status(201).json({
+        message: "Transport route created successfully",
+        ...newTransport[0]
+      });
+    } catch (error) {
+      await connection.rollback();
+      connection.release();
+      throw error;
     }
-    
-    // Verify the origin exists
-    const [originRows] = await db.query(
-      "SELECT id, name FROM transport_origins WHERE id = ?",
-      [origin_id]
-    );
-    
-    if (originRows.length === 0) {
-      return res.status(400).json({ message: "Invalid origin ID" });
-    }
-    
-    // Verify the destination exists
-    const [destinationRows] = await db.query(
-      "SELECT id, name FROM destinations WHERE id = ?",
-      [destination_id]
-    );
-    
-    if (destinationRows.length === 0) {
-      return res.status(400).json({ message: "Invalid destination ID" });
-    }
-
-    // Create the transport
-    const [result] = await db.query(
-      `INSERT INTO transports (
-        agency_id,
-        origin_id,
-        destination_id,
-        transportation_type,
-        cost,
-        description,
-        route_details
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        agency_id,
-        origin_id,
-        destination_id,
-        transportation_type || 'bus',
-        cost,
-        description || null,
-        route_details ? JSON.stringify(route_details) : null
-      ],
-    );
-
-    // Fetch the newly created transport to return complete data
-    const [newTransport] = await db.query(
-      `SELECT t.*, 
-              to_origin.name as origin_name, 
-              d.name as destination_name 
-       FROM transports t
-       JOIN transport_origins to_origin ON t.origin_id = to_origin.id
-       JOIN destinations d ON t.destination_id = d.id
-       WHERE t.id = ?`,
-      [result.insertId]
-    );
-
-    res.status(201).json({
-      message: "Transport route created successfully",
-      ...newTransport[0]
-    });
   } catch (error) {
     console.error("Error creating transport:", error);
     res.status(500).json({
@@ -233,94 +306,124 @@ exports.updateTransport = async (req, res) => {
   const userId = req.user.id;
 
   try {
-    // First check if the transport exists and belongs to this agency
-    const [transportRows] = await db.query(
-      "SELECT * FROM transports WHERE id = ? AND agency_id = ?",
-      [transportId, userId]
-    );
+    const connection = await db.getConnection();
+    await connection.beginTransaction();
 
-    if (transportRows.length === 0) {
-      return res.status(404).json({
-        message: "Transport not found or you don't have permission to update it",
+    try {
+      // First check if the transport exists and belongs to this agency
+      const [transportRows] = await connection.query(
+        "SELECT * FROM transports WHERE id = ? AND agency_id = ?",
+        [transportId, userId]
+      );
+
+      if (transportRows.length === 0) {
+        await connection.rollback();
+        connection.release();
+        return res.status(404).json({
+          message: "Transport not found or you don't have permission to update it",
+        });
+      }
+
+      const currentTransport = transportRows[0];
+
+      // Build update query dynamically based on provided fields
+      const allowedFields = [
+        "origin_name",
+        "destination_id", 
+        "transportation_type",
+        "cost",
+        "description",
+        "route_details"
+      ];
+
+      const updates = [];
+      const values = [];
+      let newOriginId = currentTransport.origin_id;
+
+      // Handle origin_name change implicitly
+      if (updateData.origin_name && updateData.origin_name.trim()) {
+        newOriginId = await ensureTransportOrigin(updateData.origin_name.trim(), connection);
+        updates.push("origin_id = ?");
+        values.push(newOriginId);
+      }
+
+      allowedFields.forEach((field) => {
+        if (field in updateData && field !== "origin_name") {
+          if (field === "route_details" && updateData[field]) {
+            // Handle JSON field
+            updates.push(`${field} = ?`);
+            values.push(JSON.stringify(updateData[field]));
+          } else {
+            updates.push(`${field} = ?`);
+            values.push(updateData[field]);
+          }
+        }
       });
-    }
 
-    // Build update query dynamically based on provided fields
-    const allowedFields = [
-      "origin_id",
-      "destination_id", 
-      "transportation_type",
-      "cost",
-      "description",
-      "route_details"
-    ];
+      if (updates.length === 0) {
+        await connection.rollback();
+        connection.release();
+        return res.status(400).json({ message: "No valid fields to update" });
+      }
 
-    const updates = [];
-    const values = [];
+      // Validate destination_id if provided
+      if (updateData.destination_id) {
+        const [destinationRows] = await connection.query(
+          "SELECT id FROM destinations WHERE id = ?",
+          [updateData.destination_id]
+        );
+        if (destinationRows.length === 0) {
+          await connection.rollback();
+          connection.release();
+          return res.status(400).json({ message: "Invalid destination ID" });
+        }
 
-    allowedFields.forEach((field) => {
-      if (field in updateData) {
-        if (field === "route_details" && updateData[field]) {
-          // Handle JSON field
-          updates.push(`${field} = ?`);
-          values.push(JSON.stringify(updateData[field]));
-        } else {
-          updates.push(`${field} = ?`);
-          values.push(updateData[field]);
+        // Validate that origin and destination are different
+        if (newOriginId === updateData.destination_id) {
+          await connection.rollback();
+          connection.release();
+          return res.status(400).json({
+            message: "Origin and destination must be different"
+          });
         }
       }
-    });
 
-    if (updates.length === 0) {
-      return res.status(400).json({ message: "No valid fields to update" });
-    }
+      // Add transportId as the last value
+      values.push(transportId);
 
-    // Validate origin_id and destination_id if provided
-    if (updateData.origin_id) {
-      const [originRows] = await db.query(
-        "SELECT id FROM transport_origins WHERE id = ?",
-        [updateData.origin_id]
+      // Execute update query
+      await connection.query(
+        `UPDATE transports SET ${updates.join(", ")} WHERE id = ?`,
+        values,
       );
-      if (originRows.length === 0) {
-        return res.status(400).json({ message: "Invalid origin ID" });
-      }
-    }
 
-    if (updateData.destination_id) {
-      const [destinationRows] = await db.query(
-        "SELECT id FROM destinations WHERE id = ?",
-        [updateData.destination_id]
+      // Clean up unused origins after the update
+      await cleanupUnusedOrigins(connection);
+
+      // Fetch the updated transport to return complete data
+      const [updatedTransport] = await connection.query(
+        `SELECT t.*, 
+                to_origin.name as origin_name, 
+                d.name as destination_name 
+         FROM transports t
+         JOIN transport_origins to_origin ON t.origin_id = to_origin.id
+         JOIN destinations d ON t.destination_id = d.id
+         WHERE t.id = ?`,
+        [transportId]
       );
-      if (destinationRows.length === 0) {
-        return res.status(400).json({ message: "Invalid destination ID" });
-      }
+
+      await connection.commit();
+      connection.release();
+
+      res.status(200).json({ 
+        message: "Transport updated successfully",
+        ...updatedTransport[0]
+      });
+    } catch (error) {
+      await connection.rollback();
+      connection.release();
+      throw error;
     }
-
-    // Add transportId as the last value
-    values.push(transportId);
-
-    // Execute update query
-    await db.query(
-      `UPDATE transports SET ${updates.join(", ")} WHERE id = ?`,
-      values,
-    );
-
-    // Fetch the updated transport to return complete data
-    const [updatedTransport] = await db.query(
-      `SELECT t.*, 
-              to_origin.name as origin_name, 
-              d.name as destination_name 
-       FROM transports t
-       JOIN transport_origins to_origin ON t.origin_id = to_origin.id
-       JOIN destinations d ON t.destination_id = d.id
-       WHERE t.id = ?`,
-      [transportId]
-    );
-
-    res.status(200).json({ 
-      message: "Transport updated successfully",
-      ...updatedTransport[0]
-    });
   } catch (error) {
     console.error("Error updating transport:", error);
     res.status(500).json({
@@ -392,6 +495,9 @@ exports.deleteTransport = async (req, res) => {
 
       // Safe to delete if no bookings exist
       await connection.query("DELETE FROM transports WHERE id = ?", [transportId]);
+
+      // Clean up unused origins after deletion
+      await cleanupUnusedOrigins(connection);
 
       await connection.commit();
       connection.release();

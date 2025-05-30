@@ -7,6 +7,9 @@ const checkRole = require("../middleware/checkRole");
 // Get all transports
 router.get("/", transportsController.getTransports);
 
+// Get all transport origins (public access for booking flow)
+router.get("/origins", transportsController.getAllOrigins);
+
 // Get routes for authenticated travel agent
 router.get(
   "/my-routes",

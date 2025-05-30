@@ -31,7 +31,13 @@ exports.getHotelById = async (req, res) => {
     const hotelId = req.params.id;
 
     try {
-        const [rows] = await db.query("SELECT * FROM hotels WHERE id = ?", [hotelId]);
+        const [rows] = await db.query(
+            `SELECT h.*, u.status 
+             FROM hotels h 
+             JOIN users u ON h.id = u.id 
+             WHERE h.id = ?`, 
+            [hotelId]
+        );
 
         if (rows.length === 0) {
             return res.status(404).json({ message: "Hotel not found" });

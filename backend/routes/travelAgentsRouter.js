@@ -4,25 +4,25 @@ const travelAgentsController = require("../controllers/travelAgentsController");
 const authenticateToken = require("../middleware/authenticateToken");
 const checkRole = require("../middleware/checkRole");
 
-// Travel Agent submits or updates profile (F2.3)
+// Travel Agent creates their agency
 router.post(
-  "/profile",
+  "/",
   authenticateToken,
   checkRole("travel_agent", false),
-  travelAgentsController.submitTravelAgentProfile,
+  travelAgentsController.createTravelAgency,
 );
 
-// Travel Agent views their agency details
+// Get agency details by ID
 router.get(
-  "/profile",
+  "/:id",
   authenticateToken,
   checkRole("travel_agent", false),
-  travelAgentsController.getAgencyDetails,
+  travelAgentsController.getAgency,
 );
 
-// Travel Agent updates their profile (F4.2)
+// Travel Agent updates their agency
 router.put(
-  "/profile",
+  "/:id",
   authenticateToken,
   checkRole("travel_agent"),
   travelAgentsController.updateTravelAgentProfile,

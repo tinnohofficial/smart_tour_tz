@@ -2,13 +2,13 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { BarChart3, Calendar, CreditCard, LogOut, Star, User, Menu, X, Lock } from "lucide-react"
+import { BarChart3, Calendar, LogOut, Star, User, Menu, X, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { useLayoutStore } from "@/app/store/layoutStore"
-
 import { RouteProtection } from "@/components/route-protection"
+import { publishAuthChange } from "@/components/Navbar"
 import { tourGuideService, apiUtils } from "@/app/services/api"
 import { useEffect, useState } from "react"
 
@@ -26,41 +26,23 @@ export default function TourGuideLayout({ children }) {
       try {
         const token = localStorage.getItem('token')
         if (!token) {
-          // Redirect to login if no token
           router.push('/login')
           return
         }
 
-        // Fetch user profile to check status using shared API service
-        const data = await apiUtils.withLoadingAndError(
-          () => tourGuideService.getProfile(),
-          {
-            onSuccess: (data) => {
-              setUserStatus(data.status || 'pending_profile')
-              setHasProfile(true)
-              
-              // Redirect away from profile page if status is pending_approval
-              if (data.status === 'pending_approval' && pathname === '/tour-guide/profile') {
-                router.push('/tour-guide/dashboard')
-              }
-            },
-            onError: (error) => {
-              if (error.response?.status === 404) {
-                // User has no profile yet
-                setUserStatus('pending_profile')
-                setHasProfile(false)
-                
-                // Redirect to profile completion page if user has no profile
-                if (!pathname.includes('/complete-profile') && !pathname.includes('/dashboard') && !pathname.includes('/password')) {
-                  router.push('/tour-guide/complete-profile')
-                }
-              } else {
-                console.error('Error fetching profile:', error)
-                apiUtils.handleAuthError(error, router)
-              }
-            }
+        try {
+          const data = await tourGuideService.getProfile()
+          setUserStatus(data.status || 'pending_profile')
+          setHasProfile(true)
+        } catch (error) {
+          if (error.response?.status === 404) {
+            setUserStatus('pending_profile')
+            setHasProfile(false)
+          } else {
+            console.error('Error fetching profile:', error)
+            apiUtils.handleAuthError(error, router)
           }
-        )
+        }
       } catch (error) {
         console.error("Error fetching user profile:", error)
       } finally {
@@ -77,78 +59,69 @@ export default function TourGuideLayout({ children }) {
       label: "Dashboard",
       icon: <BarChart3 className="h-5 w-5" />,
       active: pathname === "/tour-guide/dashboard",
-      // Always show dashboard
-      show: true
+      show: userStatus === 'active'
     },
     {
       href: "/tour-guide/bookings",
       label: "Assigned Tours",
       icon: <Calendar className="h-5 w-5" />,
       active: pathname === "/tour-guide/bookings",
-      // Only show bookings if user has completed profile and is active
       show: userStatus === 'active'
     },
     {
       href: "/tour-guide/profile",
-      label: "Profile",
+      label: "Guide Profile",
       icon: <User className="h-5 w-5" />,
       active: pathname === "/tour-guide/profile",
-      // Always show profile - users need to access it to complete initial setup
-      show: true
+      show: userStatus === 'active'
+    },
+    {
+      href: "/tour-guide/pending-status",
+      label: "Application Status",
+      icon: <Star className="h-5 w-5" />,
+      active: pathname === "/tour-guide/pending-status",
+      show: userStatus === 'pending_approval' || userStatus === 'rejected'
     },
     {
       href: "/tour-guide/password",
       label: "Change Password",
       icon: <Lock className="h-5 w-5" />,
       active: pathname === "/tour-guide/password",
-      // Always show password change
       show: true
     }
   ]
 
-  // Allow access only to specific pages based on user status
   const shouldRestrictAccess = () => {
-    if (isLoading) return true // Don't render content while checking
+    if (isLoading) return true
     
     if (!hasProfile && userStatus === 'pending_profile') {
-      // Allow access only to complete-profile, dashboard, and password pages
-      return !['/tour-guide/complete-profile', '/tour-guide/dashboard', '/tour-guide/password'].includes(pathname)
+      return !['/tour-guide/complete-profile', '/tour-guide/password'].includes(pathname)
     }
     
-    if (userStatus === 'pending_approval') {
-      // Allow access to dashboard, profile (read-only), and password when pending approval
-      return !['/tour-guide/dashboard', '/tour-guide/profile', '/tour-guide/password'].includes(pathname)
+    if (hasProfile && (userStatus === 'pending_approval' || userStatus === 'rejected')) {
+      return !['/tour-guide/pending-status', '/tour-guide/password'].includes(pathname)
+    }
+    
+    if (userStatus === 'active') {
+      return ['/tour-guide/complete-profile', '/tour-guide/pending-status'].includes(pathname)
     }
     
     return false
   }
 
   const handleLogout = () => {
-    try {
-      // Clear all auth-related data from localStorage
-      localStorage.removeItem('token')
-      localStorage.removeItem('userData')
-      localStorage.removeItem('role')
-      
-      // Add a small delay before redirecting to ensure storage is cleared
-      setTimeout(() => {
-        // Redirect to login page
-        router.push('/login?message=You have been logged out successfully')
-      }, 100)
-    } catch (error) {
-      console.error('Logout error:', error)
-      // Ensure navigation to login even if there was an error
-      router.push('/login')
-    }
+    localStorage.removeItem('token')
+    localStorage.removeItem('userData')
+    publishAuthChange()
+    router.push('/login')
   }
 
-  // Show loading state while checking profile
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-gray-600">Smart Tour Tanzania</p>
         </div>
       </div>
     )
@@ -157,12 +130,10 @@ export default function TourGuideLayout({ children }) {
   return (
     <RouteProtection allowedRoles={['tour_guide']}>
       <div className="flex h-screen bg-amber-50">
-        {/* Mobile sidebar backdrop */}
         {isSidebarOpen && (
           <div className="fixed inset-0 z-20 bg-black/50 md:hidden" onClick={() => setIsSidebarOpen(false)} />
         )}
 
-        {/* Sidebar */}
         <aside
           className={cn(
             "fixed inset-y-0 left-0 z-30 w-64 transform bg-amber-900 transition-transform duration-200 ease-in-out md:translate-x-0",
@@ -171,7 +142,10 @@ export default function TourGuideLayout({ children }) {
         >
           <div className="flex h-full flex-col">
             <div className="flex h-16 items-center justify-between border-b border-amber-800 px-4">
-              <h1 className="text-xl font-semibold text-white">Tour Guide Portal</h1>
+              <div className="flex items-center">
+                <Star className="h-6 w-6 text-white mr-2" />
+                <h1 className="text-xl font-semibold text-white">Tour Guide</h1>
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
@@ -210,9 +184,7 @@ export default function TourGuideLayout({ children }) {
           </div>
         </aside>
 
-        {/* Main content */}
         <div className="flex flex-1 flex-col bg-white md:pl-64">
-          {/* Top navigation */}
           <header className="sticky top-0 left-0 z-10 bg-transparent shadow-sm md:hidden">
             <div className="flex h-16 items-center justify-between px-4">
               <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSidebarOpen(true)}>
@@ -222,62 +194,59 @@ export default function TourGuideLayout({ children }) {
               <div className="ml-auto flex items-center">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src="/placeholder.svg" alt="User" />
-                  <AvatarFallback>TG</AvatarFallback>
+                  <AvatarFallback>T</AvatarFallback>
                 </Avatar>
               </div>
             </div>
           </header>
 
-          {/* Page content */}
           <main className="flex-1 px-6 py-6">
-
-
-            {/* Show content based on access restrictions */}
             {shouldRestrictAccess() ? (
-              pathname !== '/tour-guide/dashboard' && pathname !== '/tour-guide/password' && (
-                <div className="text-center py-10">
-                  {userStatus === 'pending_approval' && pathname === '/tour-guide/profile' ? (
-                    // Show message specific to pending approval users trying to access profile
-                    <div>
-                      <User className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-                      <h2 className="text-xl font-semibold text-gray-700">Profile Under Review</h2>
-                      <p className="text-gray-500 mb-6">Your profile is currently under review and cannot be modified. You will be able to access your profile again once it&apos;s approved.</p>
-                      <Button 
-                        onClick={() => router.push('/tour-guide/dashboard')}
-                        className="bg-amber-700 hover:bg-amber-800"
-                      >
-                        Go to Dashboard
-                      </Button>
-                    </div>
-                  ) : userStatus === 'pending_profile' && !hasProfile ? (
-                    // Show message for users who need to complete their profile
-                    <div>
-                      <User className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-                      <h2 className="text-xl font-semibold text-gray-700">Complete Your Profile</h2>
-                      <p className="text-gray-500 mb-6">You need to complete your tour guide profile to access all features.</p>
-                      <Button 
-                        onClick={() => router.push('/tour-guide/complete-profile')}
-                        className="bg-amber-700 hover:bg-amber-800"
-                      >
-                        Complete Profile Now
-                      </Button>
-                    </div>
-                  ) : (
-                    // Standard message for other restricted access
-                    <div>
-                      <User className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-                      <h2 className="text-xl font-semibold text-gray-700">Access Restricted</h2>
-                      <p className="text-gray-500 mb-6">Please complete the required steps to access this page.</p>
-                      <Button 
-                        onClick={() => router.push('/tour-guide/dashboard')}
-                        className="bg-amber-700 hover:bg-amber-800"
-                      >
-                        Go to Dashboard
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              )
+              <div className="text-center py-10">
+                {!hasProfile && userStatus === 'pending_profile' ? (
+                  <>
+                    <User className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+                    <h2 className="text-xl font-semibold text-gray-700">Complete Your Guide Profile</h2>
+                    <p className="text-gray-500 mb-6">You need to complete your tour guide profile to access this page.</p>
+                    <Button 
+                      onClick={() => router.push('/tour-guide/complete-profile')}
+                      className="bg-amber-700 hover:bg-amber-800"
+                    >
+                      Complete Profile Now
+                    </Button>
+                  </>
+                ) : hasProfile && (userStatus === 'pending_approval' || userStatus === 'rejected') ? (
+                  <>
+                    <Star className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+                    <h2 className="text-xl font-semibold text-gray-700">Check Your Application Status</h2>
+                    <p className="text-gray-500 mb-6">View your application status and submitted details.</p>
+                    <Button 
+                      onClick={() => router.push('/tour-guide/pending-status')}
+                      className="bg-amber-700 hover:bg-amber-800"
+                    >
+                      View Application Status
+                    </Button>
+                  </>
+                ) : userStatus === 'active' ? (
+                  <>
+                    <User className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+                    <h2 className="text-xl font-semibold text-gray-700">Access Restricted</h2>
+                    <p className="text-gray-500 mb-6">This page is not available for approved tour guides.</p>
+                    <Button 
+                      onClick={() => router.push('/tour-guide/dashboard')}
+                      className="bg-amber-700 hover:bg-amber-800"
+                    >
+                      Go to Dashboard
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <User className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+                    <h2 className="text-xl font-semibold text-gray-700">Access Restricted</h2>
+                    <p className="text-gray-500 mb-6">You don't have permission to access this page.</p>
+                  </>
+                )}
+              </div>
             ) : (
               children
             )}

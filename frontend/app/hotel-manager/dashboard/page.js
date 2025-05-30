@@ -1,74 +1,100 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { 
-  Hotel, Bed, BarChart3, Clock, Calendar, Loader2, 
-  DollarSign, Percent, User, ArrowRight, CheckCircle, CalendarClock, Building
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { useDashboardStore } from "./store"
-import { format } from "date-fns"
-import { formatDateWithFormat } from "@/app/utils/dateUtils"
-import { formatTZS } from "@/app/utils/currency"
-import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner"
-import { hotelManagerService, apiUtils } from "@/app/services/api"
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Hotel,
+  Bed,
+  BarChart3,
+  Clock,
+  Calendar,
+  Loader2,
+  DollarSign,
+  Percent,
+  User,
+  ArrowRight,
+  CheckCircle,
+  CalendarClock,
+  Building,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { useDashboardStore } from "./store";
+import { format } from "date-fns";
+import { formatDateWithFormat } from "@/app/utils/dateUtils";
+import { formatTZS } from "@/app/utils/currency";
+import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner";
+import { hotelManagerService, apiUtils } from "@/app/services/api";
 
 export default function HotelManagerDashboard() {
-  const { stats, recentBookings, isLoading, error, fetchDashboardData } = useDashboardStore()
-  const router = useRouter()
-  const [userStatus, setUserStatus] = useState(null)
-  const [isCheckingAccess, setIsCheckingAccess] = useState(true)
+  const { stats, recentBookings, isLoading, error, fetchDashboardData } =
+    useDashboardStore();
+  const router = useRouter();
+  const [userStatus, setUserStatus] = useState(null);
+  const [isCheckingAccess, setIsCheckingAccess] = useState(true);
 
   useEffect(() => {
     const checkAccess = async () => {
       try {
-        const token = localStorage.getItem('token')
+        const token = localStorage.getItem("token");
         if (!token) {
-          router.push('/login')
-          return
+          router.push("/login");
+          return;
         }
 
         try {
-          const data = await hotelManagerService.getProfile()
-          setUserStatus(data.status || 'pending_profile')
-          
+          const data = await hotelManagerService.getProfile();
+          setUserStatus(data.status || "pending_profile");
+
           // Only allow access if user is active
-          if (data.status !== 'active') {
-            if (data.status === 'pending_profile' || !data.status) {
-              router.push('/hotel-manager/complete-profile')
+          if (data.status !== "active") {
+            if (data.status === "pending_profile" || !data.status) {
+              router.push("/hotel-manager/complete-profile");
             } else {
-              // For pending_approval status, redirect to a restricted page
-              router.push('/hotel-manager/password')
+              // For pending_approval status, redirect to pending-status page
+              router.push("/hotel-manager/pending-status");
             }
-            return
+            return;
           }
-          
+
           // User is active, fetch dashboard data
-          fetchDashboardData()
+          fetchDashboardData();
         } catch (error) {
           if (error.response?.status === 404) {
             // No profile exists, redirect to complete profile
-            router.push('/hotel-manager/complete-profile')
-            return
+            router.push("/hotel-manager/complete-profile");
+            return;
           } else {
-            console.error('Error fetching profile:', error)
-            apiUtils.handleAuthError(error, router)
-            return
+            console.error("Error fetching profile:", error);
+            apiUtils.handleAuthError(error, router);
+            return;
           }
         }
       } catch (error) {
-        console.error("Error checking access:", error)
-        router.push('/login')
+        console.error("Error checking access:", error);
+        router.push("/login");
       } finally {
-        setIsCheckingAccess(false)
+        setIsCheckingAccess(false);
       }
-    }
+    };
 
-    checkAccess()
-  }, [fetchDashboardData, router])
+    checkAccess();
+  }, [fetchDashboardData, router]);
 
   // Show loading while checking access
   if (isCheckingAccess) {
@@ -79,18 +105,19 @@ export default function HotelManagerDashboard() {
           <p className="mt-4 text-gray-600">Checking access...</p>
         </div>
       </div>
-    )
+    );
   }
 
   // Don't render dashboard if user is not active
-  if (userStatus !== 'active') {
-    return null
+  if (userStatus !== "active") {
+    return null;
   }
 
-  const formatDate = (dateString) => formatDateWithFormat(dateString, "MMM dd, yyyy", "Invalid date")
+  const formatDate = (dateString) =>
+    formatDateWithFormat(dateString, "MMM dd, yyyy", "Invalid date");
 
   if (isLoading) {
-    return <LoadingSpinner message="Loading dashboard data..." />
+    return <LoadingSpinner message="Loading dashboard data..." />;
   }
 
   return (
@@ -99,8 +126,12 @@ export default function HotelManagerDashboard() {
       <div className="bg-amber-700 p-4 sm:p-6 rounded-lg mb-4 sm:mb-6">
         <div className="flex flex-col md:flex-row justify-between gap-4">
           <div>
-            <h1 className="text-lg sm:text-xl font-bold text-white">Dashboard</h1>
-            <p className="text-amber-100 text-sm">Welcome to your hotel management dashboard</p>
+            <h1 className="text-lg sm:text-xl font-bold text-white">
+              Dashboard
+            </h1>
+            <p className="text-amber-100 text-sm">
+              Welcome to your hotel management dashboard
+            </p>
           </div>
         </div>
       </div>
@@ -110,7 +141,9 @@ export default function HotelManagerDashboard() {
         {/* Pending Bookings Card */}
         <Card className="relative overflow-hidden">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Pending Bookings</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-500">
+              Pending Bookings
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center">
@@ -118,8 +151,12 @@ export default function HotelManagerDashboard() {
                 <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-600" />
               </div>
               <div>
-                <div className="text-xl sm:text-2xl font-bold">{stats.pendingBookings}</div>
-                <div className="text-xs text-gray-500">Awaiting room assignment</div>
+                <div className="text-xl sm:text-2xl font-bold">
+                  {stats.pendingBookings}
+                </div>
+                <div className="text-xs text-gray-500">
+                  Awaiting room assignment
+                </div>
               </div>
             </div>
           </CardContent>
@@ -129,7 +166,9 @@ export default function HotelManagerDashboard() {
         {/* Occupancy Rate Card */}
         <Card className="relative overflow-hidden">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Current Occupancy</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-500">
+              Current Occupancy
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center">
@@ -137,8 +176,20 @@ export default function HotelManagerDashboard() {
                 <Percent className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-600" />
               </div>
               <div>
-                <div className="text-xl sm:text-2xl font-bold">{stats.occupancyRate}%</div>
-                <div className="text-xs text-gray-500">{stats.currentOccupancy} of {stats.currentOccupancy + (stats.occupancyRate > 0 ? Math.round(stats.currentOccupancy * (100 / stats.occupancyRate) - stats.currentOccupancy) : 0)} rooms</div>
+                <div className="text-xl sm:text-2xl font-bold">
+                  {stats.occupancyRate}%
+                </div>
+                <div className="text-xs text-gray-500">
+                  {stats.currentOccupancy} of{" "}
+                  {stats.currentOccupancy +
+                    (stats.occupancyRate > 0
+                      ? Math.round(
+                          stats.currentOccupancy * (100 / stats.occupancyRate) -
+                            stats.currentOccupancy,
+                        )
+                      : 0)}{" "}
+                  rooms
+                </div>
               </div>
             </div>
           </CardContent>
@@ -148,7 +199,9 @@ export default function HotelManagerDashboard() {
         {/* Total Bookings Card */}
         <Card className="relative overflow-hidden">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Total Bookings</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-500">
+              Total Bookings
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center">
@@ -156,8 +209,12 @@ export default function HotelManagerDashboard() {
                 <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-amber-700" />
               </div>
               <div>
-                <div className="text-xl sm:text-2xl font-bold">{stats.totalBookings}</div>
-                <div className="text-xs text-gray-500">{stats.confirmedBookings} confirmed</div>
+                <div className="text-xl sm:text-2xl font-bold">
+                  {stats.totalBookings}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {stats.confirmedBookings} confirmed
+                </div>
               </div>
             </div>
           </CardContent>
@@ -167,15 +224,17 @@ export default function HotelManagerDashboard() {
         {/* Monthly Revenue Card */}
         <Card className="relative overflow-hidden">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">Monthly Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-500">
+              Monthly Revenue
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center">
-              <div className="mr-3 sm:mr-4 rounded-full bg-blue-100 p-2">
-                <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" />
-              </div>
+              <div className="mr-3 sm:mr-4 rounded-full bg-blue-100 p-2"></div>
               <div>
-                <div className="text-xl sm:text-2xl font-bold">{formatTZS(stats.revenueThisMonth)}</div>
+                <div className="text-xl sm:text-2xl font-bold">
+                  {formatTZS(stats.revenueThisMonth)}
+                </div>
                 <div className="text-xs text-gray-500">This month</div>
               </div>
             </div>
@@ -190,14 +249,12 @@ export default function HotelManagerDashboard() {
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-lg">Recent Bookings</CardTitle>
-              <CardDescription>
-                Latest guest reservations
-              </CardDescription>
+              <CardDescription>Latest guest reservations</CardDescription>
             </div>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="hidden sm:flex"
-              onClick={() => router.push('/hotel-manager/bookings')}
+              onClick={() => router.push("/hotel-manager/bookings")}
             >
               View All
               <ArrowRight className="ml-2 h-4 w-4" />
@@ -219,12 +276,16 @@ export default function HotelManagerDashboard() {
                   <TableRow key={booking.id}>
                     <TableCell>
                       <div className="font-medium">{booking.guestName}</div>
-                      <div className="text-sm text-gray-500">{booking.email}</div>
+                      <div className="text-sm text-gray-500">
+                        {booking.email}
+                      </div>
                     </TableCell>
                     <TableCell>{booking.roomType}</TableCell>
                     <TableCell>{formatDate(booking.checkIn)}</TableCell>
                     <TableCell>{formatDate(booking.checkOut)}</TableCell>
-                    <TableCell className="text-right">{formatTZS(booking.amount)}</TableCell>
+                    <TableCell className="text-right">
+                      {formatTZS(booking.amount)}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -234,11 +295,11 @@ export default function HotelManagerDashboard() {
             <div className="text-xs text-gray-500">
               Showing {recentBookings.length} most recent bookings
             </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               className="sm:hidden"
-              onClick={() => router.push('/hotel-manager/bookings')}
+              onClick={() => router.push("/hotel-manager/bookings")}
             >
               View All
               <ArrowRight className="ml-2 h-3 w-3" />
@@ -250,15 +311,13 @@ export default function HotelManagerDashboard() {
         <Card className="md:col-span-4">
           <CardHeader>
             <CardTitle className="text-lg">Quick Actions</CardTitle>
-            <CardDescription>
-              Manage your hotel operations
-            </CardDescription>
+            <CardDescription>Manage your hotel operations</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button 
-              variant="outline" 
-              className="w-full justify-start" 
-              onClick={() => router.push('/hotel-manager/bookings')}
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              onClick={() => router.push("/hotel-manager/bookings")}
             >
               <CalendarClock className="mr-2 h-4 w-4 text-amber-700" />
               <span>Manage Bookings</span>
@@ -268,11 +327,11 @@ export default function HotelManagerDashboard() {
                 </div>
               )}
             </Button>
-            
-            <Button 
-              variant="outline" 
+
+            <Button
+              variant="outline"
               className="w-full justify-start"
-              onClick={() => router.push('/hotel-manager/profile')}
+              onClick={() => router.push("/hotel-manager/profile")}
             >
               <Hotel className="mr-2 h-4 w-4 text-emerald-600" />
               <span>Update Hotel Profile</span>
@@ -293,5 +352,5 @@ export default function HotelManagerDashboard() {
 
       {/* Additional Content Can Be Added Here */}
     </div>
-  )
+  );
 }

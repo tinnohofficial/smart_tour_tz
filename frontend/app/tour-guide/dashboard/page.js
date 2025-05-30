@@ -1,8 +1,9 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { Calendar, CreditCard, Map, Star, Users, ChevronRight } from "lucide-react"
+import { Calendar, CreditCard, Map, Star, Users, ChevronRight, User } from "lucide-react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -12,8 +13,13 @@ import { toast } from "sonner"
 import Link from "next/link"
 import { useDashboardStore } from "./store"
 import { ProfileCompletionBanner } from "../../components/profile-completion-status/ProfileCompletionBanner"
+import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner"
+import { tourGuideService, apiUtils } from "@/app/services/api"
 
 export default function TourGuideDashboard() {
+  const router = useRouter()
+  const [userStatus, setUserStatus] = useState(null)
+  const [isCheckingAccess, setIsCheckingAccess] = useState(true)
   const {
     userData,
     tours,
@@ -26,8 +32,69 @@ export default function TourGuideDashboard() {
   } = useDashboardStore()
 
   useEffect(() => {
-    fetchDashboard()
-  }, [fetchDashboard])
+    const checkAccess = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) {
+          router.push('/login')
+          return
+        }
+
+        try {
+          const data = await tourGuideService.getProfile()
+          setUserStatus(data.status || 'pending_profile')
+          
+          // Only allow access if user is active
+          if (data.status !== 'active') {
+            if (data.status === 'pending_profile' || !data.status) {
+              router.push('/tour-guide/complete-profile')
+            } else {
+              // For pending_approval status, redirect to pending-status page
+              router.push('/tour-guide/pending-status')
+            }
+            return
+          }
+          
+          // User is active, fetch dashboard data
+          fetchDashboard()
+        } catch (error) {
+          if (error.response?.status === 404) {
+            // No profile exists, redirect to complete profile
+            router.push('/tour-guide/complete-profile')
+            return
+          } else {
+            console.error('Error fetching profile:', error)
+            apiUtils.handleAuthError(error, router)
+            return
+          }
+        }
+      } catch (error) {
+        console.error("Error checking access:", error)
+        router.push('/login')
+      } finally {
+        setIsCheckingAccess(false)
+      }
+    }
+
+    checkAccess()
+  }, [fetchDashboard, router])
+
+  // Show loading while checking access
+  if (isCheckingAccess) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Checking access...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render dashboard if user is not active
+  if (userStatus !== 'active') {
+    return null
+  }
 
   const handleAvailabilityChange = async (checked) => {
     if (profileStatus !== 'active') {

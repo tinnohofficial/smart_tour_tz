@@ -4,36 +4,28 @@ const tourGuideController = require("../controllers/tourGuidesController");
 const authenticateToken = require("../middleware/authenticateToken");
 const checkRole = require("../middleware/checkRole");
 
-// Tour Guide submits or updates profile (F2.1)
+// Tour Guide creates their profile
 router.post(
-  "/profile",
+  "/",
   authenticateToken,
   checkRole("tour_guide", false),
-  tourGuideController.submitTourGuideProfile,
+  tourGuideController.createTourGuide,
 );
 
-// Tour Guide views their profile details
+// Get tour guide details by ID
 router.get(
-  "/profile",
+  "/:id",
   authenticateToken,
   checkRole("tour_guide", false),
-  tourGuideController.getGuideProfile,
+  tourGuideController.getTourGuide,
 );
 
-// Tour Guide updates profile
+// Tour Guide updates their profile (including availability)
 router.put(
-  "/profile",
+  "/:id",
   authenticateToken,
   checkRole("tour_guide"),
   tourGuideController.updateGuideProfile,
-);
-
-// Tour Guide updates availability status
-router.patch(
-  "/availability",
-  authenticateToken,
-  checkRole("tour_guide"),
-  tourGuideController.updateAvailability,
 );
 
 module.exports = router;

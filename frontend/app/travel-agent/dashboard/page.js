@@ -1,24 +1,89 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Briefcase, Map, BarChart, Users, Calendar, Car } from "lucide-react"
+import { Briefcase, Map, BarChart, Users, Calendar, Car, Building } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { useDashboardStore } from "./dashboardStore"
 import { formatTZS } from "@/app/utils/currency"
+import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner"
+import { travelAgentService, apiUtils } from "@/app/services/api"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
 export default function TravelAgentDashboard() {
   const router = useRouter()
   const { stats, isLoading, userStatus, fetchDashboardData } = useDashboardStore()
+  const [dashboardUserStatus, setDashboardUserStatus] = useState(null)
+  const [isCheckingAccess, setIsCheckingAccess] = useState(true)
 
   useEffect(() => {
-    fetchDashboardData(router)
+    const checkAccess = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) {
+          router.push('/login')
+          return
+        }
+
+        try {
+          const data = await travelAgentService.getProfile()
+          setDashboardUserStatus(data.status || 'pending_profile')
+          
+          // Only allow access if user is active
+          if (data.status !== 'active') {
+            if (data.status === 'pending_profile' || !data.status) {
+              router.push('/travel-agent/complete-profile')
+            } else {
+              // For pending_approval status, redirect to pending-status page
+              router.push('/travel-agent/pending-status')
+            }
+            return
+          }
+          
+          // User is active, fetch dashboard data
+          fetchDashboardData(router)
+        } catch (error) {
+          if (error.response?.status === 404) {
+            // No profile exists, redirect to complete profile
+            router.push('/travel-agent/complete-profile')
+            return
+          } else {
+            console.error('Error fetching profile:', error)
+            apiUtils.handleAuthError(error, router)
+            return
+          }
+        }
+      } catch (error) {
+        console.error("Error checking access:", error)
+        router.push('/login')
+      } finally {
+        setIsCheckingAccess(false)
+      }
+    }
+
+    checkAccess()
   }, [router, fetchDashboardData])
+
+  // Show loading while checking access
+  if (isCheckingAccess) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Checking access...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render dashboard if user is not active
+  if (dashboardUserStatus !== 'active') {
+    return null
+  }
 
   // Content for when user needs to complete profile
   if (userStatus === "pending_profile") {

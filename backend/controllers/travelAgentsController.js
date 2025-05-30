@@ -1,6 +1,6 @@
 const db = require("../config/db");
 
-exports.submitTravelAgentProfile = async (req, res) => {
+exports.createTravelAgency = async (req, res) => {
   const { name, document_url, routes, contact_email, contact_phone } = req.body;
   const userId = req.user.id;
 
@@ -125,13 +125,16 @@ exports.submitTravelAgentProfile = async (req, res) => {
 /**
  * Get travel agency details for agents
  */
-exports.getAgencyDetails = async (req, res) => {
-  const userId = req.user.id;
+exports.getAgency = async (req, res) => {
+  const agencyId = req.params.id;
 
   try {
     const [rows] = await db.query(
-      "SELECT * FROM travel_agencies WHERE id = ?",
-      [userId],
+      `SELECT ta.*, u.status 
+       FROM travel_agencies ta 
+       JOIN users u ON ta.id = u.id 
+       WHERE ta.id = ?`,
+      [agencyId],
     );
 
     if (rows.length === 0) {
@@ -143,7 +146,7 @@ exports.getAgencyDetails = async (req, res) => {
     // Get routes for this agency
     const [routes] = await db.query(
       "SELECT * FROM transports WHERE agency_id = ?",
-      [userId],
+      [agencyId],
     );
 
     // Parse schedule_details for each route
@@ -160,20 +163,7 @@ exports.getAgencyDetails = async (req, res) => {
 
     agency.routes = routes;
 
-    // Get user data as well
-    const [userRows] = await db.query(
-      "SELECT email, phone_number, status FROM users WHERE id = ?",
-      [userId],
-    );
-
-    const responseData = {
-      ...agency,
-      email: userRows[0].email,
-      phone_number: userRows[0].phone_number,
-      status: userRows[0].status,
-    };
-
-    res.status(200).json(responseData);
+    res.status(200).json(agency);
   } catch (error) {
     console.error("Error fetching agency details:", error);
     res.status(500).json({
@@ -187,14 +177,22 @@ exports.getAgencyDetails = async (req, res) => {
  * Update travel agent profile
  */
 exports.updateTravelAgentProfile = async (req, res) => {
+  const agencyId = req.params.id;
   const userId = req.user.id;
+
+  // Authorization check: ensure the travel agent can only update their own agency
+  if (agencyId !== userId.toString()) {
+    return res.status(403).json({ 
+      message: "Access denied. You can only update your own agency." 
+    });
+  }
   const { name, document_url, contact_email, contact_phone } = req.body;
 
   try {
     // Check if agency exists
     const [agencyRows] = await db.query(
       "SELECT id FROM travel_agencies WHERE id = ?",
-      [userId],
+      [agencyId],
     );
 
     if (agencyRows.length === 0) {
@@ -229,8 +227,8 @@ exports.updateTravelAgentProfile = async (req, res) => {
       return res.status(400).json({ message: "No fields to update" });
     }
 
-    // Add user_id to params for WHERE clause
-    params.push(userId);
+    // Add agency_id to params for WHERE clause
+    params.push(agencyId);
 
     await db.query(
       `UPDATE travel_agencies SET ${updates.join(", ")} WHERE id = ?`,

@@ -22,7 +22,7 @@ import { useRoutesStore } from "./store"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { formatTZS } from "@/app/utils/currency"
-import { transportOriginsService, destinationsService } from "@/app/services/api"
+import { destinationsService } from "@/app/services/api"
 
 export default function TravelAgentRoutes() {
   const router = useRouter()
@@ -36,7 +36,6 @@ export default function TravelAgentRoutes() {
   } = useRoutesStore()
   
   // New state for origins and destinations
-  const [origins, setOrigins] = useState([])
   const [destinations, setDestinations] = useState([])
   const [isLoadingData, setIsLoadingData] = useState(true)
   
@@ -45,7 +44,7 @@ export default function TravelAgentRoutes() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedRoute, setSelectedRoute] = useState(null)
   const [routeForm, setRouteForm] = useState({
-    origin_id: "",
+    origin_name: "",
     destination_id: "",
     transportation_type: "bus",
     cost: "",
@@ -62,11 +61,7 @@ export default function TravelAgentRoutes() {
     const fetchData = async () => {
       setIsLoadingData(true)
       try {
-        const [originsData, destinationsData] = await Promise.all([
-          transportOriginsService.getAllOrigins(),
-          destinationsService.getAllDestinations()
-        ])
-        setOrigins(originsData)
+        const destinationsData = await destinationsService.getAllDestinations()
         setDestinations(destinationsData)
       } catch (error) {
         console.error('Error fetching origins and destinations:', error)
@@ -82,7 +77,7 @@ export default function TravelAgentRoutes() {
 
   const handleOpenCreateDialog = () => {
     setRouteForm({
-      origin_id: "",
+      origin_name: "",
       destination_id: "",
       transportation_type: "bus",
       cost: "",
@@ -99,7 +94,7 @@ export default function TravelAgentRoutes() {
   const handleOpenEditDialog = (route) => {
     setSelectedRoute(route)
     setRouteForm({
-      origin_id: route.origin_id?.toString() || "",
+      origin_name: route.origin_name || "",
       destination_id: route.destination_id?.toString() || "",
       transportation_type: route.transportation_type || "bus",
       cost: route.cost.toString(),
@@ -119,19 +114,19 @@ export default function TravelAgentRoutes() {
   }
 
   const handleCreateRoute = async () => {
-    if (!routeForm.origin_id || !routeForm.destination_id || !routeForm.cost) {
+    if (!routeForm.origin_name || !routeForm.destination_id || !routeForm.cost) {
       toast.error("Please fill in all required fields")
       return
     }
 
-    if (routeForm.origin_id === routeForm.destination_id) {
-      toast.error("Origin and destination cannot be the same")
+    if (routeForm.origin_name.trim() === "") {
+      toast.error("Origin name cannot be empty")
       return
     }
 
     try {
       await createRoute({
-        origin_id: parseInt(routeForm.origin_id),
+        origin_name: routeForm.origin_name.trim(),
         destination_id: parseInt(routeForm.destination_id),
         transportation_type: routeForm.transportation_type,
         cost: parseFloat(routeForm.cost),
@@ -146,19 +141,19 @@ export default function TravelAgentRoutes() {
   }
 
   const handleUpdateRoute = async () => {
-    if (!routeForm.origin_id || !routeForm.destination_id || !routeForm.cost) {
+    if (!routeForm.origin_name || !routeForm.destination_id || !routeForm.cost) {
       toast.error("Please fill in all required fields")
       return
     }
 
-    if (routeForm.origin_id === routeForm.destination_id) {
-      toast.error("Origin and destination cannot be the same")
+    if (routeForm.origin_name.trim() === "") {
+      toast.error("Origin name cannot be empty")
       return
     }
 
     try {
       await updateRoute(selectedRoute.id, {
-        origin_id: parseInt(routeForm.origin_id),
+        origin_name: routeForm.origin_name.trim(),
         destination_id: parseInt(routeForm.destination_id),
         transportation_type: routeForm.transportation_type,
         cost: parseFloat(routeForm.cost),
@@ -342,24 +337,15 @@ export default function TravelAgentRoutes() {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="origin">Origin*</Label>
-                <Select
-                  value={routeForm.origin_id}
-                  onValueChange={(value) => setRouteForm({...routeForm, origin_id: value})}
-                >
-                  <SelectTrigger id="origin">
-                    <SelectValue placeholder="Select origin location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {origins.map((origin) => (
-                        <SelectItem key={origin.id} value={origin.id.toString()}>
-                          {origin.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="origin">Origin</Label>
+                <Input
+                  id="origin"
+                  type="text"
+                  placeholder="Enter origin city/location"
+                  value={routeForm.origin_name}
+                  onChange={(e) => setRouteForm({...routeForm, origin_name: e.target.value})}
+                  className="w-full"
+                />
               </div>
               <div>
                 <Label htmlFor="destination">Destination*</Label>

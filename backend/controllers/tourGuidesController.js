@@ -1,6 +1,6 @@
 const db = require("../config/db");
 
-exports.submitTourGuideProfile = async (req, res) => {
+exports.createTourGuide = async (req, res) => {
   const userId = req.user.id;
   const { full_name, license_document_url, location, expertise, activity_expertise } = req.body;
 
@@ -117,15 +117,18 @@ exports.submitTourGuideProfile = async (req, res) => {
 };
 
 /**
- * Get tour guide profile details
+ * Get tour guide profile details by ID
  */
-exports.getGuideProfile = async (req, res) => {
-  const userId = req.user.id;
+exports.getTourGuide = async (req, res) => {
+  const guideId = req.params.id;
 
   try {
     const [rows] = await db.query(
-      "SELECT * FROM tour_guides WHERE user_id = ?",
-      [userId],
+      `SELECT tg.*, u.status 
+       FROM tour_guides tg 
+       JOIN users u ON tg.user_id = u.id 
+       WHERE tg.user_id = ?`,
+      [guideId],
     );
 
     if (rows.length === 0) {
@@ -144,20 +147,7 @@ exports.getGuideProfile = async (req, res) => {
       }
     }
 
-    // Get user data as well
-    const [userRows] = await db.query(
-      "SELECT email, phone_number, status FROM users WHERE id = ?",
-      [userId],
-    );
-
-    const responseData = {
-      ...guide,
-      email: userRows[0].email,
-      phone_number: userRows[0].phone_number,
-      status: userRows[0].status,
-    };
-
-    res.status(200).json(responseData);
+    res.status(200).json(guide);
   } catch (error) {
     console.error("Error fetching tour guide profile:", error);
     res
@@ -167,11 +157,20 @@ exports.getGuideProfile = async (req, res) => {
 };
 
 /**
- * Update tour guide profile
+ * Update tour guide profile (including availability)
  */
 exports.updateGuideProfile = async (req, res) => {
+  const guideId = req.params.id;
   const userId = req.user.id;
-  const { full_name, location, expertise, activity_expertise } = req.body;
+
+  // Authorization check: ensure the tour guide can only update their own profile
+  if (guideId !== userId.toString()) {
+    return res.status(403).json({ 
+      message: "Access denied. You can only update your own profile." 
+    });
+  }
+
+  const { full_name, location, expertise, activity_expertise, available } = req.body;
 
   try {
     // Verify the user exists first
@@ -184,7 +183,7 @@ exports.updateGuideProfile = async (req, res) => {
     // Check if profile exists
     const [guideRows] = await db.query(
       "SELECT expertise FROM tour_guides WHERE user_id = ?",
-      [userId],
+      [guideId],
     );
 
     if (guideRows.length === 0) {
@@ -208,6 +207,11 @@ exports.updateGuideProfile = async (req, res) => {
       if (location !== undefined) {
         updates.push("location = ?");
         params.push(location);
+      }
+
+      if (available !== undefined) {
+        updates.push("available = ?");
+        params.push(available);
       }
 
       // Handle expertise fields properly
@@ -253,8 +257,8 @@ exports.updateGuideProfile = async (req, res) => {
         return res.status(400).json({ message: "No fields to update" });
       }
 
-      // Add user_id to params for WHERE clause
-      params.push(userId);
+      // Add guide_id to params for WHERE clause
+      params.push(guideId);
 
       await connection.query(
         `UPDATE tour_guides SET ${updates.join(", ")} WHERE user_id = ?`,
@@ -277,46 +281,4 @@ exports.updateGuideProfile = async (req, res) => {
   }
 };
 
-/**
- * Update tour guide availability status
- */
-exports.updateAvailability = async (req, res) => {
-  const userId = req.user.id;
-  const { available } = req.body;
-  
-  if (available === undefined) {
-    return res.status(400).json({ message: "Availability status is required" });
-  }
-  
-  try {
-    // Verify the user exists first
-    const [userRows] = await db.query("SELECT id FROM users WHERE id = ?", [userId]);
-    
-    if (userRows.length === 0) {
-      return res.status(404).json({ message: "User not found. Cannot update availability status." });
-    }
-    
-    // Check if profile exists
-    const [guideRows] = await db.query(
-      "SELECT user_id FROM tour_guides WHERE user_id = ?",
-      [userId],
-    );
 
-    if (guideRows.length === 0) {
-      return res.status(404).json({ message: "Tour guide profile not found" });
-    }
-    
-    // Update availability status
-    await db.query(
-      "UPDATE tour_guides SET available = ? WHERE user_id = ?",
-      [available, userId],
-    );
-    
-    res.status(200).json({ 
-      message: `Successfully updated availability status to ${available ? 'available' : 'unavailable'}` 
-    });
-  } catch (error) {
-    console.error("Error updating availability status:", error);
-    res.status(500).json({ message: "Failed to update availability status", error: error.message });
-  }
-};

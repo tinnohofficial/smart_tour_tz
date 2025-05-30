@@ -14,7 +14,7 @@ import { toast } from "sonner"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { transportOriginsService, destinationsService, uploadService } from "@/app/services/api"
+import { destinationsService, uploadService } from "@/app/services/api"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
@@ -31,12 +31,11 @@ export default function TravelAgentProfile() {
   const [isApproved, setIsApproved] = useState(false)
 
   // New state for origins and destinations
-  const [origins, setOrigins] = useState([])
   const [destinations, setDestinations] = useState([])
   const [isLoadingData, setIsLoadingData] = useState(true)
 
   const [newRoute, setNewRoute] = useState({
-    origin_id: '',
+    origin_name: '',
     destination_id: '',
     transportation_type: 'bus',
     cost: '',
@@ -49,15 +48,11 @@ export default function TravelAgentProfile() {
     const fetchData = async () => {
       setIsLoadingData(true)
       try {
-        const [originsData, destinationsData] = await Promise.all([
-          transportOriginsService.getAllOrigins(),
-          destinationsService.getAllDestinations()
-        ])
-        setOrigins(originsData)
+        const destinationsData = await destinationsService.getAllDestinations()
         setDestinations(destinationsData)
       } catch (error) {
-        console.error('Error fetching origins and destinations:', error)
-        toast.error('Failed to load origins and destinations')
+        console.error('Error loading data:', error)
+        toast.error('Failed to load destinations')
       } finally {
         setIsLoadingData(false)
       }
@@ -178,7 +173,7 @@ export default function TravelAgentProfile() {
         }
 
         return {
-          origin_id: route.origin_id,
+          origin_name: route.origin_name,
           destination_id: route.destination_id,
           transportation_type: route.transportation_type,
           cost: route.cost,
@@ -228,13 +223,13 @@ export default function TravelAgentProfile() {
   }
 
   const handleAddRoute = () => {
-    if (!newRoute.origin_id || !newRoute.destination_id || !newRoute.cost) {
+    if (!newRoute.origin_name || !newRoute.destination_id || !newRoute.cost) {
       toast.error("Origin, destination, and cost are required for a route")
       return
     }
 
-    if (newRoute.origin_id === newRoute.destination_id) {
-      toast.error("Origin and destination cannot be the same")
+    if (newRoute.origin_name.trim() === "") {
+      toast.error("Origin name cannot be empty")
       return
     }
 
@@ -255,8 +250,7 @@ export default function TravelAgentProfile() {
       }
     }
 
-    // Find origin and destination names for display
-    const originName = origins.find(o => o.id.toString() === newRoute.origin_id)?.name || 'Unknown'
+    // Find destination name for display
     const destinationName = destinations.find(d => d.id.toString() === newRoute.destination_id)?.name || 'Unknown'
 
     setRoutes([
@@ -273,7 +267,7 @@ export default function TravelAgentProfile() {
 
     // Reset the form
     setNewRoute({
-      origin_id: '',
+      origin_name: '',
       destination_id: '',
       transportation_type: 'bus',
       cost: '',
@@ -487,24 +481,14 @@ export default function TravelAgentProfile() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div className="space-y-2">
                       <Label htmlFor="origin">Origin*</Label>
-                      <Select
-                        value={newRoute.origin_id}
-                        onValueChange={(value) => setNewRoute({...newRoute, origin_id: value})}
+                      <Input
+                        type="text"
+                        placeholder="Enter origin city/location"
+                        value={newRoute.origin_name}
+                        onChange={(e) => setNewRoute({...newRoute, origin_name: e.target.value})}
                         disabled={isLoadingData}
-                      >
-                        <SelectTrigger id="origin">
-                          <SelectValue placeholder={isLoadingData ? "Loading origins..." : "Select origin location"} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            {origins.map((origin) => (
-                              <SelectItem key={origin.id} value={origin.id.toString()}>
-                                {origin.name}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
+                        className="w-full"
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="destination">Destination*</Label>

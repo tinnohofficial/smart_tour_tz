@@ -153,18 +153,32 @@ export const hotelManagerService = {
 // Travel Agent Service
 export const travelAgentService = {
   async getProfile() {
-    return apiRequest('/travel-agents/profile')
+    // Get current user's ID from token payload
+    const token = localStorage.getItem('token')
+    if (!token) throw new Error('No authentication token found')
+    
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    const userId = payload.id
+    
+    return apiRequest(`/travel-agents/${userId}`)
   },
 
   async createProfile(profileData) {
-    return apiRequest('/travel-agents/profile', {
+    return apiRequest('/travel-agents', {
       method: 'POST',
       body: JSON.stringify(profileData)
     })
   },
 
   async updateProfile(profileData) {
-    return apiRequest('/travel-agents/profile', {
+    // Get current user's ID from token payload
+    const token = localStorage.getItem('token')
+    if (!token) throw new Error('No authentication token found')
+    
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    const userId = payload.id
+    
+    return apiRequest(`/travel-agents/${userId}`, {
       method: 'PUT',
       body: JSON.stringify(profileData)
     })
@@ -174,27 +188,34 @@ export const travelAgentService = {
 // Tour Guide Service
 export const tourGuideService = {
   async getProfile() {
-    return apiRequest('/tour-guides/profile')
+    // Get current user's ID from token payload
+    const token = localStorage.getItem('token')
+    if (!token) throw new Error('No authentication token found')
+    
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    const userId = payload.id
+    
+    return apiRequest(`/tour-guides/${userId}`)
   },
 
   async createProfile(profileData) {
-    return apiRequest('/tour-guides/profile', {
+    return apiRequest('/tour-guides', {
       method: 'POST',
       body: JSON.stringify(profileData)
     })
   },
 
   async updateProfile(profileData) {
-    return apiRequest('/tour-guides/profile', {
+    // Get current user's ID from token payload
+    const token = localStorage.getItem('token')
+    if (!token) throw new Error('No authentication token found')
+    
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    const userId = payload.id
+    
+    return apiRequest(`/tour-guides/${userId}`, {
       method: 'PUT',
       body: JSON.stringify(profileData)
-    })
-  },
-
-  async updateAvailability(available) {
-    return apiRequest('/tour-guides/availability', {
-      method: 'PATCH',
-      body: JSON.stringify({ available })
     })
   }
 }
@@ -396,31 +417,7 @@ export const transportService = {
 // Transport Origins Service
 export const transportOriginsService = {
   async getAllOrigins() {
-    return apiRequest('/transport-origins')
-  },
-
-  async getOriginById(originId) {
-    return apiRequest(`/transport-origins/${originId}`)
-  },
-
-  async createOrigin(originData) {
-    return apiRequest('/transport-origins', {
-      method: 'POST',
-      body: JSON.stringify(originData)
-    })
-  },
-
-  async updateOrigin(originId, originData) {
-    return apiRequest(`/transport-origins/${originId}`, {
-      method: 'PUT',
-      body: JSON.stringify(originData)
-    })
-  },
-
-  async deleteOrigin(originId) {
-    return apiRequest(`/transport-origins/${originId}`, {
-      method: 'DELETE'
-    })
+    return apiRequest('/transports/origins')
   }
 }
 
