@@ -129,14 +129,14 @@ export default function TourGuideDashboard() {
     )
   }
 
-  // Extract expertise details safely
-  const generalExpertise = userData?.expertise?.general || "";
-  const activityExpertise = userData?.expertise?.activities || [];
+  // Extract description and activities safely
+  const description = userData?.description || "";
+  const activities = userData?.activities || [];
   
-  // Check if expertises exist
-  const hasGeneralExpertise = !!generalExpertise && typeof generalExpertise === 'string';
-  const hasActivityExpertise = Array.isArray(activityExpertise) && activityExpertise.length > 0;
-  const hasAnyExpertise = hasGeneralExpertise || hasActivityExpertise;
+  // Check if description and activities exist
+  const hasDescription = !!description && typeof description === 'string';
+  const hasActivities = Array.isArray(activities) && activities.length > 0;
+  const hasAnyInfo = hasDescription || hasActivities;
 
   const upcomingTours = tours.filter(t => t.status === "upcoming");
   const totalTourists = upcomingTours.reduce((acc, tour) => acc + tour.touristCount, 0);
@@ -329,24 +329,22 @@ export default function TourGuideDashboard() {
                   <div className="w-full mt-6 border-t pt-5">
                     <h4 className="font-medium text-sm mb-3 text-gray-700 text-left">Areas of Expertise</h4>
                     <div className="flex flex-wrap gap-1 justify-start">
-                      {hasGeneralExpertise && (
-                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
-                          {generalExpertise}
-                        </Badge>
+                      {hasDescription && (
+                        <div className="text-sm text-gray-700 mb-2">
+                          {description}
+                        </div>
                       )}
                       
-                      {hasActivityExpertise && 
-                        activityExpertise.map((activity, index) => (
+                      {hasActivities && 
+                        activities.map((activityId, index) => (
                           <Badge key={index} variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
-                            {activity.name || activity}
+                            Activity {activityId}
                           </Badge>
                         ))
                       }
                       
-                      {!hasAnyExpertise && (
-                        <Badge variant="outline" className="border-amber-200 text-amber-700 text-xs">
-                          Wildlife Tours
-                        </Badge>
+                      {!hasAnyInfo && (
+                        <span className="text-sm text-gray-500">No profile information provided</span>
                       )}
                     </div>
                     <Button className="w-full text-white bg-amber-700 hover:bg-amber-800 mt-5" size="sm" asChild>

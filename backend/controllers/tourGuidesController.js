@@ -5,7 +5,7 @@ const db = require("../config/db");
  */
 exports.createTourGuide = async (req, res) => {
   const userId = req.user.id;
-  const { full_name, license_document_url, destination_id, expertise, activity_expertise } = req.body;
+  const { full_name, license_document_url, destination_id, description, activities } = req.body;
 
   console.log("Tour guide profile submission:", {
     userId,
@@ -14,10 +14,10 @@ exports.createTourGuide = async (req, res) => {
     userStatus: req.user.status
   });
 
-  if (!full_name || !destination_id || !expertise) {
+  if (!full_name || !destination_id || !description) {
     return res
       .status(400)
-      .json({ message: "Full name, destination_id, and expertise are required." });
+      .json({ message: "Full name, destination_id, and description are required." });
   }
 
   try {
@@ -62,41 +62,34 @@ exports.createTourGuide = async (req, res) => {
     await connection.beginTransaction();
     
     try {
+      // Validate activities if provided
+      let validatedActivities = null;
+      if (activities && Array.isArray(activities) && activities.length > 0) {
+        // Check if the activities exist and belong to the selected destination
+        const placeholders = activities.map(() => "?").join(",");
+        const [activityRows] = await connection.query(
+          `SELECT id, name FROM activities WHERE id IN (${placeholders}) AND destination_id = ?`,
+          [...activities, destination_id]
+        );
+        
+        if (activityRows.length !== activities.length) {
+          throw new Error("One or more selected activities do not exist or don't belong to the selected destination");
+        }
+        
+        validatedActivities = JSON.stringify(activities);
+      }
+
       await connection.query(
-        `INSERT INTO tour_guides (user_id, full_name, license_document_url, destination_id, expertise)
-         VALUES (?, ?, ?, ?, ?)
+        `INSERT INTO tour_guides (user_id, full_name, license_document_url, destination_id, description, activities)
+         VALUES (?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE
          full_name = VALUES(full_name),
          license_document_url = VALUES(license_document_url),
          destination_id = VALUES(destination_id),
-         expertise = VALUES(expertise)`,
-        [userId, full_name, license_document_url, destination_id, expertise],
+         description = VALUES(description),
+         activities = VALUES(activities)`,
+        [userId, full_name, license_document_url, destination_id, description, validatedActivities],
       );
-      
-      // If activity expertise is provided, validate them
-      if (activity_expertise && Array.isArray(activity_expertise) && activity_expertise.length > 0) {
-        // Check if the activities exist
-        const placeholders = activity_expertise.map(() => "?").join(",");
-        const [activityRows] = await connection.query(
-          `SELECT id, name FROM activities WHERE id IN (${placeholders})`,
-          activity_expertise
-        );
-        
-        if (activityRows.length !== activity_expertise.length) {
-          throw new Error("One or more selected activities do not exist");
-        }
-        
-        // Store the activity expertise information as JSON in the expertise field
-        const expertiseData = {
-          general: expertise,
-          activities: activityRows.map(a => ({ id: a.id, name: a.name }))
-        };
-        
-        await connection.query(
-          `UPDATE tour_guides SET expertise = ? WHERE user_id = ?`,
-          [JSON.stringify(expertiseData), userId]
-        );
-      }
 
       // Update user status to pending_approval if initial submission
       const [userResult] = await connection.query(
@@ -153,13 +146,13 @@ exports.getTourGuide = async (req, res) => {
 
     const guide = { ...rows[0] };
     
-    // Parse expertise JSON if it exists
-    if (guide.expertise) {
+    // Parse activities JSON if it exists
+    if (guide.activities) {
       try {
-        guide.expertise = JSON.parse(guide.expertise);
+        guide.activities = JSON.parse(guide.activities);
       } catch (e) {
         // If not valid JSON, keep as is
-        console.log("Could not parse guide expertise JSON:", e);
+        console.log("Could not parse guide activities JSON:", e);
       }
     }
 
@@ -186,7 +179,7 @@ exports.updateGuideProfile = async (req, res) => {
     });
   }
 
-  const { full_name, destination_id, expertise, activity_expertise, available } = req.body;
+  const { full_name, destination_id, description, activities, available } = req.body;
 
   try {
     // Verify the user exists first
@@ -212,7 +205,7 @@ exports.updateGuideProfile = async (req, res) => {
     
     // Check if profile exists
     const [guideRows] = await db.query(
-      "SELECT expertise FROM tour_guides WHERE user_id = ?",
+      "SELECT description, activities FROM tour_guides WHERE user_id = ?",
       [guideId],
     );
 
@@ -244,42 +237,45 @@ exports.updateGuideProfile = async (req, res) => {
         params.push(available);
       }
 
-      // Handle expertise fields properly
-      if (expertise !== undefined || activity_expertise !== undefined) {
-        // Get current expertise
-        let currentExpertise = {};
-        try {
-          if (guideRows[0].expertise) {
-            currentExpertise = JSON.parse(guideRows[0].expertise);
+      // Handle description if provided
+      if (description !== undefined) {
+        updates.push("description = ?");
+        params.push(description);
+      }
+
+      // Handle activities if provided
+      if (activities !== undefined) {
+        let validatedActivities = null;
+        if (activities && Array.isArray(activities) && activities.length > 0) {
+          // Check if the activities exist and belong to the destination
+          const placeholders = activities.map(() => "?").join(",");
+          let queryParams = [...activities];
+          
+          // If destination is being updated, use the new destination, otherwise get current one
+          let destId = destination_id;
+          if (destId === undefined) {
+            const [currentGuide] = await connection.query(
+              "SELECT destination_id FROM tour_guides WHERE user_id = ?",
+              [guideId]
+            );
+            destId = currentGuide[0].destination_id;
           }
-        } catch (e) {
-          // If not valid JSON, treat as string
-          currentExpertise = { general: guideRows[0].expertise };
-        }
-
-        // Update general expertise if provided
-        if (expertise !== undefined) {
-          currentExpertise.general = expertise;
-        }
-
-        // Update activity expertise if provided
-        if (activity_expertise && Array.isArray(activity_expertise) && activity_expertise.length > 0) {
-          // Check if the activities exist
-          const placeholders = activity_expertise.map(() => "?").join(",");
+          queryParams.push(destId);
+          
           const [activityRows] = await connection.query(
-            `SELECT id, name FROM activities WHERE id IN (${placeholders})`,
-            activity_expertise
+            `SELECT id, name FROM activities WHERE id IN (${placeholders}) AND destination_id = ?`,
+            queryParams
           );
           
-          if (activityRows.length !== activity_expertise.length) {
-            throw new Error("One or more selected activities do not exist");
+          if (activityRows.length !== activities.length) {
+            throw new Error("One or more selected activities do not exist or don't belong to the destination");
           }
           
-          currentExpertise.activities = activityRows.map(a => ({ id: a.id, name: a.name }));
+          validatedActivities = JSON.stringify(activities);
         }
-
-        updates.push("expertise = ?");
-        params.push(JSON.stringify(currentExpertise));
+        
+        updates.push("activities = ?");
+        params.push(validatedActivities);
       }
 
       if (updates.length === 0) {
@@ -340,7 +336,7 @@ exports.getAllTourGuides = async (req, res) => {
 exports.getAvailableTourGuides = async (req, res) => {
   try {
     const [rows] = await db.query(
-      `SELECT tg.user_id, tg.full_name, tg.expertise, tg.available, 
+      `SELECT tg.user_id, tg.full_name, tg.description, tg.activities, tg.available, 
               d.name as destination_name, d.region as destination_region,
               d.name as location
        FROM tour_guides tg 
@@ -350,14 +346,14 @@ exports.getAvailableTourGuides = async (req, res) => {
        ORDER BY tg.full_name ASC`
     );
 
-    // Parse expertise JSON for each guide
+    // Parse activities JSON for each guide
     const guides = rows.map(guide => {
-      if (guide.expertise) {
+      if (guide.activities) {
         try {
-          guide.expertise = JSON.parse(guide.expertise);
+          guide.activities = JSON.parse(guide.activities);
         } catch (e) {
           // If not valid JSON, keep as is
-          console.log("Could not parse guide expertise JSON:", e);
+          console.log("Could not parse guide activities JSON:", e);
         }
       }
       return guide;
@@ -410,7 +406,8 @@ exports.getManagerProfile = async (req, res) => {
         destination_name: null,
         destination_region: null,
         location: null,
-        expertise: null,
+        description: null,
+        activities: null,
         license_document_url: null,
         available: true
       });
@@ -418,13 +415,13 @@ exports.getManagerProfile = async (req, res) => {
 
     const guide = { ...guideRows[0] };
     
-    // Parse expertise JSON if it exists
-    if (guide.expertise) {
+    // Parse activities JSON if it exists
+    if (guide.activities) {
       try {
-        guide.expertise = JSON.parse(guide.expertise);
+        guide.activities = JSON.parse(guide.activities);
       } catch (e) {
         // If not valid JSON, keep as is
-        console.log("Could not parse guide expertise JSON:", e);
+        console.log("Could not parse guide activities JSON:", e);
       }
     }
 
@@ -437,7 +434,7 @@ exports.getManagerProfile = async (req, res) => {
 
 exports.updateManagerProfile = async (req, res) => {
   const userId = req.user.id;
-  const { full_name, destination_id, expertise, activity_expertise, available } = req.body;
+  const { full_name, destination_id, description, activities, available } = req.body;
 
   try {
     // Verify the user exists first
@@ -463,7 +460,7 @@ exports.updateManagerProfile = async (req, res) => {
     
     // Check if profile exists
     const [guideRows] = await db.query(
-      "SELECT expertise FROM tour_guides WHERE user_id = ?",
+      "SELECT description, activities FROM tour_guides WHERE user_id = ?",
       [userId],
     );
 
@@ -495,42 +492,45 @@ exports.updateManagerProfile = async (req, res) => {
         params.push(available);
       }
 
-      // Handle expertise fields properly
-      if (expertise !== undefined || activity_expertise !== undefined) {
-        // Get current expertise
-        let currentExpertise = {};
-        try {
-          if (guideRows[0].expertise) {
-            currentExpertise = JSON.parse(guideRows[0].expertise);
+      // Handle description if provided
+      if (description !== undefined) {
+        updates.push("description = ?");
+        params.push(description);
+      }
+
+      // Handle activities if provided
+      if (activities !== undefined) {
+        let validatedActivities = null;
+        if (activities && Array.isArray(activities) && activities.length > 0) {
+          // Check if the activities exist and belong to the destination
+          const placeholders = activities.map(() => "?").join(",");
+          let queryParams = [...activities];
+          
+          // If destination is being updated, use the new destination, otherwise get current one
+          let destId = destination_id;
+          if (destId === undefined) {
+            const [currentGuide] = await connection.query(
+              "SELECT destination_id FROM tour_guides WHERE user_id = ?",
+              [userId]
+            );
+            destId = currentGuide[0].destination_id;
           }
-        } catch (e) {
-          // If not valid JSON, treat as string
-          currentExpertise = { general: guideRows[0].expertise };
-        }
-
-        // Update general expertise if provided
-        if (expertise !== undefined) {
-          currentExpertise.general = expertise;
-        }
-
-        // Update activity expertise if provided
-        if (activity_expertise && Array.isArray(activity_expertise) && activity_expertise.length > 0) {
-          // Check if the activities exist
-          const placeholders = activity_expertise.map(() => "?").join(",");
+          queryParams.push(destId);
+          
           const [activityRows] = await connection.query(
-            `SELECT id, name FROM activities WHERE id IN (${placeholders})`,
-            activity_expertise
+            `SELECT id, name FROM activities WHERE id IN (${placeholders}) AND destination_id = ?`,
+            queryParams
           );
           
-          if (activityRows.length !== activity_expertise.length) {
-            throw new Error("One or more selected activities do not exist");
+          if (activityRows.length !== activities.length) {
+            throw new Error("One or more selected activities do not exist or don't belong to the destination");
           }
           
-          currentExpertise.activities = activityRows.map(a => ({ id: a.id, name: a.name }));
+          validatedActivities = JSON.stringify(activities);
         }
-
-        updates.push("expertise = ?");
-        params.push(JSON.stringify(currentExpertise));
+        
+        updates.push("activities = ?");
+        params.push(validatedActivities);
       }
 
       if (updates.length === 0) {

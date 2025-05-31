@@ -21,10 +21,23 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { FileUploader } from "../../components/file-uploader";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { tourGuideService, uploadService, destinationsService, apiUtils } from "@/app/services/api";
+import {
+  tourGuideService,
+  uploadService,
+  destinationsService,
+  activitiesService,
+  apiUtils,
+} from "@/app/services/api";
 import { RouteProtection } from "@/components/route-protection";
 import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner";
 
@@ -36,11 +49,14 @@ export default function TourGuideCompleteProfile() {
   const [userStatus, setUserStatus] = useState(null);
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [destinations, setDestinations] = useState([]);
+  const [activities, setActivities] = useState([]);
   const [isLoadingDestinations, setIsLoadingDestinations] = useState(true);
+  const [isLoadingActivities, setIsLoadingActivities] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
     destination_id: "",
-    expertise: "",
+    description: "",
+    activities: [],
   });
 
   useEffect(() => {
@@ -49,8 +65,8 @@ export default function TourGuideCompleteProfile() {
         const destinationsData = await destinationsService.getAllDestinations();
         setDestinations(destinationsData);
       } catch (error) {
-        console.error('Error loading destinations:', error);
-        toast.error('Failed to load destinations');
+        console.error("Error loading destinations:", error);
+        toast.error("Failed to load destinations");
       } finally {
         setIsLoadingDestinations(false);
       }
@@ -58,6 +74,32 @@ export default function TourGuideCompleteProfile() {
 
     loadDestinations();
   }, []);
+
+  // Load activities when destination changes
+  useEffect(() => {
+    const loadActivities = async () => {
+      if (!formData.destination_id) {
+        setActivities([]);
+        return;
+      }
+
+      setIsLoadingActivities(true);
+      try {
+        const activitiesData = await activitiesService.getActivitiesByDestination(
+          formData.destination_id
+        );
+        setActivities(activitiesData);
+      } catch (error) {
+        console.error("Error loading activities:", error);
+        toast.error("Failed to load activities");
+        setActivities([]);
+      } finally {
+        setIsLoadingActivities(false);
+      }
+    };
+
+    loadActivities();
+  }, [formData.destination_id]);
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -115,10 +157,33 @@ export default function TourGuideCompleteProfile() {
   }
 
   const handleInputChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setFormData((prev) => {
+      const newData = {
+        ...prev,
+        [field]: value,
+      };
+      
+      // Clear activities when destination changes
+      if (field === "destination_id") {
+        newData.activities = [];
+      }
+      
+      return newData;
+    });
+  };
+
+  const toggleActivity = (activityId) => {
+    setFormData((prev) => {
+      const currentActivities = prev.activities || [];
+      const isSelected = currentActivities.includes(parseInt(activityId));
+      
+      return {
+        ...prev,
+        activities: isSelected
+          ? currentActivities.filter(id => id !== parseInt(activityId))
+          : [...currentActivities, parseInt(activityId)]
+      };
+    });
   };
 
   const handleFileChange = (files) => {
@@ -140,8 +205,8 @@ export default function TourGuideCompleteProfile() {
       return;
     }
 
-    if (!formData.expertise.trim()) {
-      toast.error("Please describe your expertise");
+    if (!formData.description.trim()) {
+      toast.error("Please provide a description");
       return;
     }
 
@@ -163,7 +228,8 @@ export default function TourGuideCompleteProfile() {
       const profileData = {
         full_name: formData.fullName.trim(),
         destination_id: parseInt(formData.destination_id),
-        expertise: formData.expertise.trim(),
+        description: formData.description.trim(),
+        activities: formData.activities,
         license_document_url: licenseUrl,
       };
 
@@ -219,13 +285,14 @@ export default function TourGuideCompleteProfile() {
           <div className="bg-amber-700 p-6 rounded-lg mb-6 text-center">
             <User className="h-12 w-12 text-white mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-white mb-2">
-              {userStatus === "rejected" ? 'Resubmit Your Tour Guide Profile' : 'Complete Your Tour Guide Profile'}
+              {userStatus === "rejected"
+                ? "Resubmit Your Tour Guide Profile"
+                : "Complete Your Tour Guide Profile"}
             </h1>
             <p className="text-amber-100">
-              {userStatus === "rejected" 
-                ? 'Your previous application was rejected. Please review the feedback and resubmit your professional details.'
-                : 'Provide your professional details to submit your application to offer tour guide services on our platform.'
-              }
+              {userStatus === "rejected"
+                ? "Your previous application was rejected. Please review the feedback and resubmit your professional details."
+                : "Provide your professional details to submit your application to offer tour guide services on our platform."}
             </p>
           </div>
 
@@ -270,55 +337,109 @@ export default function TourGuideCompleteProfile() {
                       htmlFor="destination"
                       className="text-sm font-medium text-gray-700"
                     >
-                      Primary Destination *
+                      Destination *
                     </label>
                     <div className="relative">
                       <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 z-10" />
                       <Select
                         value={formData.destination_id}
-                        onValueChange={(value) => handleInputChange("destination_id", value)}
+                        onValueChange={(value) =>
+                          handleInputChange("destination_id", value)
+                        }
                         disabled={isLoadingDestinations}
                       >
                         <SelectTrigger className="pl-10 border-gray-300 focus:border-amber-500">
-                          <SelectValue placeholder={isLoadingDestinations ? "Loading destinations..." : "Select your primary destination"} />
+                          <SelectValue
+                            placeholder={
+                              isLoadingDestinations
+                                ? "Loading destinations..."
+                                : "Select your destination"
+                            }
+                          />
                         </SelectTrigger>
                         <SelectContent>
                           {destinations.map((destination) => (
-                            <SelectItem key={destination.id} value={destination.id.toString()}>
+                            <SelectItem
+                              key={destination.id}
+                              value={destination.id.toString()}
+                            >
                               {destination.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
-                    <p className="text-sm text-gray-500">
-                      Select the destination where you primarily offer tour guide services
-                    </p>
                   </div>
                 </div>
 
-                {/* Expertise */}
+                {/* Activities */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Activities You Can Supervise
+                  </label>
+                  <div className="border border-gray-300 rounded-md p-4 bg-gray-50">
+                    {!formData.destination_id ? (
+                      <p className="text-sm text-gray-500 text-center py-4">
+                        Please select a destination first to see available activities
+                      </p>
+                    ) : isLoadingActivities ? (
+                      <p className="text-sm text-gray-500 text-center py-4">
+                        Loading activities...
+                      </p>
+                    ) : activities.length === 0 ? (
+                      <p className="text-sm text-gray-500 text-center py-4">
+                        No activities available for this destination
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {activities.map((activity) => {
+                          const isSelected = formData.activities.includes(activity.id);
+                          return (
+                            <div key={activity.id} className="flex items-start space-x-3">
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => toggleActivity(activity.id.toString())}
+                                className="data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600 mt-1"
+                              />
+                              <div className="flex-1">
+                                <label className="text-sm font-medium text-gray-700 cursor-pointer">
+                                  {activity.name}
+                                </label>
+                                {activity.description && (
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {activity.description}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Select the activities you are qualified to guide and supervise at your chosen destination.
+                  </p>
+                </div>
+
+                {/* Description */}
                 <div className="space-y-2">
                   <label
-                    htmlFor="expertise"
+                    htmlFor="description"
                     className="text-sm font-medium text-gray-700"
                   >
-                    Areas of Expertise *
+                    Description *
                   </label>
                   <Textarea
-                    id="expertise"
-                    value={formData.expertise}
+                    id="description"
+                    value={formData.description}
                     onChange={(e) =>
-                      handleInputChange("expertise", e.target.value)
+                      handleInputChange("description", e.target.value)
                     }
-                    placeholder="Describe your tour guiding experience, specialties, languages spoken, types of tours you lead, certifications, etc."
-                    className="min-h-[120px] border-gray-300 focus:border-amber-500"
+                    placeholder="Describe your background, experience, and what makes you a great tour guide."
+                    className="min-h-[100px] border-gray-300 focus:border-amber-500"
                     required
                   />
-                  <p className="text-sm text-gray-500">
-                    Include details about your experience, certifications,
-                    specialties, and languages you speak
-                  </p>
                 </div>
 
                 {/* License Upload */}
@@ -336,13 +457,6 @@ export default function TourGuideCompleteProfile() {
                     value={licenseFile ? [licenseFile] : []}
                     uploadPrompt="Upload your tour guide license or certification"
                   />
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p className="text-sm text-blue-800">
-                      <strong>Required:</strong> Please upload a clear copy of
-                      your tour guide license, certification, or relevant
-                      qualification document (PDF or image format).
-                    </p>
-                  </div>
                 </div>
               </CardContent>
 

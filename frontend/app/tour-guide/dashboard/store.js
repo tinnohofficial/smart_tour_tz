@@ -44,9 +44,8 @@ export const useDashboardStore = create((set) => ({
             phone: data.phone_number,
             profileImage: data.profile_image || "/placeholder.svg",
             location: data.location,
-            expertise: typeof data.expertise === 'object' 
-              ? data.expertise 
-              : { general: data.expertise || "", activities: [] },
+            description: data.description || "",
+            activities: data.activities || [],
             isAvailable: data.available || false,
             status: data.status
           },

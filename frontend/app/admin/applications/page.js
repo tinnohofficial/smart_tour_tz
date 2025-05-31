@@ -174,20 +174,7 @@ export default function ApplicationsPage() {
                             size="sm"
                             onClick={() => viewApplicationDetails(application)}
                           >
-                            View Details
-                          </Button>
-                          {/* Use store action for approve */}
-                          <Button
-                            variant="outline"
-                            className="hover:bg-amber-50 text-xs sm:text-sm"
-                            size="sm"
-                            onClick={() =>
-                              approveApplication(application.user_id)
-                            }
-                            disabled={isProcessing} // Read from store
-                          >
-                            <CheckCircle className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />{" "}
-                            Approve
+                            Check Application
                           </Button>
                         </div>
                       </TableCell>

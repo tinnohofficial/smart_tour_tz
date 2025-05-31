@@ -273,13 +273,6 @@ export default function PendingStatusPage() {
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh Status
           </Button>
-
-          <Button
-            variant="outline"
-            onClick={() => router.push("/hotel-manager/password")}
-          >
-            Change Password
-          </Button>
         </div>
       </div>
     </div>

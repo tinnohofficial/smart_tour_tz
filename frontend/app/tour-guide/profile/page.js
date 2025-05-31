@@ -26,13 +26,14 @@ export default function TourGuideProfile() {
     destination_id,
     destination_name,
     destination_region,
-    expertise,
+    description,
     licenseUrl,
     isAvailable,
     fetchProfile,
     updateProfile,
     updateAvailability,
-    setLicenseFile
+    setLicenseFile,
+    setDescription
   } = useProfileStore()
 
   // Local state for destinations
@@ -63,7 +64,7 @@ export default function TourGuideProfile() {
     const formData = {
       full_name: e.target.fullName.value,
       destination_id: e.target.destination.value || destination_id,
-      expertise: e.target.expertise.value,
+      description: e.target.description.value,
     }
     await updateProfile(formData)
   }
@@ -91,9 +92,7 @@ export default function TourGuideProfile() {
 
   const isApproved = profileData?.status === 'active'
 
-  const expertiseGeneral = typeof expertise === 'object' && expertise !== null ? 
-    expertise.general || "" : 
-    typeof expertise === 'string' ? expertise : "";
+  const descriptionText = description || "";
 
   return (
     <div className="container px-1">
@@ -275,16 +274,16 @@ export default function TourGuideProfile() {
               
               <CardContent className="p-6 space-y-6">
                 <div className="space-y-2">
-                  <label htmlFor="expertise" className="text-sm font-medium text-gray-700">Areas of Expertise</label>
+                  <label htmlFor="description" className="text-sm font-medium text-gray-700">Description</label>
                   <Textarea
-                    id="expertise"
-                    name="expertise"
-                    defaultValue={expertiseGeneral}
-                    placeholder="Describe your expertise and experience..."
+                    id="description"
+                    name="description"
+                    defaultValue={descriptionText}
+                    placeholder="Describe your background, experience, and what makes you a great tour guide..."
                     className="min-h-[120px] border-gray-300 focus:border-amber-600"
                   />
                   <p className="text-sm text-gray-500 mt-1">
-                    List your specialties, certifications, and years of experience in different types of tours
+                    Describe your background, experience, and what makes you qualified as a tour guide
                   </p>
                 </div>
 

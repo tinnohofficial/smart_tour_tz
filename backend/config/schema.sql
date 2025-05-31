@@ -26,7 +26,8 @@ CREATE TABLE tour_guides (
     full_name VARCHAR(255) NOT NULL,
     license_document_url VARCHAR(512),
     destination_id INT NOT NULL,
-    expertise TEXT, -- JSON object with expertise details
+    description TEXT, -- General description about the tour guide
+    activities JSON, -- Array of activity IDs that the guide can supervise
     available BOOLEAN DEFAULT TRUE, -- Whether the tour guide is available for new assignments
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,

@@ -256,11 +256,7 @@ export default function TourGuidePendingStatusPage() {
                   General Expertise
                 </label>
                 <p className="text-gray-700 mt-1">
-                  {typeof guideData.expertise === "object" &&
-                  guideData.expertise?.general
-                    ? guideData.expertise.general
-                    : guideData.expertise ||
-                      "No expertise information provided"}
+                  {guideData.description || "No description provided"}
                 </p>
               </div>
 
