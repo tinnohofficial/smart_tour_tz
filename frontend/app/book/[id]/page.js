@@ -1190,14 +1190,6 @@ function BookLocation({ params }) {
                                           <MapPin className="h-4 w-4" />
                                           <span>{hotel.location}</span>
                                         </div>
-                                        <div className="flex items-center gap-2 mb-3 text-sm">
-                                          <Badge
-                                            variant="outline"
-                                            className="bg-green-50 border-green-200"
-                                          >
-                                            Capacity: {hotel.capacity}
-                                          </Badge>
-                                        </div>
                                       </div>
                                       <div className="text-right">
                                         <div className="text-lg font-bold">
@@ -1217,16 +1209,6 @@ function BookLocation({ params }) {
                                       {hotel.description}
                                     </p>
                                     <div className="mt-4 flex items-center justify-between">
-                                      <div className="flex items-center text-sm text-gray-500 gap-4">
-                                        <div className="flex items-center">
-                                          <Check className="h-4 w-4 text-green-500 mr-1" />
-                                          Free WiFi
-                                        </div>
-                                        <div className="flex items-center">
-                                          <Check className="h-4 w-4 text-green-500 mr-1" />
-                                          Breakfast included
-                                        </div>
-                                      </div>
                                       {selectedHotel ===
                                         hotel.id.toString() && (
                                         <div className="flex items-center gap-2 text-amber-600">

@@ -208,8 +208,6 @@ export default function TourGuidePendingStatusPage() {
                 </div>
               </div>
 
-
-
               {guideData.license_document_url && (
                 <div>
                   <label className="text-sm font-medium text-gray-500">
@@ -226,7 +224,6 @@ export default function TourGuidePendingStatusPage() {
                       View Document
                     </a>
                   </div>
-                  <p className="text-gray-500 text-sm mt-1">No activities selected</p>
                 </div>
               )}
             </CardContent>
@@ -251,7 +248,9 @@ export default function TourGuidePendingStatusPage() {
                 </p>
               </div>
 
-              {guideData.activity_details && Array.isArray(guideData.activity_details) && guideData.activity_details.length > 0 ? (
+              {guideData.activity_details &&
+              Array.isArray(guideData.activity_details) &&
+              guideData.activity_details.length > 0 ? (
                 <div>
                   <label className="text-sm font-medium text-gray-500">
                     Selected Activities
@@ -274,7 +273,9 @@ export default function TourGuidePendingStatusPage() {
                   <label className="text-sm font-medium text-gray-500">
                     Selected Activities
                   </label>
-                  <p className="text-gray-500 text-sm mt-1">No activities selected</p>
+                  <p className="text-gray-500 text-sm mt-1">
+                    No activities selected
+                  </p>
                 </div>
               )}
             </CardContent>
