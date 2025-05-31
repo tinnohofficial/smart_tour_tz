@@ -85,9 +85,10 @@ export default function TourGuideCompleteProfile() {
 
       setIsLoadingActivities(true);
       try {
-        const activitiesData = await activitiesService.getActivitiesByDestination(
-          formData.destination_id
-        );
+        const activitiesData =
+          await activitiesService.getActivitiesByDestination(
+            formData.destination_id,
+          );
         setActivities(activitiesData);
       } catch (error) {
         console.error("Error loading activities:", error);
@@ -162,12 +163,12 @@ export default function TourGuideCompleteProfile() {
         ...prev,
         [field]: value,
       };
-      
+
       // Clear activities when destination changes
       if (field === "destination_id") {
         newData.activities = [];
       }
-      
+
       return newData;
     });
   };
@@ -176,12 +177,12 @@ export default function TourGuideCompleteProfile() {
     setFormData((prev) => {
       const currentActivities = prev.activities || [];
       const isSelected = currentActivities.includes(parseInt(activityId));
-      
+
       return {
         ...prev,
         activities: isSelected
-          ? currentActivities.filter(id => id !== parseInt(activityId))
-          : [...currentActivities, parseInt(activityId)]
+          ? currentActivities.filter((id) => id !== parseInt(activityId))
+          : [...currentActivities, parseInt(activityId)],
       };
     });
   };
@@ -375,12 +376,13 @@ export default function TourGuideCompleteProfile() {
                 {/* Activities */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700">
-                    Activities You Can Supervise
+                    Activities *
                   </label>
                   <div className="border border-gray-300 rounded-md p-4 bg-gray-50">
                     {!formData.destination_id ? (
                       <p className="text-sm text-gray-500 text-center py-4">
-                        Please select a destination first to see available activities
+                        Please select a destination first to see available
+                        activities
                       </p>
                     ) : isLoadingActivities ? (
                       <p className="text-sm text-gray-500 text-center py-4">
@@ -393,33 +395,30 @@ export default function TourGuideCompleteProfile() {
                     ) : (
                       <div className="space-y-3">
                         {activities.map((activity) => {
-                          const isSelected = formData.activities.includes(activity.id);
+                          const isSelected = formData.activities.includes(
+                            activity.id,
+                          );
                           return (
-                            <div key={activity.id} className="flex items-start space-x-3">
+                            <div
+                              key={activity.id}
+                              className="flex items-center space-x-3"
+                            >
                               <Checkbox
                                 checked={isSelected}
-                                onCheckedChange={() => toggleActivity(activity.id.toString())}
-                                className="data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600 mt-1"
+                                onCheckedChange={() =>
+                                  toggleActivity(activity.id.toString())
+                                }
+                                className="data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600"
                               />
-                              <div className="flex-1">
-                                <label className="text-sm font-medium text-gray-700 cursor-pointer">
-                                  {activity.name}
-                                </label>
-                                {activity.description && (
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    {activity.description}
-                                  </p>
-                                )}
-                              </div>
+                              <label className="text-sm font-medium text-gray-700 cursor-pointer">
+                                {activity.name}
+                              </label>
                             </div>
                           );
                         })}
                       </div>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500">
-                    Select the activities you are qualified to guide and supervise at your chosen destination.
-                  </p>
                 </div>
 
                 {/* Description */}

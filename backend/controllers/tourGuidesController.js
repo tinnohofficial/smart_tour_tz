@@ -146,14 +146,29 @@ exports.getTourGuide = async (req, res) => {
 
     const guide = { ...rows[0] };
     
-    // Parse activities JSON if it exists
+    // Parse activities JSON and fetch activity details if it exists
     if (guide.activities) {
       try {
-        guide.activities = JSON.parse(guide.activities);
+        const activityIds = JSON.parse(guide.activities);
+        if (Array.isArray(activityIds) && activityIds.length > 0) {
+          const placeholders = activityIds.map(() => "?").join(",");
+          const [activityDetails] = await db.query(
+            `SELECT id, name FROM activities WHERE id IN (${placeholders})`,
+            activityIds
+          );
+          guide.activity_details = activityDetails;
+          guide.activities = activityIds; // Keep the original array of IDs
+        } else {
+          guide.activity_details = [];
+          guide.activities = [];
+        }
       } catch (e) {
         // If not valid JSON, keep as is
         console.log("Could not parse guide activities JSON:", e);
+        guide.activity_details = [];
       }
+    } else {
+      guide.activity_details = [];
     }
 
     res.status(200).json(guide);
@@ -415,14 +430,29 @@ exports.getManagerProfile = async (req, res) => {
 
     const guide = { ...guideRows[0] };
     
-    // Parse activities JSON if it exists
+    // Parse activities JSON and fetch activity details if it exists
     if (guide.activities) {
       try {
-        guide.activities = JSON.parse(guide.activities);
+        const activityIds = JSON.parse(guide.activities);
+        if (Array.isArray(activityIds) && activityIds.length > 0) {
+          const placeholders = activityIds.map(() => "?").join(",");
+          const [activityDetails] = await db.query(
+            `SELECT id, name FROM activities WHERE id IN (${placeholders})`,
+            activityIds
+          );
+          guide.activity_details = activityDetails;
+          guide.activities = activityIds; // Keep the original array of IDs
+        } else {
+          guide.activity_details = [];
+          guide.activities = [];
+        }
       } catch (e) {
         // If not valid JSON, keep as is
         console.log("Could not parse guide activities JSON:", e);
+        guide.activity_details = [];
       }
+    } else {
+      guide.activity_details = [];
     }
 
     res.status(200).json(guide);

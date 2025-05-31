@@ -208,17 +208,7 @@ export default function TourGuidePendingStatusPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="text-sm font-medium text-gray-500">
-                  Availability
-                </label>
-                <Badge
-                  variant={guideData.available ? "default" : "secondary"}
-                  className="mt-1"
-                >
-                  {guideData.available ? "Available" : "Not Available"}
-                </Badge>
-              </div>
+
 
               {guideData.license_document_url && (
                 <div>
@@ -236,50 +226,57 @@ export default function TourGuidePendingStatusPage() {
                       View Document
                     </a>
                   </div>
+                  <p className="text-gray-500 text-sm mt-1">No activities selected</p>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Expertise Information */}
+          {/* Activities Information */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Award className="h-5 w-5 mr-2 text-purple-600" />
-                Expertise & Skills
+                Activities
               </CardTitle>
-              <CardDescription>Your areas of specialization</CardDescription>
+              <CardDescription>Activities you can supervise</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <label className="text-sm font-medium text-gray-500">
-                  General Expertise
+                  Description
                 </label>
                 <p className="text-gray-700 mt-1">
                   {guideData.description || "No description provided"}
                 </p>
               </div>
 
-              {typeof guideData.expertise === "object" &&
-                guideData.expertise?.activities && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">
-                      Activity Specializations
-                    </label>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {guideData.expertise.activities.map((activity, index) => (
-                        <Badge
-                          key={index}
-                          variant="outline"
-                          className="bg-purple-50"
-                        >
-                          <Star className="h-3 w-3 mr-1" />
-                          {activity.name}
-                        </Badge>
-                      ))}
-                    </div>
+              {guideData.activity_details && Array.isArray(guideData.activity_details) && guideData.activity_details.length > 0 ? (
+                <div>
+                  <label className="text-sm font-medium text-gray-500">
+                    Selected Activities
+                  </label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {guideData.activity_details.map((activity, index) => (
+                      <Badge
+                        key={index}
+                        variant="outline"
+                        className="bg-purple-50"
+                      >
+                        <Star className="h-3 w-3 mr-1" />
+                        {activity.name}
+                      </Badge>
+                    ))}
                   </div>
-                )}
+                </div>
+              ) : (
+                <div>
+                  <label className="text-sm font-medium text-gray-500">
+                    Selected Activities
+                  </label>
+                  <p className="text-gray-500 text-sm mt-1">No activities selected</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

@@ -250,12 +250,37 @@ export default function ApplicationsPage() {
                       </div>
                       <div>
                         <h4 className="text-sm font-medium text-gray-500 mb-1">
-                          Areas of Expertise
+                          Description
                         </h4>
                         <p className="break-words">
-                          {selectedApplication.details.expertise}
+                          {selectedApplication.details.description}
                         </p>
                       </div>
+                      {selectedApplication.details.activity_details && Array.isArray(selectedApplication.details.activity_details) && selectedApplication.details.activity_details.length > 0 ? (
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-500 mb-1">
+                            Selected Activities
+                          </h4>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {selectedApplication.details.activity_details.map((activity, index) => (
+                              <Badge
+                                key={index}
+                                variant="outline"
+                                className="bg-purple-50"
+                              >
+                                {activity.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-500 mb-1">
+                            Selected Activities
+                          </h4>
+                          <p className="text-gray-500 text-sm">No activities selected</p>
+                        </div>
+                      )}
                       <div>
                         <h4 className="text-sm font-medium text-gray-500 mb-1">
                           License Document

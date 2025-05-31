@@ -23,14 +23,38 @@ exports.getPendingApplications = async (req, res) => {
           case "tour_guide": {
             // Get tour guide specific details
             const [guideDetails] = await db.query(
-              `SELECT full_name, license_document_url, location, expertise
-               FROM tour_guides
-               WHERE user_id = ?`,
+              `SELECT tg.full_name, tg.license_document_url, tg.description, tg.activities, d.name as location
+               FROM tour_guides tg
+               JOIN destinations d ON tg.destination_id = d.id
+               WHERE tg.user_id = ?`,
               [user.id],
             );
 
             if (guideDetails.length > 0) {
               profileDetails = guideDetails[0];
+              // Parse activities JSON and fetch activity details if present
+              if (profileDetails.activities) {
+                try {
+                  const activityIds = JSON.parse(profileDetails.activities);
+                  if (Array.isArray(activityIds) && activityIds.length > 0) {
+                    const placeholders = activityIds.map(() => "?").join(",");
+                    const [activityDetails] = await db.query(
+                      `SELECT id, name FROM activities WHERE id IN (${placeholders})`,
+                      activityIds
+                    );
+                    profileDetails.activity_details = activityDetails;
+                    profileDetails.activities = activityIds; // Keep the original array of IDs
+                  } else {
+                    profileDetails.activity_details = [];
+                    profileDetails.activities = [];
+                  }
+                } catch (e) {
+                  profileDetails.activities = [];
+                  profileDetails.activity_details = [];
+                }
+              } else {
+                profileDetails.activity_details = [];
+              }
             }
             break;
           }
