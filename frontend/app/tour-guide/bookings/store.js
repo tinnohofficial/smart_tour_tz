@@ -25,10 +25,11 @@ export const useBookingsStore = create((set, get) => ({
           destination: booking.destination_name || 'Unknown Location',
           startDate: booking.start_date || new Date().toISOString(),
           endDate: booking.end_date || new Date().toISOString(),
-          status: booking.booking_status || (booking.status === 'completed' ? 'completed' : 'upcoming'),
-          touristEmail: booking.tourist_email,
-          touristPhone: booking.tourist_phone || 'Not provided',
-          touristId: booking.tourist_id,
+          status: booking.status || 'confirmed',
+          booking_status: booking.booking_status || 'upcoming',
+          tourist_email: booking.tourist_email,
+          tourist_phone: booking.tourist_phone || 'Not provided',
+          tourist_id: booking.tourist_id,
           duration: booking.duration_days || 1,
           image: "/placeholder.svg",
           paymentStatus: 'paid', // Tour guides only see confirmed bookings
@@ -36,7 +37,7 @@ export const useBookingsStore = create((set, get) => ({
           activities: booking.activities || [],
           hotel: booking.hotel || null,
           transport: booking.transport || null,
-          details: booking.item_details || {}
+          details: booking.guide_assignment_details || {}
         }))
 
         set({ tours: transformedTours })

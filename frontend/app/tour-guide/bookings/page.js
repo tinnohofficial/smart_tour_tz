@@ -32,7 +32,7 @@ export default function TourGuideBookings() {
 
   // Filter tours based on status filter
   const filteredTours = tours.filter((tour) => {
-    const matchesStatus = statusFilter === "all" || tour.status === statusFilter
+    const matchesStatus = statusFilter === "all" || tour.booking_status === statusFilter || tour.status === statusFilter
     return matchesStatus
   })
 
@@ -125,9 +125,7 @@ export default function TourGuideBookings() {
                     <CalendarDays className="h-8 w-8 text-muted-foreground" />
                     <h3 className="font-semibold text-lg">No tours found</h3>
                     <p className="text-muted-foreground">
-                      {searchQuery
-                        ? "No tours match your search criteria"
-                        : "You don't have any tours yet"}
+                      "You don't have any assigned tours yet"
                     </p>
                   </div>
                 </div>
@@ -155,8 +153,8 @@ export default function TourGuideBookings() {
                             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mb-2">
                               <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5 sm:mt-0" />
                               <h3 className="font-semibold text-base sm:text-lg truncate">{tour.destination}</h3>
-                              <Badge variant={tour.status === 'upcoming' ? 'default' : tour.status === 'ongoing' ? 'destructive' : 'secondary'} className="text-xs whitespace-nowrap">
-                                {tour.status === 'upcoming' ? 'Upcoming' : tour.status === 'ongoing' ? 'Ongoing' : 'Completed'}
+                              <Badge variant={tour.booking_status === 'upcoming' ? 'default' : tour.booking_status === 'ongoing' ? 'destructive' : 'secondary'} className="text-xs whitespace-nowrap">
+                                {tour.booking_status === 'upcoming' ? 'Upcoming' : tour.booking_status === 'ongoing' ? 'Ongoing' : 'Completed'}
                               </Badge>
                             </div>
                             <div className="flex flex-col gap-1 text-sm text-muted-foreground">
@@ -188,18 +186,18 @@ export default function TourGuideBookings() {
                             <div className="flex items-center gap-2 bg-muted/50 px-3 py-2 rounded-md">
                               <Avatar className="h-6 w-6">
                                 <AvatarFallback className="text-xs">
-                                  {tour.touristEmail.charAt(0).toUpperCase()}
+                                  {tour.tourist_email ? tour.tourist_email.charAt(0).toUpperCase() : 'T'}
                                 </AvatarFallback>
                               </Avatar>
                               <div className="flex flex-col min-w-0">
                                 <div className="flex items-center gap-1">
                                   <Mail className="h-3 w-3 text-muted-foreground" />
-                                  <span className="text-xs text-muted-foreground truncate">{tour.touristEmail}</span>
+                                  <span className="text-xs text-muted-foreground truncate">{tour.tourist_email || 'No email provided'}</span>
                                 </div>
-                                {tour.touristPhone !== 'Not provided' && (
+                                {tour.tourist_phone && tour.tourist_phone !== 'Not provided' && (
                                   <div className="flex items-center gap-1">
                                     <Phone className="h-3 w-3 text-muted-foreground" />
-                                    <span className="text-xs text-muted-foreground">{tour.touristPhone}</span>
+                                    <span className="text-xs text-muted-foreground">{tour.tourist_phone}</span>
                                   </div>
                                 )}
                               </div>
@@ -252,16 +250,16 @@ export default function TourGuideBookings() {
                               )}
                             </DialogContent>
                           </Dialog>
-                          {tour.status === 'upcoming' && (
+                          {tour.booking_status === 'upcoming' && (
                             <>
                               <Button size="sm" variant="outline" className="text-xs sm:text-sm" asChild>
-                                <a href={`mailto:${tour.touristEmail}`}>
+                                <a href={`mailto:${tour.tourist_email}`}>
                                   Contact Tourist
                                 </a>
                               </Button>
-                              {tour.touristPhone !== 'Not provided' && (
+                              {tour.tourist_phone && tour.tourist_phone !== 'Not provided' && (
                                 <Button size="sm" variant="outline" className="text-xs sm:text-sm" asChild>
-                                  <a href={`tel:${tour.touristPhone}`}>
+                                  <a href={`tel:${tour.tourist_phone}`}>
                                     Call Tourist
                                   </a>
                                 </Button>

@@ -410,13 +410,22 @@ exports.getGuideAssignedBookings = async (req, res) => {
   const userId = req.user.id;
   
   try {
-    // Get all bookings where this guide is assigned with comprehensive details
-    let [rows] = await db.query(
-      `SELECT bi.id as booking_item_id, bi.cost, bi.item_details,
-              b.id as booking_id, b.total_cost, b.status, b.created_at, b.start_date, b.end_date,
-              u.id as tourist_id, u.email as tourist_email, u.phone_number as tourist_phone,
-              d.id as destination_id, d.name as destination_name,
-              d.description as destination_description
+    // Get all bookings where this tour guide is assigned
+    const [rows] = await db.query(
+      `SELECT DISTINCT 
+              b.id as booking_id, 
+              b.total_cost, 
+              b.status, 
+              b.created_at, 
+              b.start_date, 
+              b.end_date,
+              u.id as tourist_id, 
+              u.email as tourist_email, 
+              u.phone_number as tourist_phone,
+              d.id as destination_id, 
+              d.name as destination_name,
+              d.description as destination_description,
+              bi.item_details as guide_assignment_details
        FROM booking_items bi
        JOIN bookings b ON bi.booking_id = b.id
        JOIN users u ON b.tourist_user_id = u.id
@@ -430,29 +439,25 @@ exports.getGuideAssignedBookings = async (req, res) => {
     
     // For each booking, get comprehensive details
     for (let i = 0; i < rows.length; i++) {
-      // Parse the item_details for this specific row
-      const parsedRow = parseJsonFields([rows[i]], ['item_details']);
+      // Parse the guide assignment details
+      const parsedRow = parseJsonFields([rows[i]], ['guide_assignment_details']);
       rows[i] = parsedRow[0];
       
-      // Get activities for this booking with schedules
+      // Get activities for this booking
       const [activities] = await db.query(
-        `SELECT a.id, a.name, a.description, a.price, bi.sessions,
-                d.name as destination_name
+        `SELECT a.id, a.name, a.description, a.price, bi.sessions
          FROM booking_items bi
-         JOIN activities a ON bi.item_type = 'activity' AND bi.id = a.id
-         JOIN destinations d ON a.destination_id = d.id
+         JOIN activities a ON bi.id = a.id
          WHERE bi.booking_id = ?
          AND bi.item_type = 'activity'`,
         [rows[i].booking_id]
       );
       
-      // Activities are already in the correct format (no JSON parsing needed)
-      
       // Get hotel information for this booking
       const [hotelResults] = await db.query(
-        `SELECT h.id, h.name, h.destination_id, d.name as destination_name, h.description, bi.item_details
+        `SELECT h.id, h.name, h.destination_id, d.name as hotel_destination_name, h.description, bi.item_details
          FROM booking_items bi
-         JOIN hotels h ON bi.item_type = 'hotel' AND bi.id = h.id
+         JOIN hotels h ON bi.id = h.id
          JOIN destinations d ON h.destination_id = d.id
          WHERE bi.booking_id = ?
          AND bi.item_type = 'hotel'`,
@@ -460,14 +465,14 @@ exports.getGuideAssignedBookings = async (req, res) => {
       );
       
       const hotel = hotelResults.length > 0 ? 
-        parseJsonFields(hotelResults, ['item_details']) : 
-        [];
+        parseJsonFields(hotelResults, ['item_details'])[0] : 
+        null;
       
       // Get transport information for this booking
       const [transportResults] = await db.query(
-        `SELECT t.id, to_orig.name as origin_name, d.name as destination_name, t.cost, bi.item_details
+        `SELECT t.id, to_orig.name as origin_name, d.name as transport_destination_name, t.cost, bi.item_details
          FROM booking_items bi
-         JOIN transports t ON bi.item_type = 'transport' AND bi.id = t.id
+         JOIN transports t ON bi.id = t.id
          JOIN transport_origins to_orig ON t.origin_id = to_orig.id
          JOIN destinations d ON t.destination_id = d.id
          WHERE bi.booking_id = ?
@@ -476,8 +481,8 @@ exports.getGuideAssignedBookings = async (req, res) => {
       );
       
       const transport = transportResults.length > 0 ? 
-        parseJsonFields(transportResults, ['item_details']) : 
-        [];
+        parseJsonFields(transportResults, ['item_details'])[0] : 
+        null;
       
       // Calculate booking duration
       const startDate = new Date(rows[i].start_date);
@@ -493,9 +498,10 @@ exports.getGuideAssignedBookings = async (req, res) => {
         bookingStatus = 'ongoing';
       }
       
-      rows[i].activities = parsedActivities;
-      rows[i].hotel = hotel.length > 0 ? hotel[0] : null;
-      rows[i].transport = transport.length > 0 ? transport[0] : null;
+      // Add all details to the row
+      rows[i].activities = activities || [];
+      rows[i].hotel = hotel;
+      rows[i].transport = transport;
       rows[i].duration_days = durationDays;
       rows[i].booking_status = bookingStatus;
     }
@@ -835,45 +841,65 @@ exports.getUnassignedBookings = async (req, res) => {
   try {
     // Get all confirmed bookings that don't have a tour guide assigned
     const [rows] = await db.query(
-      `SELECT b.*, u.email as tourist_email
+      `SELECT b.id, b.total_cost, b.status, b.start_date, b.end_date,
+              u.id as tourist_id, u.email as tourist_email, u.phone_number as tourist_phone,
+              d.id as destination_id, d.name as destination_name,
+              d.description as destination_description
        FROM bookings b
        JOIN users u ON b.tourist_user_id = u.id
+       JOIN destinations d ON b.destination_id = d.id
        WHERE b.status = 'confirmed'
        AND b.id NOT IN (
          SELECT DISTINCT booking_id 
          FROM booking_items 
          WHERE item_type = 'tour_guide'
        )
-       ORDER BY b.id DESC`
+       ORDER BY b.start_date ASC`
     );
     
-    // For each booking, get its items (except tour guide which doesn't exist)
+    // For each booking, get comprehensive details
     for (let i = 0; i < rows.length; i++) {
-      const [items] = await db.query(
-        `SELECT bi.*,
-         CASE
-           WHEN bi.item_type = 'hotel' THEN h.name
-           WHEN bi.item_type = 'transport' THEN CONCAT(to_orig.name, ' to ', dest.name)
-           WHEN bi.item_type = 'activity' THEN a.name
-         END as item_name,
-         CASE
-           WHEN bi.item_type = 'hotel' THEN h.location
-           WHEN bi.item_type = 'activity' THEN d.name
-           ELSE NULL
-         END as location
+      // Get activities for this booking
+      const [activities] = await db.query(
+        `SELECT a.id, a.name, a.description, a.price, bi.sessions
          FROM booking_items bi
-         LEFT JOIN hotels h ON bi.item_type = 'hotel' AND bi.id = h.id
-         LEFT JOIN transports tr ON bi.item_type = 'transport' AND bi.id = tr.id
-         LEFT JOIN transport_origins to_orig ON bi.item_type = 'transport' AND tr.origin_id = to_orig.id
-         LEFT JOIN destinations dest ON bi.item_type = 'transport' AND tr.destination_id = dest.id
-         LEFT JOIN activities a ON bi.item_type = 'activity' AND bi.id = a.id
-         LEFT JOIN destinations d ON bi.item_type = 'activity' AND a.destination_id = d.id
-         WHERE bi.booking_id = ?`,
+         JOIN activities a ON bi.id = a.id
+         WHERE bi.booking_id = ? AND bi.item_type = 'activity'`,
         [rows[i].id]
       );
       
-      // Parse item_details JSON if it exists
-      rows[i].items = parseJsonFields(items, ['item_details']);
+      // Get hotel information
+      const [hotels] = await db.query(
+        `SELECT h.id, h.name, h.destination_id, bi.item_details
+         FROM booking_items bi
+         JOIN hotels h ON bi.id = h.id
+         WHERE bi.booking_id = ? AND bi.item_type = 'hotel'`,
+        [rows[i].id]
+      );
+      
+      // Get transport information
+      const [transports] = await db.query(
+        `SELECT t.id, to_orig.name as origin_name, dest.name as destination_name, t.cost, bi.item_details
+         FROM booking_items bi
+         JOIN transports t ON bi.id = t.id
+         JOIN transport_origins to_orig ON t.origin_id = to_orig.id
+         JOIN destinations dest ON t.destination_id = dest.id
+         WHERE bi.booking_id = ? AND bi.item_type = 'transport'`,
+        [rows[i].id]
+      );
+      
+      // Calculate duration
+      const startDate = new Date(rows[i].start_date);
+      const endDate = new Date(rows[i].end_date);
+      const durationDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+      
+      // Add computed fields
+      rows[i].activities = activities.map(a => a.name);
+      rows[i].activity_details = activities;
+      rows[i].hotel_details = parseJsonFields(hotels, ['item_details']);
+      rows[i].transport_details = parseJsonFields(transports, ['item_details']);
+      rows[i].duration_days = durationDays;
+      rows[i].tourist_name = rows[i].tourist_email.split('@')[0]; // Simple name extraction
     }
     
     res.status(200).json(rows);
