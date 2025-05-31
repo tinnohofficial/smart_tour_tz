@@ -527,24 +527,7 @@ function BookLocation({ params }) {
             </h1>
             <p className="text-lg md:text-xl text-white/90 max-w-3xl">
               {destination.description}
-            </p>{" "}
-            <div className="flex items-center gap-4 mt-4">
-              <Badge
-                variant="secondary"
-                className="text-lg bg-amber-700 text-white"
-              >
-                TZS{" "}
-                {(() => {
-                  // Handle the cost display with proper parsing
-                  if (destination.cost) {
-                    const cost = parseFloat(destination.cost);
-                    return !isNaN(cost) ? cost.toFixed(2) : "Price varies";
-                  }
-                  return "Price varies";
-                })()}{" "}
-                /= per visit
-              </Badge>
-            </div>
+            </p>
           </div>
         </div>
       </div>
@@ -761,16 +744,17 @@ function BookLocation({ params }) {
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">Base cost:</p>
+                          <p className="font-medium">Base cost per day:</p>
                           <p className="text-lg font-semibold">
-                            $
-                            {(() => {
-                              if (destination.cost) {
-                                const cost = parseFloat(destination.cost);
-                                return !isNaN(cost) ? cost.toFixed(2) : "0.00";
-                              }
-                              return "0.00";
-                            })()}
+                            {formatTZS(
+                              (() => {
+                                if (destination.cost) {
+                                  const cost = parseFloat(destination.cost);
+                                  return !isNaN(cost) ? cost : 0;
+                                }
+                                return 0;
+                              })(),
+                            )}
                           </p>
                         </div>
                       </div>
@@ -1014,7 +998,7 @@ function BookLocation({ params }) {
                                   </div>
                                   <div className="text-right ml-4">
                                     <div className="text-xl font-bold">
-                                      ${route.cost}
+                                      {formatTZS(route.cost)}
                                     </div>
                                     {selectedTransportRoute ===
                                       route.id.toString() && (
@@ -1193,13 +1177,17 @@ function BookLocation({ params }) {
                                       </div>
                                       <div className="text-right">
                                         <div className="text-lg font-bold">
-                                          ${hotel.base_price_per_night}{" "}
+                                          {formatTZS(
+                                            hotel.base_price_per_night,
+                                          )}{" "}
                                           <span className="text-sm text-gray-500 font-normal">
                                             / night
                                           </span>
                                         </div>
                                         <div className="text-sm text-gray-500">
-                                          ${hotel.base_price_per_night * nights}{" "}
+                                          {formatTZS(
+                                            hotel.base_price_per_night * nights,
+                                          )}{" "}
                                           total for {nights}{" "}
                                           {nights === 1 ? "night" : "nights"}
                                         </div>
@@ -1383,7 +1371,7 @@ function BookLocation({ params }) {
                                         </div>
                                       </div>
                                       <Badge className="bg-amber-100 text-amber-700 border border-amber-200">
-                                        ${activity.price}
+                                        {formatTZS(activity.price)}
                                       </Badge>
                                     </div>
                                   </CardHeader>
@@ -1719,7 +1707,7 @@ function BookLocation({ params }) {
                           </p>
                         </div>
                         <Badge className="ml-auto bg-amber-100 text-amber-800 border border-amber-200">
-                          ${parseFloat(destination.cost || 0).toFixed(2)}
+                          {formatTZS(parseFloat(destination.cost || 0))}
                         </Badge>
                       </div>
 
@@ -1759,15 +1747,18 @@ function BookLocation({ params }) {
                               </div>
                               <div className="text-right">
                                 <div className="text-sm font-medium">
-                                  ${selectedHotelObj.base_price_per_night}{" "}
+                                  {formatTZS(
+                                    selectedHotelObj.base_price_per_night,
+                                  )}{" "}
                                   <span className="text-xs text-gray-500">
                                     / night
                                   </span>
                                 </div>
                                 <div className="text-sm text-amber-600 font-medium">
-                                  $
-                                  {selectedHotelObj.base_price_per_night *
-                                    nights}{" "}
+                                  {formatTZS(
+                                    selectedHotelObj.base_price_per_night *
+                                      nights,
+                                  )}{" "}
                                   total
                                 </div>
                               </div>
@@ -1803,7 +1794,7 @@ function BookLocation({ params }) {
                                 </div>
                                 <div className="text-right">
                                   <div className="text-sm font-medium text-amber-600">
-                                    ${selectedRoute.cost}
+                                    {formatTZS(selectedRoute.cost)}
                                   </div>
                                 </div>
                               </div>
@@ -1924,7 +1915,7 @@ function BookLocation({ params }) {
                                   </div>
                                   <div className="text-right">
                                     <Badge className="bg-green-50 text-green-700 border border-green-200">
-                                      ${activity.price}
+                                      {formatTZS(activity.price)}
                                     </Badge>
                                   </div>
                                 </div>
