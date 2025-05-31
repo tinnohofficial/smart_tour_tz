@@ -96,7 +96,7 @@ export default function ActivitiesPage() {
 
   // --- Helper Functions ---
   const getDestinationName = (destinationId) => { 
-    const destination = destinations.find((dest) => dest.id === destinationId);
+    const destination = (destinations || []).find((dest) => dest.id === destinationId);
     return destination ? destination.name : "Unknown";
   };
 
@@ -148,7 +148,7 @@ export default function ActivitiesPage() {
                     <Select value={formData.destination_id} onValueChange={handleSelectChange}>
                       <SelectTrigger> <SelectValue placeholder="Select a destination" /> </SelectTrigger>
                       <SelectContent>
-                        {destinations.map((destination) => (
+                        {(destinations || []).map((destination) => (
                           <SelectItem key={destination.id} value={destination.id.toString()}>
                             {destination.name}
                           </SelectItem>

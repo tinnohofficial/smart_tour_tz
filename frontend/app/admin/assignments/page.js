@@ -130,10 +130,10 @@ export default function AssignmentsPage() {
                       </TableCell>
                       <TableCell className="hidden lg:table-cell">
                         <div className="flex flex-wrap gap-1 max-w-[150px]">
-                          {booking.activities.slice(0, 2).map((activity, index) => (
+                          {(booking.activities || []).slice(0, 2).map((activity, index) => (
                             <Badge key={`activity-${booking.id}-${index}`} variant="outline" className="text-xs">{activity}</Badge>
                           ))}
-                          {booking.activities.length > 2 && (
+                          {booking.activities && booking.activities.length > 2 && (
                             <Badge variant="outline" className="text-xs">+{booking.activities.length - 2}</Badge>
                           )}
                         </div>
@@ -185,7 +185,7 @@ export default function AssignmentsPage() {
                 <div className="mt-2 text-sm">
                   <span className="text-muted-foreground">Activities:</span>
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {selectedBooking.activities.map((activity, index) => (
+                    {(selectedBooking.activities || []).map((activity, index) => (
                       <Badge key={`dialog-activity-${selectedBooking.id}-${index}`} variant="outline">{activity}</Badge>
                     ))}
                   </div>
@@ -207,7 +207,7 @@ export default function AssignmentsPage() {
                         </SelectItem>
                       ) : (
                         // Read eligibleGuides from store
-                        eligibleGuides.map((guide) => (
+                        (eligibleGuides || []).map((guide) => (
                           <SelectItem key={guide.id} value={guide.id.toString()}>
                             {guide.name} - {guide.destination_name}
                           </SelectItem>
@@ -223,7 +223,7 @@ export default function AssignmentsPage() {
                      <h3 className="font-medium mb-2 text-sm sm:text-base">Guide Details</h3>
                      {/* Find and display selected guide details */}
                      {(() => {
-                       const guide = eligibleGuides.find(g => g.id.toString() === selectedGuideId);
+                       const guide = (eligibleGuides || []).find(g => g.id.toString() === selectedGuideId);
                        if (!guide) return null;
                        return (
                           <div key={guide.id} className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm">

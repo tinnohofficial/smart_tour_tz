@@ -28,7 +28,7 @@ export const useBookingsStore = create((set, get) => ({
         set({ bookings })
         
         // Parse the item details if needed
-        const parsedBookings = bookings.map(booking => {
+        const parsedBookings = (bookings || []).map(booking => {
           if (booking.item_details && typeof booking.item_details === 'string') {
             try {
               booking.item_details = JSON.parse(booking.item_details)

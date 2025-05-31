@@ -85,7 +85,7 @@ export default function AdminLayout({ children }) {
           </div>
           <ScrollArea className="flex flex-col flex-grow p-4">
             <div className="space-y-2">
-              {routes.map((route) => (
+              {(routes || []).map((route) => (
                 <Link
                   key={route.href}
                   href={route.href}
@@ -135,7 +135,7 @@ export default function AdminLayout({ children }) {
                 </div>
                 <ScrollArea className="flex flex-col flex-grow p-4">
                   <div className="space-y-2 mt-4">
-                    {routes.map((route) => (
+                    {(routes || []).map((route) => (
                       <Link
                         key={route.href}
                         href={route.href}

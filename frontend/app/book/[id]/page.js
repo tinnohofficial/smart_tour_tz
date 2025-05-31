@@ -198,7 +198,10 @@ function BookLocation({ params }) {
 
   // For now, still using mock activities data - will be replaced in a future update
   const selectedActivitiesObj = useMemo(() => {
-    // Use the actual API data when available
+    // Use the actual API data when available, with proper null checks
+    if (!apiActivities || !Array.isArray(apiActivities)) {
+      return [];
+    }
     return apiActivities.filter((a) =>
       selectedActivities.includes(a.id.toString()),
     );
@@ -206,14 +209,14 @@ function BookLocation({ params }) {
 
   // Find selected transport and hotel objects
   const selectedRoute = useMemo(() => {
-    if (!selectedTransportRoute || !transportRoutes.length) return null;
+    if (!selectedTransportRoute || !transportRoutes || !Array.isArray(transportRoutes) || !transportRoutes.length) return null;
     return transportRoutes.find(
       (r) => r.id.toString() === selectedTransportRoute.toString(),
     );
   }, [selectedTransportRoute, transportRoutes]);
 
   const selectedHotelObj = useMemo(() => {
-    if (!selectedHotel || !hotels.length) return null;
+    if (!selectedHotel || !hotels || !Array.isArray(hotels) || !hotels.length) return null;
     return hotels.find((h) => h.id.toString() === selectedHotel.toString());
   }, [selectedHotel, hotels]);
 
@@ -628,7 +631,7 @@ function BookLocation({ params }) {
                       }`}
                     >
                       <option value="">Select your departure location</option>
-                      {transportOrigins.map((origin) => (
+                      {(transportOrigins || []).map((origin) => (
                         <option key={origin.id} value={origin.id}>
                           {origin.name}
                         </option>
@@ -782,7 +785,7 @@ function BookLocation({ params }) {
                             {error.transports}. Please try refreshing the page.
                           </AlertDescription>
                         </Alert>
-                      ) : transportRoutes.length === 0 ? (
+                      ) : !transportRoutes || !Array.isArray(transportRoutes) || transportRoutes.length === 0 ? (
                         <Alert className="mb-4">
                           <AlertCircle className="h-4 w-4" />
                           <AlertDescription>
@@ -792,7 +795,7 @@ function BookLocation({ params }) {
                         </Alert>
                       ) : (
                         <div className="grid grid-cols-1 gap-4">
-                          {transportRoutes.map((route) => (
+                          {(transportRoutes || []).map((route) => (
                             <Card
                               key={route.id}
                               className={`cursor-pointer overflow-hidden transition-all duration-200 ${
@@ -834,6 +837,7 @@ function BookLocation({ params }) {
                                       {/* Multi-leg journey details */}
                                       {route.route_details &&
                                       route.route_details.legs &&
+                                      Array.isArray(route.route_details.legs) &&
                                       route.route_details.legs.length > 1 ? (
                                         <div className="mt-3 space-y-2">
                                           <div className="flex items-center gap-2 mb-2">
@@ -857,7 +861,7 @@ function BookLocation({ params }) {
                                             )}
                                           </div>
                                           <div className="space-y-2 max-h-32 overflow-y-auto">
-                                            {route.route_details.legs.map(
+                                            {(route.route_details.legs || []).map(
                                               (leg, legIndex) => (
                                                 <div
                                                   key={legIndex}
@@ -1047,7 +1051,7 @@ function BookLocation({ params }) {
                             {error.hotels}. Please try refreshing the page.
                           </AlertDescription>
                         </Alert>
-                      ) : hotels.length === 0 ? (
+                      ) : !hotels || !Array.isArray(hotels) || hotels.length === 0 ? (
                         <Alert className="mb-4">
                           <AlertCircle className="h-4 w-4" />
                           <AlertDescription>
@@ -1057,7 +1061,7 @@ function BookLocation({ params }) {
                         </Alert>
                       ) : (
                         <div className="grid grid-cols-1 gap-4">
-                          {hotels.map((hotel) => (
+                          {(hotels || []).map((hotel) => (
                             <Card
                               key={hotel.id}
                               className={`cursor-pointer overflow-hidden transition-all duration-200 ${
@@ -1254,15 +1258,15 @@ function BookLocation({ params }) {
                             {error.activities}. Please try refreshing the page.
                           </AlertDescription>
                         </Alert>
-                      ) : apiActivities && apiActivities.length > 0 ? (
+                      ) : apiActivities && Array.isArray(apiActivities) && apiActivities.length > 0 ? (
                         <>
                           <p className="text-sm text-gray-500 mb-4">
                             Enhance your stay in {destination.name} with these
                             exciting activities. Select activities and specify
-                            the number of sessions you'd like.
+                            the number of sessions you&apos;d like.
                           </p>
                           <div className="space-y-6">
-                            {apiActivities.map((activity) => {
+                            {(apiActivities || []).map((activity) => {
                               const isSelected = selectedActivities.includes(
                                 activity.id.toString(),
                               );
@@ -1552,6 +1556,7 @@ function BookLocation({ params }) {
                           {/* Multi-leg journey details for review */}
                           {selectedRoute.route_details &&
                             selectedRoute.route_details.legs &&
+                            Array.isArray(selectedRoute.route_details.legs) &&
                             selectedRoute.route_details.legs.length > 1 && (
                               <div className="bg-blue-50 p-3 rounded-md">
                                 <div className="flex items-center gap-2 mb-2">
@@ -1573,7 +1578,7 @@ function BookLocation({ params }) {
                                   )}
                                 </div>
                                 <div className="space-y-2">
-                                  {selectedRoute.route_details.legs.map(
+                                  {(selectedRoute.route_details.legs || []).map(
                                     (leg, legIndex) => (
                                       <div
                                         key={legIndex}

@@ -87,7 +87,7 @@ export default function HotelManagerBookings() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4">
-          {bookings.map((booking) => (
+          {(bookings || []).map((booking) => (
             <Card key={booking.id} className="overflow-hidden">
               <CardHeader className="pb-3 bg-gray-50">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">

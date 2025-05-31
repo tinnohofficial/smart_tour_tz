@@ -362,7 +362,7 @@ export default function TourGuideCompleteProfile() {
                           />
                         </SelectTrigger>
                         <SelectContent>
-                          {destinations.map((destination) => (
+                          {(destinations || []).map((destination) => (
                             <SelectItem
                               key={destination.id}
                               value={destination.id.toString()}
@@ -397,7 +397,7 @@ export default function TourGuideCompleteProfile() {
                       </p>
                     ) : (
                       <div className="space-y-3">
-                        {activities.map((activity) => {
+                        {(activities || []).map((activity) => {
                           const isSelected = formData.activities.includes(
                             activity.id,
                           );
