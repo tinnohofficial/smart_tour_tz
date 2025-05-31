@@ -1,117 +1,134 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { 
-  Clock, CheckCircle, XCircle, User, MapPin, Star, 
-  DollarSign, Mail, Phone, Globe, Image as ImageIcon,
-  ArrowLeft, RefreshCw, Briefcase, Award
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { tourGuideService, apiUtils } from "@/app/services/api"
-import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner"
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Clock,
+  CheckCircle,
+  XCircle,
+  User,
+  MapPin,
+  Star,
+  DollarSign,
+  Mail,
+  Phone,
+  Globe,
+  Image as ImageIcon,
+  ArrowLeft,
+  RefreshCw,
+  Briefcase,
+  Award,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { tourGuideService, apiUtils } from "@/app/services/api";
+import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner";
 
 export default function TourGuidePendingStatusPage() {
-  const router = useRouter()
-  const [userStatus, setUserStatus] = useState(null)
-  const [guideData, setGuideData] = useState(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const router = useRouter();
+  const [userStatus, setUserStatus] = useState(null);
+  const [guideData, setGuideData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const checkStatusAndFetchData = async () => {
       try {
-        const token = localStorage.getItem('token')
+        const token = localStorage.getItem("token");
         if (!token) {
-          router.push('/login')
-          return
+          router.push("/login");
+          return;
         }
 
         try {
-          const data = await tourGuideService.getProfile()
-          setUserStatus(data.status || 'pending_approval')
-          setGuideData(data)
-          
+          const data = await tourGuideService.getProfile();
+          setUserStatus(data.status || "pending_approval");
+          setGuideData(data);
+
           // If user is active, redirect to dashboard
-          if (data.status === 'active') {
-            router.push('/tour-guide/dashboard')
-            return
+          if (data.status === "active") {
+            router.push("/tour-guide/dashboard");
+            return;
           }
-          
+
           // If user hasn't completed profile, redirect to complete profile
-          if (data.status === 'pending_profile' || !data.status) {
-            router.push('/tour-guide/complete-profile')
-            return
+          if (data.status === "pending_profile" || !data.status) {
+            router.push("/tour-guide/complete-profile");
+            return;
           }
-          
         } catch (error) {
           if (error.response?.status === 404) {
             // No profile exists, redirect to complete profile
-            router.push('/tour-guide/complete-profile')
-            return
+            router.push("/tour-guide/complete-profile");
+            return;
           } else {
-            console.error('Error fetching profile:', error)
-            setError('Failed to load profile data')
-            apiUtils.handleAuthError(error, router)
+            console.error("Error fetching profile:", error);
+            setError("Failed to load profile data");
+            apiUtils.handleAuthError(error, router);
           }
         }
       } catch (error) {
-        console.error("Error checking status:", error)
-        setError('An unexpected error occurred')
+        console.error("Error checking status:", error);
+        setError("An unexpected error occurred");
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    checkStatusAndFetchData()
-  }, [router])
+    checkStatusAndFetchData();
+  }, [router]);
 
   const handleRefresh = () => {
-    setIsLoading(true)
-    setError(null)
-    window.location.reload()
-  }
+    setIsLoading(true);
+    setError(null);
+    window.location.reload();
+  };
 
   const getStatusDisplay = () => {
     switch (userStatus) {
-      case 'pending_approval':
+      case "pending_approval":
         return {
           icon: <Clock className="h-8 w-8 text-amber-500" />,
           title: "Application Under Review",
-          message: "Your tour guide profile has been submitted successfully and is currently being reviewed by our administrators.",
-          description: "This process typically takes 1-2 business days. You will receive an email notification once your application has been processed.",
+          message:
+            "Your tour guide profile has been submitted successfully and is currently being reviewed by our administrators.",
           color: "amber",
           bgColor: "bg-amber-50",
-          borderColor: "border-amber-200"
-        }
-      case 'rejected':
+          borderColor: "border-amber-200",
+        };
+      case "rejected":
         return {
           icon: <XCircle className="h-8 w-8 text-red-500" />,
           title: "Application Rejected",
-          message: "We regret to inform you that your tour guide profile application has been rejected.",
-          description: "Detailed feedback and reasons for rejection have been sent to your registered email address. Please review the feedback and feel free to resubmit your application after addressing the mentioned concerns.",
+          message:
+            "We regret to inform you that your tour guide profile application has been rejected. Please check you email inbox for more details",
           color: "red",
           bgColor: "bg-red-50",
-          borderColor: "border-red-200"
-        }
+          borderColor: "border-red-200",
+        };
       default:
         return {
           icon: <Clock className="h-8 w-8 text-gray-500" />,
           title: "Status Unknown",
-          message: "Unable to determine your current application status.",
-          description: "Please contact support for assistance.",
+          message:
+            "Unable to determine your current application status. Please contact support for assistance.",
           color: "gray",
           bgColor: "bg-gray-50",
-          borderColor: "border-gray-200"
-        }
+          borderColor: "border-gray-200",
+        };
     }
-  }
+  };
 
   if (isLoading) {
-    return <LoadingSpinner message="Loading application status..." />
+    return <LoadingSpinner message="Loading application status..." />;
   }
 
   if (error) {
@@ -121,7 +138,9 @@ export default function TourGuidePendingStatusPage() {
           <CardContent className="pt-6">
             <div className="text-center">
               <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-red-700 mb-2">Error Loading Data</h2>
+              <h2 className="text-xl font-semibold text-red-700 mb-2">
+                Error Loading Data
+              </h2>
               <p className="text-red-600 mb-4">{error}</p>
               <Button onClick={handleRefresh} variant="outline">
                 <RefreshCw className="h-4 w-4 mr-2" />
@@ -131,48 +150,24 @@ export default function TourGuidePendingStatusPage() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
-  const statusDisplay = getStatusDisplay()
+  const statusDisplay = getStatusDisplay();
 
   return (
     <div className="container px-4 mx-auto max-w-6xl py-6">
       {/* Status Header */}
-      <Card className={`${statusDisplay.bgColor} ${statusDisplay.borderColor} border-2 mb-6`}>
+      <Card
+        className={`${statusDisplay.bgColor} ${statusDisplay.borderColor} border-2 mb-6`}
+      >
         <CardContent className="pt-6">
           <div className="text-center">
-            <div className="mb-4">
-              {statusDisplay.icon}
-            </div>
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">{statusDisplay.title}</h1>
+            <div className="mb-4">{statusDisplay.icon}</div>
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">
+              {statusDisplay.title}
+            </h1>
             <p className="text-gray-700 mb-3">{statusDisplay.message}</p>
-            <p className="text-sm text-gray-600 max-w-2xl mx-auto">{statusDisplay.description}</p>
-            
-            {userStatus === 'pending_approval' && (
-              <div className="mt-4">
-                <Badge variant="outline" className="bg-white">
-                  <Clock className="h-3 w-3 mr-1" />
-                  Status: Pending Review
-                </Badge>
-              </div>
-            )}
-            
-            {userStatus === 'rejected' && (
-              <div className="mt-4 space-x-2">
-                <Badge variant="destructive">
-                  <XCircle className="h-3 w-3 mr-1" />
-                  Status: Rejected
-                </Badge>
-                <Button 
-                  onClick={() => router.push('/tour-guide/complete-profile')}
-                  className="mt-2"
-                  size="sm"
-                >
-                  Resubmit Application
-                </Button>
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>
@@ -187,37 +182,54 @@ export default function TourGuidePendingStatusPage() {
                 <User className="h-5 w-5 mr-2 text-blue-600" />
                 Guide Information
               </CardTitle>
-              <CardDescription>Basic details about your tour guide profile</CardDescription>
+              <CardDescription>
+                Basic details about your tour guide profile
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-gray-500">Full Name</label>
+                <label className="text-sm font-medium text-gray-500">
+                  Full Name
+                </label>
                 <p className="text-lg font-semibold">{guideData.full_name}</p>
               </div>
-              
+
               <div>
-                <label className="text-sm font-medium text-gray-500">Location</label>
+                <label className="text-sm font-medium text-gray-500">
+                  Location
+                </label>
                 <div className="flex items-center mt-1">
                   <MapPin className="h-4 w-4 text-gray-400 mr-1" />
-                  <p>{guideData.destination_name ? `${guideData.destination_name}, ${guideData.destination_region}` : 'Not specified'}</p>
+                  <p>
+                    {guideData.destination_name
+                      ? `${guideData.destination_name}, ${guideData.destination_region}`
+                      : "Not specified"}
+                  </p>
                 </div>
               </div>
-              
+
               <div>
-                <label className="text-sm font-medium text-gray-500">Availability</label>
-                <Badge variant={guideData.available ? "default" : "secondary"} className="mt-1">
+                <label className="text-sm font-medium text-gray-500">
+                  Availability
+                </label>
+                <Badge
+                  variant={guideData.available ? "default" : "secondary"}
+                  className="mt-1"
+                >
                   {guideData.available ? "Available" : "Not Available"}
                 </Badge>
               </div>
 
               {guideData.license_document_url && (
                 <div>
-                  <label className="text-sm font-medium text-gray-500">License Document</label>
+                  <label className="text-sm font-medium text-gray-500">
+                    License Document
+                  </label>
                   <div className="flex items-center mt-1">
                     <Globe className="h-4 w-4 text-gray-400 mr-1" />
-                    <a 
-                      href={guideData.license_document_url} 
-                      target="_blank" 
+                    <a
+                      href={guideData.license_document_url}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:underline"
                     >
@@ -240,27 +252,38 @@ export default function TourGuidePendingStatusPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-gray-500">General Expertise</label>
+                <label className="text-sm font-medium text-gray-500">
+                  General Expertise
+                </label>
                 <p className="text-gray-700 mt-1">
-                  {typeof guideData.expertise === 'object' && guideData.expertise?.general 
-                    ? guideData.expertise.general 
-                    : guideData.expertise || 'No expertise information provided'}
+                  {typeof guideData.expertise === "object" &&
+                  guideData.expertise?.general
+                    ? guideData.expertise.general
+                    : guideData.expertise ||
+                      "No expertise information provided"}
                 </p>
               </div>
 
-              {typeof guideData.expertise === 'object' && guideData.expertise?.activities && (
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Activity Specializations</label>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {guideData.expertise.activities.map((activity, index) => (
-                      <Badge key={index} variant="outline" className="bg-purple-50">
-                        <Star className="h-3 w-3 mr-1" />
-                        {activity.name}
-                      </Badge>
-                    ))}
+              {typeof guideData.expertise === "object" &&
+                guideData.expertise?.activities && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">
+                      Activity Specializations
+                    </label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {guideData.expertise.activities.map((activity, index) => (
+                        <Badge
+                          key={index}
+                          variant="outline"
+                          className="bg-purple-50"
+                        >
+                          <Star className="h-3 w-3 mr-1" />
+                          {activity.name}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </CardContent>
           </Card>
         </div>
@@ -270,30 +293,16 @@ export default function TourGuidePendingStatusPage() {
       <div className="mt-8 text-center space-y-4">
         <Separator />
         <div className="flex justify-center space-x-4">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={handleRefresh}
             className="flex items-center"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh Status
           </Button>
-          
-          <Button 
-            variant="outline" 
-            onClick={() => router.push('/tour-guide/password')}
-          >
-            Change Password
-          </Button>
         </div>
-        
-        <p className="text-sm text-gray-500">
-          Need help? Contact our support team at{" "}
-          <a href="mailto:support@smarttourtanzania.com" className="text-blue-600 hover:underline">
-            support@smarttourtanzania.com
-          </a>
-        </p>
       </div>
     </div>
-  )
+  );
 }

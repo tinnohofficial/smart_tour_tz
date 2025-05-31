@@ -38,7 +38,7 @@ exports.getPendingApplications = async (req, res) => {
           case "hotel_manager": {
             // Get hotel manager specific details - the hotel id is the same as user id
             const [hotelDetails] = await db.query(
-              `SELECT id, name, location, description, capacity, base_price_per_night, images
+              `SELECT id, name, description, capacity, base_price_per_night, images
                FROM hotels
                WHERE id = ?`,
               [user.id],

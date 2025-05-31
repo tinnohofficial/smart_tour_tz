@@ -1,118 +1,135 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { 
-  Clock, CheckCircle, XCircle, Building, MapPin, Users, 
-  DollarSign, Mail, Phone, Globe, Image as ImageIcon,
-  ArrowLeft, RefreshCw, Car, Package
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { travelAgentService, apiUtils } from "@/app/services/api"
-import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner"
-import { formatTZS } from "@/app/utils/currency"
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Clock,
+  CheckCircle,
+  XCircle,
+  Building,
+  MapPin,
+  Users,
+  DollarSign,
+  Mail,
+  Phone,
+  Globe,
+  Image as ImageIcon,
+  ArrowLeft,
+  RefreshCw,
+  Car,
+  Package,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { travelAgentService, apiUtils } from "@/app/services/api";
+import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner";
+import { formatTZS } from "@/app/utils/currency";
 
 export default function TravelAgentPendingStatusPage() {
-  const router = useRouter()
-  const [userStatus, setUserStatus] = useState(null)
-  const [agencyData, setAgencyData] = useState(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const router = useRouter();
+  const [userStatus, setUserStatus] = useState(null);
+  const [agencyData, setAgencyData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const checkStatusAndFetchData = async () => {
       try {
-        const token = localStorage.getItem('token')
+        const token = localStorage.getItem("token");
         if (!token) {
-          router.push('/login')
-          return
+          router.push("/login");
+          return;
         }
 
         try {
-          const data = await travelAgentService.getProfile()
-          setUserStatus(data.status || 'pending_approval')
-          setAgencyData(data)
-          
+          const data = await travelAgentService.getProfile();
+          setUserStatus(data.status || "pending_approval");
+          setAgencyData(data);
+
           // If user is active, redirect to dashboard
-          if (data.status === 'active') {
-            router.push('/travel-agent/dashboard')
-            return
+          if (data.status === "active") {
+            router.push("/travel-agent/dashboard");
+            return;
           }
-          
+
           // If user hasn't completed profile, redirect to complete profile
-          if (data.status === 'pending_profile' || !data.status) {
-            router.push('/travel-agent/complete-profile')
-            return
+          if (data.status === "pending_profile" || !data.status) {
+            router.push("/travel-agent/complete-profile");
+            return;
           }
-          
         } catch (error) {
           if (error.response?.status === 404) {
             // No profile exists, redirect to complete profile
-            router.push('/travel-agent/complete-profile')
-            return
+            router.push("/travel-agent/complete-profile");
+            return;
           } else {
-            console.error('Error fetching profile:', error)
-            setError('Failed to load profile data')
-            apiUtils.handleAuthError(error, router)
+            console.error("Error fetching profile:", error);
+            setError("Failed to load profile data");
+            apiUtils.handleAuthError(error, router);
           }
         }
       } catch (error) {
-        console.error("Error checking status:", error)
-        setError('An unexpected error occurred')
+        console.error("Error checking status:", error);
+        setError("An unexpected error occurred");
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    checkStatusAndFetchData()
-  }, [router])
+    checkStatusAndFetchData();
+  }, [router]);
 
   const handleRefresh = () => {
-    setIsLoading(true)
-    setError(null)
-    window.location.reload()
-  }
+    setIsLoading(true);
+    setError(null);
+    window.location.reload();
+  };
 
   const getStatusDisplay = () => {
     switch (userStatus) {
-      case 'pending_approval':
+      case "pending_approval":
         return {
           icon: <Clock className="h-8 w-8 text-amber-500" />,
           title: "Application Under Review",
-          message: "Your travel agency profile has been submitted successfully and is currently being reviewed by our administrators.",
-          description: "This process typically takes 1-2 business days. You will receive an email notification once your application has been processed.",
+          message:
+            "Your travel agency profile has been submitted successfully and is currently being reviewed by our administrators.",
           color: "amber",
           bgColor: "bg-amber-50",
-          borderColor: "border-amber-200"
-        }
-      case 'rejected':
+          borderColor: "border-amber-200",
+        };
+      case "rejected":
         return {
           icon: <XCircle className="h-8 w-8 text-red-500" />,
           title: "Application Rejected",
-          message: "We regret to inform you that your travel agency profile application has been rejected.",
-          description: "Detailed feedback and reasons for rejection have been sent to your registered email address. Please review the feedback and feel free to resubmit your application after addressing the mentioned concerns.",
+          message:
+            "We regret to inform you that your travel agency profile application has been rejected. Please check your email for further details",
           color: "red",
           bgColor: "bg-red-50",
-          borderColor: "border-red-200"
-        }
+          borderColor: "border-red-200",
+        };
       default:
         return {
           icon: <Clock className="h-8 w-8 text-gray-500" />,
           title: "Status Unknown",
-          message: "Unable to determine your current application status.",
-          description: "Please contact support for assistance.",
+          message:
+            "Unable to determine your current application status. Please contact support for assistance.",
           color: "gray",
           bgColor: "bg-gray-50",
-          borderColor: "border-gray-200"
-        }
+          borderColor: "border-gray-200",
+        };
     }
-  }
+  };
 
   if (isLoading) {
-    return <LoadingSpinner message="Loading application status..." />
+    return <LoadingSpinner message="Loading application status..." />;
   }
 
   if (error) {
@@ -122,7 +139,9 @@ export default function TravelAgentPendingStatusPage() {
           <CardContent className="pt-6">
             <div className="text-center">
               <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-red-700 mb-2">Error Loading Data</h2>
+              <h2 className="text-xl font-semibold text-red-700 mb-2">
+                Error Loading Data
+              </h2>
               <p className="text-red-600 mb-4">{error}</p>
               <Button onClick={handleRefresh} variant="outline">
                 <RefreshCw className="h-4 w-4 mr-2" />
@@ -132,48 +151,24 @@ export default function TravelAgentPendingStatusPage() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
-  const statusDisplay = getStatusDisplay()
+  const statusDisplay = getStatusDisplay();
 
   return (
     <div className="container px-4 mx-auto max-w-6xl py-6">
       {/* Status Header */}
-      <Card className={`${statusDisplay.bgColor} ${statusDisplay.borderColor} border-2 mb-6`}>
+      <Card
+        className={`${statusDisplay.bgColor} ${statusDisplay.borderColor} border-2 mb-6`}
+      >
         <CardContent className="pt-6">
           <div className="text-center">
-            <div className="mb-4">
-              {statusDisplay.icon}
-            </div>
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">{statusDisplay.title}</h1>
+            <div className="mb-4">{statusDisplay.icon}</div>
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">
+              {statusDisplay.title}
+            </h1>
             <p className="text-gray-700 mb-3">{statusDisplay.message}</p>
-            <p className="text-sm text-gray-600 max-w-2xl mx-auto">{statusDisplay.description}</p>
-            
-            {userStatus === 'pending_approval' && (
-              <div className="mt-4">
-                <Badge variant="outline" className="bg-white">
-                  <Clock className="h-3 w-3 mr-1" />
-                  Status: Pending Review
-                </Badge>
-              </div>
-            )}
-            
-            {userStatus === 'rejected' && (
-              <div className="mt-4 space-x-2">
-                <Badge variant="destructive">
-                  <XCircle className="h-3 w-3 mr-1" />
-                  Status: Rejected
-                </Badge>
-                <Button 
-                  onClick={() => router.push('/travel-agent/complete-profile')}
-                  className="mt-2"
-                  size="sm"
-                >
-                  Resubmit Application
-                </Button>
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>
@@ -188,24 +183,32 @@ export default function TravelAgentPendingStatusPage() {
                 <Building className="h-5 w-5 mr-2 text-blue-600" />
                 Agency Information
               </CardTitle>
-              <CardDescription>Basic details about your travel agency</CardDescription>
+              <CardDescription>
+                Basic details about your travel agency
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-gray-500">Agency Name</label>
+                <label className="text-sm font-medium text-gray-500">
+                  Agency Name
+                </label>
                 <p className="text-lg font-semibold">{agencyData.name}</p>
               </div>
-              
+
               <div>
-                <label className="text-sm font-medium text-gray-500">Contact Email</label>
+                <label className="text-sm font-medium text-gray-500">
+                  Contact Email
+                </label>
                 <div className="flex items-center mt-1">
                   <Mail className="h-4 w-4 text-gray-400 mr-1" />
                   <p>{agencyData.contact_email}</p>
                 </div>
               </div>
-              
+
               <div>
-                <label className="text-sm font-medium text-gray-500">Contact Phone</label>
+                <label className="text-sm font-medium text-gray-500">
+                  Contact Phone
+                </label>
                 <div className="flex items-center mt-1">
                   <Phone className="h-4 w-4 text-gray-400 mr-1" />
                   <p>{agencyData.contact_phone}</p>
@@ -214,12 +217,14 @@ export default function TravelAgentPendingStatusPage() {
 
               {agencyData.document_url && (
                 <div>
-                  <label className="text-sm font-medium text-gray-500">License Document</label>
+                  <label className="text-sm font-medium text-gray-500">
+                    License Document
+                  </label>
                   <div className="flex items-center mt-1">
                     <Globe className="h-4 w-4 text-gray-400 mr-1" />
-                    <a 
-                      href={agencyData.document_url} 
-                      target="_blank" 
+                    <a
+                      href={agencyData.document_url}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:underline"
                     >
@@ -238,7 +243,9 @@ export default function TravelAgentPendingStatusPage() {
                 <Car className="h-5 w-5 mr-2 text-green-600" />
                 Transport Routes
               </CardTitle>
-              <CardDescription>Available transportation services</CardDescription>
+              <CardDescription>
+                Available transportation services
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {agencyData.routes && agencyData.routes.length > 0 ? (
@@ -248,15 +255,20 @@ export default function TravelAgentPendingStatusPage() {
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex items-center">
                           <Package className="h-4 w-4 text-blue-500 mr-2" />
-                          <span className="font-medium">{route.transportation_type}</span>
+                          <span className="font-medium">
+                            {route.transportation_type}
+                          </span>
                         </div>
                         <Badge variant="outline">{formatTZS(route.cost)}</Badge>
                       </div>
                       <p className="text-sm text-gray-600">
-                        Origin: {route.origin_name || 'Unknown'} → Destination: {route.destination_name || 'Unknown'}
+                        Origin: {route.origin_name || "Unknown"} → Destination:{" "}
+                        {route.destination_name || "Unknown"}
                       </p>
                       {route.description && (
-                        <p className="text-xs text-gray-500 mt-1">{route.description}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {route.description}
+                        </p>
                       )}
                     </div>
                   ))}
@@ -267,7 +279,9 @@ export default function TravelAgentPendingStatusPage() {
                   )}
                 </div>
               ) : (
-                <p className="text-gray-500 text-center py-4">No routes submitted</p>
+                <p className="text-gray-500 text-center py-4">
+                  No routes submitted
+                </p>
               )}
             </CardContent>
           </Card>
@@ -278,30 +292,16 @@ export default function TravelAgentPendingStatusPage() {
       <div className="mt-8 text-center space-y-4">
         <Separator />
         <div className="flex justify-center space-x-4">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={handleRefresh}
             className="flex items-center"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh Status
           </Button>
-          
-          <Button 
-            variant="outline" 
-            onClick={() => router.push('/travel-agent/password')}
-          >
-            Change Password
-          </Button>
         </div>
-        
-        <p className="text-sm text-gray-500">
-          Need help? Contact our support team at{" "}
-          <a href="mailto:support@smarttourtanzania.com" className="text-blue-600 hover:underline">
-            support@smarttourtanzania.com
-          </a>
-        </p>
       </div>
     </div>
-  )
+  );
 }

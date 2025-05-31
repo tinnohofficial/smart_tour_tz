@@ -99,8 +99,6 @@ export default function PendingStatusPage() {
           title: "Application Under Review",
           message:
             "Your hotel profile has been submitted successfully and is currently being reviewed by our administrators.",
-          description:
-            "This process typically takes 1-2 business days. You will receive an email notification once your application has been processed.",
           color: "amber",
           bgColor: "bg-amber-50",
           borderColor: "border-amber-200",
@@ -110,9 +108,7 @@ export default function PendingStatusPage() {
           icon: <XCircle className="h-8 w-8 text-red-500" />,
           title: "Application Rejected",
           message:
-            "We regret to inform you that your hotel profile application has been rejected.",
-          description:
-            "Detailed feedback and reasons for rejection have been sent to your registered email address. Please review the feedback and feel free to resubmit your application after addressing the mentioned concerns.",
+            "We regret to inform you that your hotel profile application has been rejected. Check your email for further details.",
           color: "red",
           bgColor: "bg-red-50",
           borderColor: "border-red-200",
@@ -121,8 +117,8 @@ export default function PendingStatusPage() {
         return {
           icon: <Clock className="h-8 w-8 text-gray-500" />,
           title: "Status Unknown",
-          message: "Unable to determine your current application status.",
-          description: "Please contact support for assistance.",
+          message:
+            "Unable to determine your current application status. Please contact support for assistance.",
           color: "gray",
           bgColor: "bg-gray-50",
           borderColor: "border-gray-200",
@@ -171,34 +167,6 @@ export default function PendingStatusPage() {
               {statusDisplay.title}
             </h1>
             <p className="text-gray-700 mb-3">{statusDisplay.message}</p>
-            <p className="text-sm text-gray-600 max-w-2xl mx-auto">
-              {statusDisplay.description}
-            </p>
-
-            {userStatus === "pending_approval" && (
-              <div className="mt-4">
-                <Badge variant="outline" className="bg-white">
-                  <Clock className="h-3 w-3 mr-1" />
-                  Status: Pending Review
-                </Badge>
-              </div>
-            )}
-
-            {userStatus === "rejected" && (
-              <div className="mt-4 space-x-2">
-                <Badge variant="destructive">
-                  <XCircle className="h-3 w-3 mr-1" />
-                  Status: Rejected
-                </Badge>
-                <Button
-                  onClick={() => router.push("/hotel-manager/complete-profile")}
-                  className="mt-2"
-                  size="sm"
-                >
-                  Resubmit Application
-                </Button>
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>
@@ -313,16 +281,6 @@ export default function PendingStatusPage() {
             Change Password
           </Button>
         </div>
-
-        <p className="text-sm text-gray-500">
-          Need help? Contact our support team at{" "}
-          <a
-            href="mailto:support@smarttourtanzania.com"
-            className="text-amber-600 hover:underline"
-          >
-            support@smarttourtanzania.com
-          </a>
-        </p>
       </div>
     </div>
   );
