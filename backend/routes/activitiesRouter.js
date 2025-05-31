@@ -7,14 +7,11 @@ const checkRole = require("../middleware/checkRole");
 // Get all activities (optional filter by destination_id)
 router.get("/", activitiesController.getActivities);
 
-// Get activities with enhanced scheduling information
-router.get("/scheduling", activitiesController.getActivitiesWithScheduling);
-
-// Get activity availability
-router.get("/:activityId/availability", activitiesController.getActivityAvailability);
+// Get activities by destination
+router.get("/destination/:destinationId", activitiesController.getActivitiesByDestination);
 
 // Get activity by ID
-router.get("/:activityId", activitiesController.getActivityById);
+router.get("/:id", activitiesController.getActivityById);
 
 // Create a new activity - only admin can create
 router.post(
@@ -26,7 +23,7 @@ router.post(
 
 // Update an activity - only admin can update
 router.put(
-  "/:activityId",
+  "/:id",
   authenticateToken,
   checkRole("admin"),
   activitiesController.updateActivity,
@@ -34,7 +31,7 @@ router.put(
 
 // Delete an activity - only admin can delete
 router.delete(
-  "/:activityId",
+  "/:id",
   authenticateToken,
   checkRole("admin"),
   activitiesController.deleteActivity,

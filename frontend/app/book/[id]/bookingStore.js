@@ -25,7 +25,7 @@ export const useBookingStore = create((set, get) => ({
   selectedTransportRoute: "",
   selectedHotel: "",
   selectedActivities: [],
-  activitySchedules: {}, // Store activity scheduling details
+  activitySessions: {}, // Store number of sessions for each activity
   skipOptions: {    // Skip functionality for services
     skipTransport: false,
     skipHotel: false,
@@ -162,7 +162,7 @@ export const useBookingStore = create((set, get) => ({
     
     return apiUtils.withLoadingAndError(
       async () => {
-        const data = await activitiesService.getActivitiesWithScheduling(destinationId)
+        const data = await activitiesService.getActivitiesByDestination(destinationId)
         set({ activities: data })
         return data
       },
@@ -180,16 +180,7 @@ export const useBookingStore = create((set, get) => ({
     )
   },
 
-  // New: Check activity availability
-  checkActivityAvailability: async (activityId, date, timeSlot) => {
-    try {
-      const availability = await activitiesService.getActivityAvailability(activityId, date, timeSlot)
-      return availability
-    } catch (error) {
-      console.error('Error checking activity availability:', error)
-      throw error
-    }
-  },
+
 
   // Create booking with skip functionality
   createBooking: async () => {
@@ -200,7 +191,7 @@ export const useBookingStore = create((set, get) => ({
       selectedTransportRoute,
       selectedHotel,
       selectedActivities,
-      activitySchedules,
+      activitySessions,
       skipOptions,
       destination
     } = state;
@@ -215,7 +206,7 @@ export const useBookingStore = create((set, get) => ({
       transportId: !skipOptions.skipTransport ? selectedTransportRoute : null,
       hotelId: !skipOptions.skipHotel ? selectedHotel : null,
       activityIds: !skipOptions.skipActivities ? selectedActivities : [],
-      activitySchedules: !skipOptions.skipActivities ? activitySchedules : {}
+      activitySessions: !skipOptions.skipActivities ? activitySessions : {}
     };
 
     try {
@@ -249,18 +240,18 @@ export const useBookingStore = create((set, get) => ({
     errors: {}
   })),
   
-  // New: Activity scheduling actions
-  setActivitySchedule: (activityId, schedule) => set((state) => ({
-    activitySchedules: {
-      ...state.activitySchedules,
-      [activityId]: schedule
+  // Activity sessions actions
+  setActivitySessions: (activityId, sessions) => set((state) => ({
+    activitySessions: {
+      ...state.activitySessions,
+      [activityId]: sessions
     }
   })),
   
-  removeActivitySchedule: (activityId) => set((state) => {
-    const newSchedules = { ...state.activitySchedules };
-    delete newSchedules[activityId];
-    return { activitySchedules: newSchedules };
+  removeActivitySessions: (activityId) => set((state) => {
+    const newSessions = { ...state.activitySessions };
+    delete newSessions[activityId];
+    return { activitySessions: newSessions };
   }),
   
   setErrors: (errors) => set({ errors }),
@@ -272,7 +263,7 @@ export const useBookingStore = create((set, get) => ({
   // Enhanced payment processing
   processEnhancedPayment: async (paymentResult) => {
     try {
-      const { step, startDate, endDate, selectedTransportRoute, selectedHotel, selectedActivities, activitySchedules, flexibleOptions } = get();
+      const { step, startDate, endDate, selectedTransportRoute, selectedHotel, selectedActivities, activitySessions, flexibleOptions } = get();
       const state = get();
       
       // Create booking first
@@ -283,7 +274,7 @@ export const useBookingStore = create((set, get) => ({
         selectedTransportRoute: state.selectedTransportRoute,
         selectedHotel: state.selectedHotel,
         selectedActivities: state.selectedActivities,
-        activitySchedules: state.activitySchedules,
+        activitySessions: state.activitySessions,
         skipOptions: state.skipOptions
       };
 
@@ -333,7 +324,7 @@ export const useBookingStore = create((set, get) => ({
     selectedTransportRoute: "",
     selectedHotel: "",
     selectedActivities: [],
-    activitySchedules: {},
+    activitySessions: {},
     skipOptions: {
       skipTransport: false,
       skipHotel: false,
@@ -350,7 +341,7 @@ export const useBookingStore = create((set, get) => ({
   // Action incorporating validation before proceeding with 5-step flow
   nextStep: () => {
     try {
-      const { step, startDate, endDate, selectedOrigin, selectedTransportRoute, selectedHotel, selectedActivities, activitySchedules, skipOptions, setErrors } = get();
+      const { step, startDate, endDate, selectedOrigin, selectedTransportRoute, selectedHotel, selectedActivities, activitySessions, skipOptions, setErrors } = get();
       const newErrors = {};
 
     if (step === 1) {
@@ -380,10 +371,10 @@ export const useBookingStore = create((set, get) => ({
         if (selectedActivities.length === 0) {
           newErrors.activities = "Please select at least one activity or skip activities";
         } else {
-          // Validate that all selected activities have schedules
-          const missingSchedules = selectedActivities.filter(activityId => !activitySchedules[activityId]);
-          if (missingSchedules.length > 0) {
-            newErrors.activitySchedules = "Please complete scheduling for all selected activities";
+          // Validate that all selected activities have sessions specified
+          const missingSessions = selectedActivities.filter(activityId => !activitySessions[activityId] || activitySessions[activityId] < 1);
+          if (missingSessions.length > 0) {
+            newErrors.activitySessions = "Please specify number of sessions for all selected activities";
           }
         }
       }

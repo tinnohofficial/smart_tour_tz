@@ -256,19 +256,7 @@ export const activitiesService = {
     return apiRequest(`/activities?destinationId=${destinationId}`)
   },
 
-  async getActivitiesWithScheduling(destinationId) {
-    const query = destinationId ? `?destinationId=${destinationId}` : '';
-    return apiRequest(`/activities/scheduling${query}`)
-  },
 
-  async getActivityAvailability(activityId, date, timeSlot) {
-    const params = new URLSearchParams();
-    if (date) params.append('date', date);
-    if (timeSlot) params.append('time_slot', timeSlot);
-    
-    const query = params.toString() ? `?${params.toString()}` : '';
-    return apiRequest(`/activities/${activityId}/availability${query}`)
-  },
 
   async getActivityById(id) {
     return apiRequest(`/activities/${id}`)

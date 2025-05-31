@@ -85,7 +85,7 @@ exports.getActiveCart = async (req, res) => {
         [booking.id]
       );
 
-      booking.items = parseJsonFields(items, ['item_details', 'activity_schedule']);
+      booking.items = parseJsonFields(items, ['item_details']);
     }
 
     cart.bookings = bookings;
@@ -105,13 +105,13 @@ exports.addToCart = async (req, res) => {
     transportId, 
     hotelId, 
     activityIds, 
+    activitySessions = {},
     startDate, 
     endDate, 
     destinationId,
     includeTransport = true,
     includeHotel = true,
-    includeActivities = true,
-    activitySchedules = {}
+    includeActivities = true
   } = req.body;
   const userId = req.user.id;
 
@@ -236,12 +236,12 @@ exports.addToCart = async (req, res) => {
         const placeholders = activityIds.map(() => "?").join(",");
         
         const [activityRows] = await connection.query(
-          `SELECT a.id, a.price, a.destination_id, a.time_slots, a.available_dates,
+          `SELECT a.id, a.price, a.destination_id,
                   d.cost as destination_cost, d.name as destination_name 
            FROM activities a
            JOIN destinations d ON a.destination_id = d.id
            WHERE a.id IN (${placeholders})`,
-          activityIds
+          activityIds,
         );
 
         if (activityRows.length !== activityIds.length) {
@@ -253,52 +253,30 @@ exports.addToCart = async (req, res) => {
         // Validate activity schedules
         for (const activity of activityRows) {
           const activityId = activity.id;
-          const selectedSchedule = activitySchedules[activityId];
+          const sessions = activitySessions[activityId] || 1;
           
-          if (selectedSchedule) {
-            let timeSlots = [];
-            let availableDates = [];
-            
-            try {
-              timeSlots = activity.time_slots ? JSON.parse(activity.time_slots) : [];
-              availableDates = activity.available_dates ? JSON.parse(activity.available_dates) : [];
-            } catch (e) {
-              console.error('Failed to parse activity scheduling data:', e);
-            }
-            
-            if (availableDates.length > 0 && !availableDates.includes(selectedSchedule.date)) {
-              await connection.rollback();
-              connection.release();
-              return res.status(400).json({ 
-                message: `Activity "${activity.destination_name}" is not available on ${selectedSchedule.date}` 
-              });
-            }
-            
-            if (timeSlots.length > 0) {
-              const validTimeSlot = timeSlots.find(slot => slot.time === selectedSchedule.time_slot);
-              if (!validTimeSlot) {
-                await connection.rollback();
-                connection.release();
-                return res.status(400).json({ 
-                  message: `Time slot ${selectedSchedule.time_slot} is not available for activity "${activity.destination_name}"` 
-                });
-              }
-            }
+          if (!Number.isInteger(sessions) || sessions < 1) {
+            await connection.rollback();
+            connection.release();
+            return res.status(400).json({ 
+              message: `Invalid number of sessions for activity "${activity.destination_name}". Must be a positive integer.` 
+            });
           }
         }
 
         const includedDestinations = new Set();
         
         for (const activity of activityRows) {
-          totalCost += parseFloat(activity.price);
+          const sessions = activitySessions[activity.id] || 1;
+          const activityCost = parseFloat(activity.price) * sessions;
           
-          const activitySchedule = activitySchedules[activity.id] || null;
+          totalCost += activityCost;
           
           selectedItems.push({
             type: "activity",
             id: activity.id,
-            cost: activity.price,
-            schedule: activitySchedule
+            cost: activityCost,
+            sessions: sessions
           });
           
           if (activity.destination_id && !includedDestinations.has(activity.destination_id)) {
@@ -364,11 +342,11 @@ exports.addToCart = async (req, res) => {
              VALUES (?, ?, ?, ?, 'pending', ?)`,
             [item.id, bookingId, item.type, item.cost, JSON.stringify(item.details)]
           );
-        } else if (item.type === 'activity' && item.schedule) {
+        } else if (item.type === 'activity' && item.sessions) {
           await connection.query(
-            `INSERT INTO booking_items (id, booking_id, item_type, cost, provider_status, activity_schedule)
+            `INSERT INTO booking_items (id, booking_id, item_type, cost, provider_status, sessions)
              VALUES (?, ?, ?, ?, 'pending', ?)`,
-            [item.id, bookingId, item.type, item.cost, JSON.stringify(item.schedule)]
+            [item.id, bookingId, item.type, item.cost, item.sessions]
           );
         } else {
           await connection.query(

@@ -94,7 +94,7 @@ function BookLocation({ params }) {
     selectedTransportRoute,
     selectedHotel,
     selectedActivities,
-    activitySchedules,
+    activitySessions,
     skipOptions,
     errors,
     agreedToTerms,
@@ -110,7 +110,7 @@ function BookLocation({ params }) {
     setSelectedTransportRoute,
     setSelectedHotel,
     toggleActivity,
-    setActivitySchedule,
+    setActivitySessions,
     setSkipOption,
     setAgreedToTerms,
     setPaymentMethod,
@@ -120,7 +120,6 @@ function BookLocation({ params }) {
     prevStep,
     setErrors,
     createBooking,
-    checkActivityAvailability,
 
     // API-related state and actions
     destination,
@@ -165,57 +164,7 @@ function BookLocation({ params }) {
     }
   }, [prevStep]);
 
-  // State for real-time availability checking
-  const [availabilityChecking, setAvailabilityChecking] = React.useState({});
-  const [availabilityData, setAvailabilityData] = React.useState({});
 
-  // Real-time availability checking function with enhanced error handling
-  const checkAvailability = React.useCallback(
-    async (activityId, date, timeSlot) => {
-      if (!activityId || !date || !timeSlot) return null;
-
-      const key = `${activityId}-${date}-${timeSlot}`;
-      setAvailabilityChecking((prev) => ({ ...prev, [key]: true }));
-
-      try {
-        const availability = await checkActivityAvailability(
-          activityId,
-          date,
-          timeSlot,
-        );
-        setAvailabilityData((prev) => ({
-          ...prev,
-          [key]: {
-            ...availability,
-            error: false,
-            lastChecked: Date.now(),
-          },
-        }));
-        return availability;
-      } catch (error) {
-        console.error("Error checking availability:", error);
-        setAvailabilityData((prev) => ({
-          ...prev,
-          [key]: {
-            available: false,
-            error: true,
-            errorMessage: error.message || "Failed to check availability",
-            lastChecked: Date.now(),
-          },
-        }));
-        return { available: false, error: true };
-      } finally {
-        setAvailabilityChecking((prev) => ({ ...prev, [key]: false }));
-      }
-    },
-    [checkActivityAvailability],
-  );
-
-  // Debounced availability checking to avoid too many API calls
-  const debouncedAvailabilityCheck = React.useMemo(
-    () => debounce(checkAvailability, 500),
-    [checkAvailability],
-  );
 
   // Fetch destination data when component mounts
   useEffect(() => {
@@ -369,7 +318,7 @@ function BookLocation({ params }) {
         selectedTransportRoute,
         selectedHotel,
         selectedActivities,
-        activitySchedules,
+        activitySessions,
         skipOptions,
       });
 
@@ -436,7 +385,7 @@ function BookLocation({ params }) {
     selectedTransportRoute,
     selectedHotel,
     selectedActivities,
-    activitySchedules,
+    activitySessions,
     skipOptions,
     createBooking,
     setIsPaymentDialogOpen,
@@ -1309,33 +1258,16 @@ function BookLocation({ params }) {
                         <>
                           <p className="text-sm text-gray-500 mb-4">
                             Enhance your stay in {destination.name} with these
-                            exciting activities. Select activities and choose
-                            your preferred time slots.
+                            exciting activities. Select activities and specify
+                            the number of sessions you'd like.
                           </p>
                           <div className="space-y-6">
                             {apiActivities.map((activity) => {
                               const isSelected = selectedActivities.includes(
                                 activity.id.toString(),
                               );
-                              const currentSchedule =
-                                activitySchedules[activity.id] || {};
-
-                              // Parse time slots and available dates
-                              let timeSlots = [];
-                              let availableDates = [];
-                              try {
-                                timeSlots = activity.time_slots
-                                  ? JSON.parse(activity.time_slots)
-                                  : [];
-                                availableDates = activity.available_dates
-                                  ? JSON.parse(activity.available_dates)
-                                  : [];
-                              } catch (e) {
-                                console.error(
-                                  "Failed to parse activity scheduling data:",
-                                  e,
-                                );
-                              }
+                              const currentSessions =
+                                activitySessions[activity.id] || 1;
 
                               return (
                                 <Card
@@ -1381,224 +1313,41 @@ function BookLocation({ params }) {
                                       {activity.description}
                                     </p>
 
-                                    {/* Time Slot Selection - Only shown when activity is selected */}
+                                    {/* Sessions Selection - Only shown when activity is selected */}
                                     {isSelected && (
                                       <div className="space-y-4 p-4 bg-white rounded-lg border border-amber-200">
                                         <h5 className="font-medium text-amber-800">
-                                          Schedule Your Activity
+                                          Number of Sessions
                                         </h5>
 
-                                        {/* Date Selection */}
-                                        {availableDates.length > 0 ? (
-                                          <div>
-                                            <Label className="text-sm font-medium mb-2 block">
-                                              Available Dates
-                                            </Label>
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                                              {availableDates.map((date) => (
-                                                <Button
-                                                  key={date}
-                                                  type="button"
-                                                  variant={
-                                                    currentSchedule.date ===
-                                                    date
-                                                      ? "default"
-                                                      : "outline"
-                                                  }
-                                                  size="sm"
-                                                  className={`text-xs ${
-                                                    currentSchedule.date ===
-                                                    date
-                                                      ? "bg-amber-600 hover:bg-amber-700"
-                                                      : "border-amber-200 hover:bg-amber-50"
-                                                  }`}
-                                                  onClick={() => {
-                                                    setActivitySchedule(
-                                                      activity.id,
-                                                      {
-                                                        ...currentSchedule,
-                                                        date: date,
-                                                      },
-                                                    );
-                                                    // Check availability for the selected date
-                                                    debouncedAvailabilityCheck(
-                                                      activity.id,
-                                                      date,
-                                                      currentSchedule.time_slot,
-                                                    );
-                                                  }}
-                                                >
-                                                  {formatDate(date)}
-                                                </Button>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        ) : (
-                                          <div>
-                                            <Label className="text-sm font-medium mb-2 block">
-                                              Select Date
-                                            </Label>
-                                            <Input
-                                              type="date"
-                                              value={currentSchedule.date || ""}
-                                              min={startDate}
-                                              max={endDate}
-                                              onChange={(e) => {
-                                                setActivitySchedule(
-                                                  activity.id,
-                                                  {
-                                                    ...currentSchedule,
-                                                    date: e.target.value,
-                                                  },
-                                                );
-                                                // Check availability for the selected date
-                                                debouncedAvailabilityCheck(
-                                                  activity.id,
-                                                  e.target.value,
-                                                  currentSchedule.time_slot,
-                                                );
-                                              }}
-                                              className="max-w-xs"
-                                            />
-                                          </div>
-                                        )}
+                                        <div className="flex items-center gap-4">
+                                          <Label className="text-sm font-medium">
+                                            Sessions:
+                                          </Label>
+                                          <Input
+                                            type="number"
+                                            min="1"
+                                            max="10"
+                                            value={currentSessions}
+                                            onChange={(e) => {
+                                              const sessions = parseInt(e.target.value) || 1;
+                                              setActivitySessions(activity.id, sessions);
+                                            }}
+                                            className="w-20"
+                                          />
+                                          <span className="text-sm text-gray-500">
+                                            × {formatTZS(activity.price)} = {formatTZS(activity.price * currentSessions)}
+                                          </span>
+                                        </div>
 
-                                        {/* Time Slot Selection */}
-                                        {timeSlots.length > 0 ? (
-                                          <div>
-                                            <Label className="text-sm font-medium mb-2 block">
-                                              Available Time Slots
-                                            </Label>
-                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                                              {timeSlots.map((slot) => (
-                                                <Button
-                                                  key={slot.time}
-                                                  type="button"
-                                                  variant={
-                                                    currentSchedule.time_slot ===
-                                                    slot.time
-                                                      ? "default"
-                                                      : "outline"
-                                                  }
-                                                  size="sm"
-                                                  className={`text-xs ${
-                                                    currentSchedule.time_slot ===
-                                                    slot.time
-                                                      ? "bg-amber-600 hover:bg-amber-700"
-                                                      : "border-amber-200 hover:bg-amber-50"
-                                                  }`}
-                                                  onClick={() => {
-                                                    const newSchedule = {
-                                                      ...currentSchedule,
-                                                      time_slot: slot.time,
-                                                    };
-                                                    setActivitySchedule(
-                                                      activity.id,
-                                                      newSchedule,
-                                                    );
-                                                    // Check availability for the selected time slot
-                                                    if (
-                                                      newSchedule.date &&
-                                                      slot.time
-                                                    ) {
-                                                      debouncedAvailabilityCheck(
-                                                        activity.id,
-                                                        newSchedule.date,
-                                                        slot.time,
-                                                      );
-                                                    }
-                                                  }}
-                                                  disabled={
-                                                    slot.available === false
-                                                  }
-                                                >
-                                                  {slot.time}
-                                                  {slot.available === false && (
-                                                    <span className="ml-1 text-red-500">
-                                                      •
-                                                    </span>
-                                                  )}
-                                                </Button>
-                                              ))}
-                                            </div>
-                                            <p className="text-xs text-gray-500 mt-2">
-                                              <span className="text-red-500">
-                                                •{" "}
-                                              </span>
-                                              Red dot indicates unavailable time
-                                              slots
-                                            </p>
-                                          </div>
-                                        ) : (
-                                          <div>
-                                            <Label className="text-sm font-medium mb-2 block">
-                                              Preferred Time
-                                            </Label>
-                                            <Input
-                                              type="time"
-                                              value={
-                                                currentSchedule.time_slot || ""
-                                              }
-                                              onChange={(e) => {
-                                                setActivitySchedule(
-                                                  activity.id,
-                                                  {
-                                                    ...currentSchedule,
-                                                    time_slot: e.target.value,
-                                                  },
-                                                );
-                                              }}
-                                              className="max-w-xs"
-                                            />
-                                          </div>
-                                        )}
-
-                                        {/* Selected Schedule Summary */}
-                                        {(currentSchedule.date ||
-                                          currentSchedule.time_slot) && (
-                                          <div className="p-3 bg-amber-50 rounded border border-amber-200">
-                                            <p className="text-sm font-medium text-amber-800">
-                                              Scheduled for:
-                                            </p>
-                                            <p className="text-sm text-amber-700">
-                                              {currentSchedule.date &&
-                                                formatDate(
-                                                  currentSchedule.date,
-                                                )}
-                                              {currentSchedule.date &&
-                                                currentSchedule.time_slot &&
-                                                " at "}
-                                              {currentSchedule.time_slot}
-                                            </p>
-                                          </div>
-                                        )}
-
-                                        {/* Availability Status - Show real-time availability feedback */}
-                                        {availabilityData[
-                                          `${activity.id}-${currentSchedule.date}-${currentSchedule.time_slot}`
-                                        ] && (
-                                          <div className="mt-2 text-sm">
-                                            {availabilityChecking[
-                                              `${activity.id}-${currentSchedule.date}-${currentSchedule.time_slot}`
-                                            ] ? (
-                                              <p className="text-gray-500">
-                                                Checking availability...
-                                              </p>
-                                            ) : availabilityData[
-                                                `${activity.id}-${currentSchedule.date}-${currentSchedule.time_slot}`
-                                              ].available ? (
-                                              <p className="text-green-600">
-                                                <Check className="inline h-4 w-4 mr-1" />
-                                                Available
-                                              </p>
-                                            ) : (
-                                              <p className="text-red-600">
-                                                <AlertCircle className="inline h-4 w-4 mr-1" />
-                                                Not available
-                                              </p>
-                                            )}
-                                          </div>
-                                        )}
+                                        <div className="p-3 bg-amber-50 rounded border border-amber-200">
+                                          <p className="text-sm font-medium text-amber-800">
+                                            Total cost for this activity:
+                                          </p>
+                                          <p className="text-sm text-amber-700">
+                                            {currentSessions} session{currentSessions > 1 ? 's' : ''} × {formatTZS(activity.price)} = {formatTZS(activity.price * currentSessions)}
+                                          </p>
+                                        </div>
                                       </div>
                                     )}
                                   </CardContent>
@@ -1629,16 +1378,15 @@ function BookLocation({ params }) {
                             </p>
                           </div>
 
-                          {/* Validate that all selected activities have schedules */}
+                          {/* Validate that all selected activities have sessions */}
                           {selectedActivities.some((actId) => {
-                            const schedule = activitySchedules[actId];
-                            return !schedule || !schedule.date;
+                            const sessions = activitySessions[actId];
+                            return !sessions || sessions < 1;
                           }) && (
                             <Alert className="mt-3">
                               <AlertCircle className="h-4 w-4" />
                               <AlertDescription className="text-sm">
-                                Please schedule all selected activities before
-                                continuing.
+                                Please specify the number of sessions for all selected activities.
                               </AlertDescription>
                             </Alert>
                           )}
@@ -1665,8 +1413,8 @@ function BookLocation({ params }) {
                       !skipOptions.skipActivities &&
                       selectedActivities.length > 0 &&
                       selectedActivities.some((actId) => {
-                        const schedule = activitySchedules[actId];
-                        return !schedule || !schedule.date;
+                        const sessions = activitySessions[actId];
+                        return !sessions || sessions < 1;
                       })
                     }
                   >
@@ -2043,7 +1791,7 @@ function BookLocation({ params }) {
                                     transportId: selectedTransportRoute || null,
                                     hotelId: selectedHotel || null,
                                     activityIds: selectedActivities || [],
-                                    activitySchedules,
+                                    activitySessions,
                                   };
 
                                   await addToCart(cartBookingData);

@@ -76,12 +76,6 @@ CREATE TABLE activities (
     description TEXT,
     price DECIMAL(10, 2) CHECK (price > 0),
     guide_user_id INT,
-    time_slots JSON, -- Array of time slots: [{"time": "09:00", "duration": 120, "max_participants": 10}, ...]
-    available_dates JSON, -- Array of available dates: ["2024-01-01", "2024-01-02", ...]
-    duration_hours DECIMAL(5, 2),
-    max_participants INT,
-    difficulty_level ENUM('beginner', 'intermediate', 'advanced') DEFAULT 'beginner',
-    requirements TEXT,
     FOREIGN KEY (destination_id) REFERENCES destinations (id) ON DELETE SET NULL,
     FOREIGN KEY (guide_user_id) REFERENCES tour_guides (user_id) ON DELETE SET NULL
 );
@@ -155,7 +149,7 @@ CREATE TABLE booking_items (
     booking_id INT NOT NULL,
     item_type ENUM ('hotel', 'transport', 'tour_guide', 'activity', 'placeholder') NOT NULL,
     item_details TEXT, -- JSON: e.g., { "check_in": "YYYY-MM-DD", "check_out": "YYYY-MM-DD", "room_type": "Standard" } or { "ticket_number": "XYZ", "seat": "12A"}
-    activity_schedule JSON, -- For activities: {"date": "2024-01-01", "time_slot": "09:00", "duration": 120}
+    sessions INT DEFAULT 1, -- For activities: number of sessions booked
     cost DECIMAL(10, 2) NOT NULL,
     provider_status ENUM ('pending', 'confirmed', 'rejected') DEFAULT 'pending', -- Status set by hotel manager, travel agent etc.
     FOREIGN KEY (booking_id) REFERENCES bookings (id) ON DELETE CASCADE

@@ -36,13 +36,13 @@ exports.createBooking = async (req, res) => {
     transportId, 
     hotelId, 
     activityIds, 
+    activitySessions = {}, // Object mapping activity IDs to number of sessions
     startDate, 
     endDate, 
     destinationId,
     includeTransport = true,
     includeHotel = true,
-    includeActivities = true,
-    activitySchedules = {} // Object mapping activity IDs to their selected time slots
+    includeActivities = true
   } = req.body;
   const userId = req.user.id;
 
@@ -163,7 +163,7 @@ exports.createBooking = async (req, res) => {
         
         // Verify activities exist and check time slots availability
         const [activityRows] = await connection.query(
-          `SELECT a.id, a.price, a.destination_id, a.time_slots, a.available_dates,
+          `SELECT a.id, a.price, a.destination_id,
                   d.cost as destination_cost, d.name as destination_name 
            FROM activities a
            JOIN destinations d ON a.destination_id = d.id
@@ -179,45 +179,18 @@ exports.createBooking = async (req, res) => {
             .json({ message: "One or more activities not found" });
         }
 
-        // Validate activity schedules and time slot availability
+        // Validate activity sessions
         for (const activity of activityRows) {
           const activityId = activity.id;
-          const selectedSchedule = activitySchedules[activityId];
+          const sessions = activitySessions[activityId] || 1;
           
-          if (selectedSchedule) {
-            // Parse time slots and available dates
-            let timeSlots = [];
-            let availableDates = [];
-            
-            try {
-              timeSlots = activity.time_slots ? JSON.parse(activity.time_slots) : [];
-              availableDates = activity.available_dates ? JSON.parse(activity.available_dates) : [];
-            } catch (e) {
-              console.error('Failed to parse activity scheduling data:', e);
-              timeSlots = [];
-              availableDates = [];
-            }
-            
-            // Validate selected date is available
-            if (availableDates.length > 0 && !availableDates.includes(selectedSchedule.date)) {
-              await connection.rollback();
-              connection.release();
-              return res.status(400).json({ 
-                message: `Activity "${activity.destination_name}" is not available on ${selectedSchedule.date}` 
-              });
-            }
-            
-            // Validate selected time slot is available
-            if (timeSlots.length > 0) {
-              const validTimeSlot = timeSlots.find(slot => slot.time === selectedSchedule.time_slot);
-              if (!validTimeSlot) {
-                await connection.rollback();
-                connection.release();
-                return res.status(400).json({ 
-                  message: `Time slot ${selectedSchedule.time_slot} is not available for activity "${activity.destination_name}"` 
-                });
-              }
-            }
+          // Validate sessions is a positive number
+          if (!Number.isInteger(sessions) || sessions < 1) {
+            await connection.rollback();
+            connection.release();
+            return res.status(400).json({ 
+              message: `Invalid number of sessions for activity "${activity.destination_name}". Must be a positive integer.` 
+            });
           }
         }
 
@@ -225,17 +198,17 @@ exports.createBooking = async (req, res) => {
         const includedDestinations = new Set();
         
         for (const activity of activityRows) {
-          // Add activity cost
-          totalCost += parseFloat(activity.price);
+          const sessions = activitySessions[activity.id] || 1;
+          const activityCost = parseFloat(activity.price) * sessions;
           
-          // Prepare activity schedule details
-          const activitySchedule = activitySchedules[activity.id] || null;
+          // Add activity cost (price * sessions)
+          totalCost += activityCost;
           
           selectedItems.push({
             type: "activity",
             id: activity.id,
-            cost: activity.price,
-            schedule: activitySchedule
+            cost: activityCost,
+            sessions: sessions
           });
           
           // Add destination cost per day if not already included
@@ -304,12 +277,12 @@ exports.createBooking = async (req, res) => {
              VALUES (?, ?, ?, ?, 'pending', ?)`,
             [item.id, bookingId, item.type, item.cost, JSON.stringify(item.details)],
           );
-        } else if (item.type === 'activity' && item.schedule) {
-          // For activities with schedules, store the schedule information
+        } else if (item.type === 'activity' && item.sessions) {
+          // For activities with sessions, store the sessions information
           await connection.query(
-            `INSERT INTO booking_items (id, booking_id, item_type, cost, provider_status, activity_schedule)
+            `INSERT INTO booking_items (id, booking_id, item_type, cost, provider_status, sessions)
              VALUES (?, ?, ?, ?, 'pending', ?)`,
-            [item.id, bookingId, item.type, item.cost, JSON.stringify(item.schedule)],
+            [item.id, bookingId, item.type, item.cost, item.sessions],
           );
         } else {
           await connection.query(
@@ -463,9 +436,8 @@ exports.getGuideAssignedBookings = async (req, res) => {
       
       // Get activities for this booking with schedules
       const [activities] = await db.query(
-        `SELECT a.id, a.name, a.description, a.price, a.time_slots, a.duration_hours,
-                d.name as destination_name, d.region as destination_region,
-                bi.item_details as activity_schedule
+        `SELECT a.id, a.name, a.description, a.price, bi.sessions,
+                d.name as destination_name, d.region as destination_region
          FROM booking_items bi
          JOIN activities a ON bi.item_type = 'activity' AND bi.id = a.id
          JOIN destinations d ON a.destination_id = d.id
@@ -474,8 +446,7 @@ exports.getGuideAssignedBookings = async (req, res) => {
         [rows[i].booking_id]
       );
       
-      // Parse activity schedules
-      const parsedActivities = parseJsonFields(activities, ['time_slots', 'activity_schedule']);
+      // Activities are already in the correct format (no JSON parsing needed)
       
       // Get hotel information for this booking
       const [hotelResults] = await db.query(
