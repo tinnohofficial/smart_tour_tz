@@ -238,7 +238,20 @@ exports.getManagerProfile = async (req, res) => {
   const userId = req.user.id;
 
   try {
-    const [rows] = await db.query(
+    // First check if user exists and get their status
+    const [userRows] = await db.query(
+      "SELECT id, status FROM users WHERE id = ? AND role = 'hotel_manager'",
+      [userId]
+    );
+
+    if (userRows.length === 0) {
+      return res.status(404).json({ message: "Hotel manager user not found" });
+    }
+
+    const userStatus = userRows[0].status;
+
+    // Try to get hotel profile
+    const [hotelRows] = await db.query(
       `SELECT h.*, u.status, d.name as destination_name, d.region as destination_region,
               d.name as location
        FROM hotels h 
@@ -248,11 +261,26 @@ exports.getManagerProfile = async (req, res) => {
       [userId]
     );
 
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "Hotel profile not found" });
+    // If no hotel profile exists yet, return basic user info
+    if (hotelRows.length === 0) {
+      return res.status(200).json({ 
+        id: userId,
+        status: userStatus,
+        message: "Profile not completed yet",
+        name: null,
+        destination_id: null,
+        destination_name: null,
+        destination_region: null,
+        location: null,
+        description: null,
+        capacity: null,
+        base_price_per_night: null,
+        images: [],
+        is_available: true
+      });
     }
 
-    const hotel = rows[0];
+    const hotel = hotelRows[0];
 
     // Parse JSON fields if they exist
     if (hotel.images) {

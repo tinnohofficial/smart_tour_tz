@@ -376,7 +376,20 @@ exports.getManagerProfile = async (req, res) => {
   const userId = req.user.id;
 
   try {
-    const [rows] = await db.query(
+    // First check if user exists and get their status
+    const [userRows] = await db.query(
+      "SELECT id, status FROM users WHERE id = ? AND role = 'tour_guide'",
+      [userId]
+    );
+
+    if (userRows.length === 0) {
+      return res.status(404).json({ message: "Tour guide user not found" });
+    }
+
+    const userStatus = userRows[0].status;
+
+    // Try to get tour guide profile
+    const [guideRows] = await db.query(
       `SELECT tg.*, u.status, d.name as destination_name, d.region as destination_region,
               d.name as location
        FROM tour_guides tg 
@@ -386,11 +399,24 @@ exports.getManagerProfile = async (req, res) => {
       [userId],
     );
 
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "Tour guide profile not found" });
+    // If no tour guide profile exists yet, return basic user info
+    if (guideRows.length === 0) {
+      return res.status(200).json({ 
+        user_id: userId,
+        status: userStatus,
+        message: "Profile not completed yet",
+        full_name: null,
+        destination_id: null,
+        destination_name: null,
+        destination_region: null,
+        location: null,
+        expertise: null,
+        license_document_url: null,
+        available: true
+      });
     }
 
-    const guide = { ...rows[0] };
+    const guide = { ...guideRows[0] };
     
     // Parse expertise JSON if it exists
     if (guide.expertise) {

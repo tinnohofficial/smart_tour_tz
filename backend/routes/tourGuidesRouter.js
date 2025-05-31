@@ -32,14 +32,14 @@ router.put(
 router.get(
   "/manager/profile",
   authenticateToken,
-  checkRole("tour_guide"),
+  checkRole("tour_guide", false),
   tourGuideController.getManagerProfile,
 );
 
 router.put(
   "/manager/profile",
   authenticateToken,
-  checkRole("tour_guide"),
+  checkRole("tour_guide", false),
   tourGuideController.updateManagerProfile,
 );
 

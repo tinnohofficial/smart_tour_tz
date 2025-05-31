@@ -29,14 +29,14 @@ router.put(
 router.get(
   "/manager/profile",
   authenticateToken,
-  checkRole("hotel_manager"),
+  checkRole("hotel_manager", false),
   hotelsController.getManagerProfile,
 );
 
 router.put(
   "/manager/profile",
   authenticateToken,
-  checkRole("hotel_manager"),
+  checkRole("hotel_manager", false),
   hotelsController.updateManagerProfile,
 );
 
