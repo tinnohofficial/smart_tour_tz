@@ -24,7 +24,7 @@ router.get(
 router.put(
   "/:id",
   authenticateToken,
-  checkRole("tour_guide"),
+  checkRole("tour_guide", false),
   tourGuideController.updateGuideProfile,
 );
 

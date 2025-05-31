@@ -192,7 +192,7 @@ export default function ActivitiesPage() {
               </div>
             </div>
           ) : /* Empty State */
-          filteredActivities.length === 0 ? (
+          !Array.isArray(filteredActivities) || filteredActivities.length === 0 ? (
              <div className="flex flex-col items-center justify-center p-8 text-center">
               <MapPin className="h-10 w-10 text-gray-500 mb-2" />
               <h3 className="font-medium">No activities found</h3>
@@ -213,7 +213,7 @@ export default function ActivitiesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredActivities.map((activity, index) => (
+                {(Array.isArray(filteredActivities) ? filteredActivities : []).map((activity, index) => (
                   <TableRow key={activity.id || `activity-${index}`}>
                     <TableCell className="font-medium">{activity.name}</TableCell>
                     <TableCell>{getDestinationName(activity.destination_id)}</TableCell>

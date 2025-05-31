@@ -78,9 +78,6 @@ export default function ApplicationsPage() {
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
           Account Applications
         </h1>
-        <p className="text-gray-500 text-sm sm:text-base">
-          Review and manage account applications.
-        </p>
       </div>
 
       {/* Error Display (reads from store state) */}
@@ -105,9 +102,6 @@ export default function ApplicationsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Pending Applications</CardTitle>
-          <CardDescription>
-            Review and approve or reject account applications
-          </CardDescription>
         </CardHeader>
         <CardContent>
           {/* Loading State */}
@@ -122,10 +116,7 @@ export default function ApplicationsPage() {
           applications.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 text-center">
               <FileText className="h-10 w-10 text-muted-foreground mb-2" />
-              <h3 className="font-medium">No applications found</h3>
-              <p className="text-sm text-gray-500 mt-1">
-                There are no pending applications at the moment
-              </p>
+              <h3 className="font-medium">No applications at the moment</h3>
             </div>
           ) : (
             /* Data Table - Make responsive */
@@ -256,21 +247,28 @@ export default function ApplicationsPage() {
                           {selectedApplication.details.description}
                         </p>
                       </div>
-                      {selectedApplication.details.activity_details && Array.isArray(selectedApplication.details.activity_details) && selectedApplication.details.activity_details.length > 0 ? (
+                      {selectedApplication.details.activity_details &&
+                      Array.isArray(
+                        selectedApplication.details.activity_details,
+                      ) &&
+                      selectedApplication.details.activity_details.length >
+                        0 ? (
                         <div>
                           <h4 className="text-sm font-medium text-gray-500 mb-1">
                             Selected Activities
                           </h4>
                           <div className="flex flex-wrap gap-2 mt-2">
-                            {selectedApplication.details.activity_details.map((activity, index) => (
-                              <Badge
-                                key={index}
-                                variant="outline"
-                                className="bg-purple-50"
-                              >
-                                {activity.name}
-                              </Badge>
-                            ))}
+                            {selectedApplication.details.activity_details.map(
+                              (activity, index) => (
+                                <Badge
+                                  key={index}
+                                  variant="outline"
+                                  className="bg-purple-50"
+                                >
+                                  {activity.name}
+                                </Badge>
+                              ),
+                            )}
                           </div>
                         </div>
                       ) : (
@@ -278,7 +276,9 @@ export default function ApplicationsPage() {
                           <h4 className="text-sm font-medium text-gray-500 mb-1">
                             Selected Activities
                           </h4>
-                          <p className="text-gray-500 text-sm">No activities selected</p>
+                          <p className="text-gray-500 text-sm">
+                            No activities selected
+                          </p>
                         </div>
                       )}
                       <div>

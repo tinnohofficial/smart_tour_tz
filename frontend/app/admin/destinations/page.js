@@ -171,6 +171,23 @@ export default function DestinationsPage() {
                   />
                 </div>
 
+                {/* Description Textarea */}
+                <div className="grid grid-cols-4 items-start gap-4">
+                  <Label htmlFor="description" className="text-right pt-2">
+                    {" "}
+                    Description{" "}
+                  </Label>
+                  <Textarea
+                    id="description"
+                    name="description"
+                    value={formData.description}
+                    onChange={onInputChange}
+                    className="col-span-3"
+                    rows={3}
+                    required
+                  />
+                </div>
+
                 {/* Cost Input */}
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="cost" className="text-right">
@@ -189,22 +206,7 @@ export default function DestinationsPage() {
                     className="col-span-3"
                   />
                 </div>
-                {/* Description Textarea */}
-                <div className="grid grid-cols-4 items-start gap-4">
-                  <Label htmlFor="description" className="text-right pt-2">
-                    {" "}
-                    Description{" "}
-                  </Label>
-                  <Textarea
-                    id="description"
-                    name="description"
-                    value={formData.description}
-                    onChange={onInputChange}
-                    className="col-span-3"
-                    rows={4}
-                    required
-                  />
-                </div>
+
                 {/* Image Upload */}
                 <div className="grid grid-cols-4 items-start gap-4">
                   <Label htmlFor="image" className="text-right pt-2">
@@ -213,7 +215,7 @@ export default function DestinationsPage() {
                   </Label>
                   <div className="col-span-3">
                     <SingleImageUploader
-                      onChange={(url) => setFormDataField('image_url', url)}
+                      onChange={(url) => setFormDataField("image_url", url)}
                       value={formData.image_url}
                     />
                   </div>
@@ -302,9 +304,7 @@ export default function DestinationsPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        {destination.name}
-                      </TableCell>
+                      <TableCell>{destination.name}</TableCell>
                       <TableCell className="max-w-xs truncate">
                         {destination.description}
                       </TableCell>
@@ -422,7 +422,7 @@ export default function DestinationsPage() {
                 </Label>
                 <div className="col-span-3">
                   <SingleImageUploader
-                    onChange={(url) => setFormDataField('image_url', url)}
+                    onChange={(url) => setFormDataField("image_url", url)}
                     value={formData.image_url}
                   />
                 </div>

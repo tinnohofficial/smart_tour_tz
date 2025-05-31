@@ -43,17 +43,21 @@ export const useActivitiesStore = create((set, get) => ({
   // Filtering Logic (Internal)
   filterActivities: () => {
     const { activities, searchTerm } = get();
+    // Ensure activities is always an array
+    const activitiesArray = Array.isArray(activities) ? activities : [];
+    
     if (searchTerm) {
       const lowerSearchTerm = searchTerm.toLowerCase();
       set({
-        filteredActivities: activities.filter(
+        filteredActivities: activitiesArray.filter(
           (activity) =>
-            activity.name.toLowerCase().includes(lowerSearchTerm) ||
-            activity.description.toLowerCase().includes(lowerSearchTerm)
+            activity && activity.name && activity.description &&
+            (activity.name.toLowerCase().includes(lowerSearchTerm) ||
+            activity.description.toLowerCase().includes(lowerSearchTerm))
         ),
       });
     } else {
-      set({ filteredActivities: activities });
+      set({ filteredActivities: activitiesArray });
     }
   },
 
@@ -61,10 +65,13 @@ export const useActivitiesStore = create((set, get) => ({
   fetchActivities: async () => {
     return apiUtils.withLoadingAndError(
       async () => {
-        const data = await activitiesService.getAllActivities()
-        set({ activities: data })
+        const response = await activitiesService.getAllActivities()
+        // Backend returns { message, activities } - extract the activities array
+        const activities = Array.isArray(response.activities) ? response.activities : 
+                          Array.isArray(response) ? response : []
+        set({ activities })
         get().filterActivities()
-        return data
+        return activities
       },
       {
         setLoading: (loading) => set({ isLoading: loading }),
@@ -72,6 +79,8 @@ export const useActivitiesStore = create((set, get) => ({
         onError: (error) => {
           console.error("Error fetching activities:", error)
           toast.error(ERROR_MESSAGES.GENERIC_ERROR)
+          // Set empty array on error to prevent map errors
+          set({ activities: [], filteredActivities: [] })
         }
       }
     )
@@ -104,7 +113,9 @@ export const useActivitiesStore = create((set, get) => ({
           price: Number.parseFloat(formData.price),
         };
 
-        const newActivity = await activitiesService.createActivity(activityData)
+        const response = await activitiesService.createActivity(activityData)
+        // Backend returns { message, activity } - extract the activity object
+        const newActivity = response.activity || response
         
         set((state) => ({ activities: [...state.activities, newActivity] }))
         get().filterActivities()
@@ -157,7 +168,9 @@ export const useActivitiesStore = create((set, get) => ({
           price: Number.parseFloat(formData.price),
         };
 
-        const updatedActivity = await activitiesService.updateActivity(selectedActivity.id, activityData)
+        const response = await activitiesService.updateActivity(selectedActivity.id, activityData)
+        // Backend returns { message, activity } - extract the activity object
+        const updatedActivity = response.activity || response
         
         set((state) => ({
           activities: state.activities.map((activity) =>

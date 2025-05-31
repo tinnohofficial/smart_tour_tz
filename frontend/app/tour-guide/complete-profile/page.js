@@ -89,7 +89,10 @@ export default function TourGuideCompleteProfile() {
           await activitiesService.getActivitiesByDestination(
             formData.destination_id,
           );
-        setActivities(activitiesData);
+        // Backend returns { message, activities } - extract the activities array
+        const activities = Array.isArray(activitiesData.activities) ? activitiesData.activities : 
+                          Array.isArray(activitiesData) ? activitiesData : []
+        setActivities(activities);
       } catch (error) {
         console.error("Error loading activities:", error);
         toast.error("Failed to load activities");

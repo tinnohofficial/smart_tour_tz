@@ -32,7 +32,7 @@ router.get(
 router.get(
   "/tour-guide-bookings",
   authenticateToken,
-  checkRole("tour_guide"),
+  checkRole("tour_guide", false),
   bookingsController.getTourGuideBookings,
 );
 
@@ -40,7 +40,7 @@ router.get(
 router.get(
   "/tour-guide-assigned",
   authenticateToken,
-  checkRole("tour_guide"),
+  checkRole("tour_guide", false),
   bookingsController.getGuideAssignedBookings,
 );
 
@@ -48,7 +48,7 @@ router.get(
 router.get(
   "/tour-guide-booking/:bookingId",
   authenticateToken,
-  checkRole("tour_guide"),
+  checkRole("tour_guide", false),
   bookingsController.getGuideBookingDetails,
 );
 
