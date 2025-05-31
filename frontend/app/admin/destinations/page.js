@@ -301,6 +301,7 @@ export default function DestinationsPage() {
                             </div>
                           )}
                         </div>
+                      </TableCell>
                       <TableCell>
                         {destination.name}
                       </TableCell>

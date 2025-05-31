@@ -4,11 +4,9 @@ This codebase is for a system called Smart Tour Tanzania, the project has 3 main
 ## Follow these instructions
 - Plz study and understand the whole codebase carefully, before implementing any feature so that u understand all (or the relevant) business flows at a very deep level before making any changes.
 
-- Don't priotize running commands or tests, just implement the feature that u were asked to do, develop a deep level of understanding of the problem that is being solved and just make fixes to the code.
+- Don't prioritize running commands or tests in fact don't write any tests or scripts, just implement the feature that u were asked to do, develop a deep level of understanding of the problem that is being solved and just make fixes to the code.
 
 - Prioritize reusing the existing code and files as much as possible over creating new ones. Understand what has already been done thus far in order to not always be trying to reinvent the wheel. So what I mean is you should be highly considerate on the code and mostly edit it or try to improve it.
-
-- If you wish to expirement or run commands or tests or have some mock data or what ever plz only use the playground folder. Don't put non-production code in the folders backend, frontend, or blockchain. Do very little of this if possible not at all, just fix the code without testing it, make sure that u put much focus on developing very good code and not just relying on tests. also the code u put should be clean and simple, don't overly complicate things plz.
 
 - Additionally, when u make edits to the schema.sql, don't use sth like ALTER TABLE, instead just drop everything using the teardownDb.js script, so that the changes are reflected in the database. so that when u re run nodemon index.js, everything is created from scratch. (this is in very rare cases when u choose to run scripts)
 
