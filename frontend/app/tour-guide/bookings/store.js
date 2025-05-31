@@ -23,7 +23,6 @@ export const useBookingsStore = create((set, get) => ({
         const transformedTours = data.map(booking => ({
           id: booking.booking_id,
           destination: booking.destination_name || 'Unknown Location',
-          destinationRegion: booking.destination_region || '',
           startDate: booking.start_date || new Date().toISOString(),
           endDate: booking.end_date || new Date().toISOString(),
           status: booking.booking_status || (booking.status === 'completed' ? 'completed' : 'upcoming'),

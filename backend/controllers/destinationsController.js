@@ -3,7 +3,7 @@ const db = require("../config/db");
 exports.getDestinations = async (req, res) => {
   try {
     const [rows] = await db.query(
-      "SELECT id, name, description, region, image_url, cost FROM destinations",
+      "SELECT id, name, description, image_url, cost FROM destinations",
     );
 
     res.status(200).json(rows);
@@ -41,13 +41,13 @@ exports.getDestinationById = async (req, res) => {
 
 exports.createDestination = async (req, res) => {
   try {
-    const { name, description, region, image_url, cost } = req.body;
+    const { name, description, image_url, cost } = req.body;
 
     // Validate required fields
-    if (!name || !region) {
+    if (!name) {
       return res
         .status(400)
-        .json({ message: "Name and location details are required." });
+        .json({ message: "Name is required." });
     }
 
     // Check if destination with the same name already exists
@@ -70,9 +70,9 @@ exports.createDestination = async (req, res) => {
 
     // Insert new destination
     const [result] = await db.query(
-      `INSERT INTO destinations (name, description, region, image_url, cost)
-       VALUES (?, ?, ?, ?, ?)`,
-      [name, description || "", region, image_url || null, destinationCost],
+      `INSERT INTO destinations (name, description, image_url, cost)
+       VALUES (?, ?, ?, ?)`,
+      [name, description || "", image_url || null, destinationCost],
     );
 
     // Fetch the newly created destination to return
@@ -96,10 +96,10 @@ exports.createDestination = async (req, res) => {
 exports.updateDestination = async (req, res) => {
   try {
     const { destinationId } = req.params;
-    const { name, description, region, image_url, cost } = req.body;
+    const { name, description, image_url, cost } = req.body;
 
     // Validate at least one field to update
-    if (!name && description === undefined && !region && image_url === undefined && cost === undefined) {
+    if (!name && description === undefined && image_url === undefined && cost === undefined) {
       return res.status(400).json({ message: "No update data provided." });
     }
 
@@ -146,10 +146,7 @@ exports.updateDestination = async (req, res) => {
       values.push(description);
     }
 
-    if (region) {
-      updates.push("region = ?");
-      values.push(region);
-    }
+
 
     if (image_url !== undefined) {
       updates.push("image_url = ?");

@@ -4,7 +4,7 @@ const db = require("../config/db");
 const getActivities = async (req, res) => {
   try {
     const [rows] = await db.query(`
-      SELECT a.*, d.name as destination_name, d.region as destination_region
+      SELECT a.*, d.name as destination_name
       FROM activities a
       LEFT JOIN destinations d ON a.destination_id = d.id
       ORDER BY a.name
@@ -29,7 +29,7 @@ const getActivityById = async (req, res) => {
     const { id } = req.params;
 
     const [rows] = await db.query(`
-      SELECT a.*, d.name as destination_name, d.region as destination_region
+      SELECT a.*, d.name as destination_name
       FROM activities a
       LEFT JOIN destinations d ON a.destination_id = d.id
       WHERE a.id = ?
@@ -108,7 +108,7 @@ const createActivity = async (req, res) => {
 
     // Fetch the created activity with destination info
     const [activityRows] = await db.query(`
-      SELECT a.*, d.name as destination_name, d.region as destination_region
+      SELECT a.*, d.name as destination_name
       FROM activities a
       LEFT JOIN destinations d ON a.destination_id = d.id
       WHERE a.id = ?
@@ -185,7 +185,7 @@ const updateActivity = async (req, res) => {
 
     // Fetch updated activity with destination info
     const [updatedRows] = await db.query(`
-      SELECT a.*, d.name as destination_name, d.region as destination_region
+      SELECT a.*, d.name as destination_name
       FROM activities a
       LEFT JOIN destinations d ON a.destination_id = d.id
       WHERE a.id = ?
@@ -256,7 +256,7 @@ const getActivitiesByDestination = async (req, res) => {
     const { destinationId } = req.params;
 
     const [rows] = await db.query(`
-      SELECT a.*, d.name as destination_name, d.region as destination_region
+      SELECT a.*, d.name as destination_name
       FROM activities a
       LEFT JOIN destinations d ON a.destination_id = d.id
       WHERE a.destination_id = ?

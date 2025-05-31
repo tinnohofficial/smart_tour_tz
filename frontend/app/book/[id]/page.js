@@ -469,7 +469,7 @@ function BookLocation({ params }) {
               variant="outline"
               className="bg-white/10 backdrop-blur-sm text-white mb-4 px-3 py-1 flex items-center gap-1 w-fit"
             >
-              <MapPin className="h-4 w-4" /> {destination.region || "Tanzania"}
+              <MapPin className="h-4 w-4" /> Tanzania
             </Badge>
             <h1 className="text-3xl md:text-5xl font-bold text-white mb-2">
               {destination.name}
@@ -1451,7 +1451,7 @@ function BookLocation({ params }) {
                             {destination.name}
                           </h4>
                           <p className="text-sm text-gray-600">
-                            {destination.region || "Tanzania"}
+                            Tanzania
                           </p>
                         </div>
                         <Badge className="ml-auto bg-amber-100 text-amber-800 border border-amber-200">

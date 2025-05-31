@@ -64,7 +64,6 @@ CREATE TABLE destinations (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL UNIQUE,
     description TEXT,
-    region VARCHAR(255), -- e.g., Region, Coordinates
     image_url VARCHAR(512),
     cost DECIMAL(10, 2) DEFAULT 0 CHECK (cost >= 0)
 );

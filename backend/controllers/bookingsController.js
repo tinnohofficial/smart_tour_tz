@@ -415,7 +415,7 @@ exports.getGuideAssignedBookings = async (req, res) => {
       `SELECT bi.id as booking_item_id, bi.cost, bi.item_details,
               b.id as booking_id, b.total_cost, b.status, b.created_at, b.start_date, b.end_date,
               u.id as tourist_id, u.email as tourist_email, u.phone_number as tourist_phone,
-              d.id as destination_id, d.name as destination_name, d.region as destination_region,
+              d.id as destination_id, d.name as destination_name,
               d.description as destination_description
        FROM booking_items bi
        JOIN bookings b ON bi.booking_id = b.id
@@ -437,7 +437,7 @@ exports.getGuideAssignedBookings = async (req, res) => {
       // Get activities for this booking with schedules
       const [activities] = await db.query(
         `SELECT a.id, a.name, a.description, a.price, bi.sessions,
-                d.name as destination_name, d.region as destination_region
+                d.name as destination_name
          FROM booking_items bi
          JOIN activities a ON bi.item_type = 'activity' AND bi.id = a.id
          JOIN destinations d ON a.destination_id = d.id
@@ -450,7 +450,7 @@ exports.getGuideAssignedBookings = async (req, res) => {
       
       // Get hotel information for this booking
       const [hotelResults] = await db.query(
-        `SELECT h.id, h.name, h.destination_id, d.name as destination_name, d.region as destination_region, h.description, bi.item_details
+        `SELECT h.id, h.name, h.destination_id, d.name as destination_name, h.description, bi.item_details
          FROM booking_items bi
          JOIN hotels h ON bi.item_type = 'hotel' AND bi.id = h.id
          JOIN destinations d ON h.destination_id = d.id
@@ -744,7 +744,7 @@ exports.assignTourGuide = async (req, res) => {
       // Verify the guide exists, is active, and is available
       const [guideRows] = await connection.query(
         `SELECT u.id, tg.expertise, tg.full_name, tg.available, 
-                d.name as destination_name, d.region as destination_region
+                d.name as destination_name
          FROM users u
          JOIN tour_guides tg ON u.id = tg.user_id
          JOIN destinations d ON tg.destination_id = d.id
@@ -796,8 +796,7 @@ exports.assignTourGuide = async (req, res) => {
             assigned_by: "admin",
             assigned_at: new Date().toISOString(),
             guide_name: guideRows[0].full_name,
-            destination_name: guideRows[0].destination_name,
-            destination_region: guideRows[0].destination_region
+            destination_name: guideRows[0].destination_name
           }),
           placeholder.id
         ]
@@ -814,8 +813,7 @@ exports.assignTourGuide = async (req, res) => {
         message: "Tour guide assigned successfully", 
         guide: {
           id: guideRows[0].id,
-          destination_name: guideRows[0].destination_name,
-          destination_region: guideRows[0].destination_region
+          destination_name: guideRows[0].destination_name
         }
       });
     } catch (error) {
@@ -921,7 +919,7 @@ exports.getEligibleGuidesForBooking = async (req, res) => {
     // Find tour guides based on destination match, expertise, and availability
     const [guides] = await db.query(
       `SELECT u.id, u.email, tg.full_name, tg.destination_id, tg.expertise, tg.user_id, tg.available,
-              d.name as destination_name, d.region as destination_region
+              d.name as destination_name
        FROM tour_guides tg
        JOIN users u ON tg.user_id = u.id
        JOIN destinations d ON tg.destination_id = d.id
@@ -1327,7 +1325,7 @@ exports.getGuideBookingDetails = async (req, res) => {
     const [bookingDetails] = await db.query(
       `SELECT b.id, b.total_cost, b.status, b.start_date, b.end_date,
               u.id as tourist_id, u.email as tourist_email, u.phone_number as tourist_phone,
-              d.id as destination_id, d.name as destination_name, d.region as destination_region,
+              d.id as destination_id, d.name as destination_name,
               d.description as destination_description,
               d.cost as destination_cost
        FROM bookings b
@@ -1354,10 +1352,10 @@ exports.getGuideBookingDetails = async (req, res) => {
                 ELSE 'Unknown'
               END as item_name,
               CASE 
-                WHEN bi.item_type = 'hotel' THEN CONCAT(d_hotel.name, ', ', d_hotel.region)
+                WHEN bi.item_type = 'hotel' THEN d_hotel.name
                 WHEN bi.item_type = 'activity' THEN a.description
                 WHEN bi.item_type = 'transport' THEN 'Transport'
-                WHEN bi.item_type = 'tour_guide' THEN CONCAT(d_tg.name, ', ', d_tg.region)
+                WHEN bi.item_type = 'tour_guide' THEN d_tg.name
                 ELSE 'N/A'
               END as item_description
        FROM booking_items bi

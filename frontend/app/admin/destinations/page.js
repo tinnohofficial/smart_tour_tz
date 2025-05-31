@@ -170,21 +170,7 @@ export default function DestinationsPage() {
                     required
                   />
                 </div>
-                {/* Region Input */}
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="region" className="text-right">
-                    {" "}
-                    Region{" "}
-                  </Label>
-                  <Input
-                    id="region"
-                    name="region"
-                    value={formData.region}
-                    onChange={onInputChange}
-                    className="col-span-3"
-                    required
-                  />
-                </div>
+
                 {/* Cost Input */}
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="cost" className="text-right">
@@ -288,7 +274,6 @@ export default function DestinationsPage() {
                 <TableRow>
                   <TableHead>Image</TableHead>
                   <TableHead>Name</TableHead>
-                  <TableHead>Region</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Cost (TZS)</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -316,11 +301,9 @@ export default function DestinationsPage() {
                             </div>
                           )}
                         </div>
-                      </TableCell>
-                      <TableCell className="font-medium">
+                      <TableCell>
                         {destination.name}
                       </TableCell>
-                      <TableCell>{destination.region}</TableCell>
                       <TableCell className="max-w-xs truncate">
                         {destination.description}
                       </TableCell>
@@ -395,21 +378,7 @@ export default function DestinationsPage() {
                   required
                 />
               </div>
-              {/* Region Input */}
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-region" className="text-right">
-                  {" "}
-                  Region{" "}
-                </Label>
-                <Input
-                  id="edit-region"
-                  name="region"
-                  value={formData.region}
-                  onChange={onInputChange}
-                  className="col-span-3"
-                  required
-                />
-              </div>
+
               {/* Cost Input */}
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="edit-cost" className="text-right">

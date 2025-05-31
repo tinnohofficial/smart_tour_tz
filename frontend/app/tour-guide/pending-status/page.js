@@ -202,7 +202,7 @@ export default function TourGuidePendingStatusPage() {
                   <MapPin className="h-4 w-4 text-gray-400 mr-1" />
                   <p>
                     {guideData.destination_name
-                      ? `${guideData.destination_name}, ${guideData.destination_region}`
+                      ? guideData.destination_name
                       : "Not specified"}
                   </p>
                 </div>

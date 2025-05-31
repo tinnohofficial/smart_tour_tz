@@ -360,7 +360,7 @@ export default function TravelAgentRoutes() {
                     <SelectGroup>
                       {destinations.map((destination) => (
                         <SelectItem key={destination.id} value={destination.id.toString()}>
-                          {destination.name} {destination.region && `(${destination.region})`}
+                          {destination.name}
                         </SelectItem>
                       ))}
                     </SelectGroup>
@@ -508,7 +508,7 @@ export default function TravelAgentRoutes() {
                     <SelectGroup>
                       {destinations.map((destination) => (
                         <SelectItem key={destination.id} value={destination.id.toString()}>
-                          {destination.name} {destination.region && `(${destination.region})`}
+                          {destination.name}
                         </SelectItem>
                       ))}
                     </SelectGroup>

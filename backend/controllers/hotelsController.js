@@ -5,7 +5,7 @@ exports.getAllHotels = async (req, res) => {
         const { destination_id } = req.query;
         
         let query = `
-            SELECT h.*, d.name as destination_name, d.region as destination_region,
+            SELECT h.*, d.name as destination_name,
                    d.name as location
             FROM hotels h
             JOIN users u ON h.id = u.id
@@ -41,7 +41,7 @@ exports.getHotelById = async (req, res) => {
 
     try {
         const [rows] = await db.query(
-            `SELECT h.*, u.status, d.name as destination_name, d.region as destination_region,
+            `SELECT h.*, u.status, d.name as destination_name,
                     d.name as location
              FROM hotels h 
              JOIN users u ON h.id = u.id 
@@ -252,7 +252,7 @@ exports.getManagerProfile = async (req, res) => {
 
     // Try to get hotel profile
     const [hotelRows] = await db.query(
-      `SELECT h.*, u.status, d.name as destination_name, d.region as destination_region,
+      `SELECT h.*, u.status, d.name as destination_name,
               d.name as location
        FROM hotels h 
        JOIN users u ON h.id = u.id 
@@ -270,7 +270,6 @@ exports.getManagerProfile = async (req, res) => {
         name: null,
         destination_id: null,
         destination_name: null,
-        destination_region: null,
         location: null,
         description: null,
         capacity: null,

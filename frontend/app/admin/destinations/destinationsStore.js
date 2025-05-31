@@ -18,7 +18,6 @@ export const useDestinationsStore = create((set, get) => ({
   formData: {
     name: "",
     description: "",
-    region: "",
     image_url: "", // Store the final URL here
     cost: "", // Added cost field
   },
@@ -38,7 +37,7 @@ export const useDestinationsStore = create((set, get) => ({
 
   // Reset Form State
   resetFormAndFile: () => set({
-    formData: { name: "", description: "", region: "", image_url: "", cost: "" },
+    formData: { name: "", description: "", image_url: "", cost: "" },
     error: null // Also clear errors on reset
   }),
 
@@ -64,8 +63,8 @@ export const useDestinationsStore = create((set, get) => ({
   // Add Destination Action
   addDestination: async () => {
     const { formData } = get();
-    if (!formData.name || !formData.description || !formData.region) {
-      toast.warning("Please fill in name, description, and region.");
+    if (!formData.name || !formData.description) {
+      toast.warning("Please fill in name and description.");
       return;
     }
     // Require image URL (SingleImageUploader handles upload)
@@ -118,7 +117,6 @@ export const useDestinationsStore = create((set, get) => ({
       formData: {
         name: destination.name,
         description: destination.description,
-        region: destination.region,
         image_url: destination.image_url || "", // Ensure empty string if null/undefined
         cost: destination.cost || "0", // Added cost field with default 0
       },
@@ -132,8 +130,8 @@ export const useDestinationsStore = create((set, get) => ({
     const { formData, selectedDestination } = get();
     if (!selectedDestination) return;
 
-    if (!formData.name || !formData.description || !formData.region) {
-      toast.warning("Please fill in name, description, and region.");
+    if (!formData.name || !formData.description) {
+      toast.warning("Please fill in name and description.");
       return;
     }
      // Require image URL (SingleImageUploader handles upload)

@@ -63,7 +63,6 @@ exports.getTransports = async (req, res) => {
       SELECT t.*, 
              to_orig.name as origin_name,
              d.name as destination_name,
-             d.region as destination_region,
              ta.name as agency_name,
              ta.contact_phone as agency_phone,
              ta.contact_email as agency_email
@@ -122,7 +121,6 @@ exports.getTransportById = async (req, res) => {
       `SELECT t.*, 
               to_orig.name as origin_name,
               d.name as destination_name,
-              d.region as destination_region,
               ta.name as agency_name,
               ta.contact_phone as agency_phone,
               ta.contact_email as agency_email
@@ -524,8 +522,7 @@ exports.getAgencyRoutes = async (req, res) => {
     const [transports] = await db.query(`
       SELECT t.*, 
              to_orig.name as origin_name,
-             d.name as destination_name,
-             d.region as destination_region
+             d.name as destination_name
       FROM transports t
       JOIN transport_origins to_orig ON t.origin_id = to_orig.id
       JOIN destinations d ON t.destination_id = d.id

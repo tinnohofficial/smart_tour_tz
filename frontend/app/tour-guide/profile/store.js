@@ -16,7 +16,6 @@ export const useProfileStore = create((set, get) => ({
   fullName: "",
   destination_id: "",
   destination_name: "",
-  destination_region: "",
   description: "",
   activities: [],
   licenseUrl: "",
@@ -34,7 +33,6 @@ export const useProfileStore = create((set, get) => ({
           fullName: data.full_name || "",
           destination_id: data.destination_id || "",
           destination_name: data.destination_name || "",
-          destination_region: data.destination_region || "",
           description: data.description || "",
           activities: data.activities || [],
           licenseUrl: data.license_document_url || "",
@@ -84,7 +82,6 @@ export const useProfileStore = create((set, get) => ({
           fullName: updatedData.full_name,
           destination_id: updatedData.destination_id,
           destination_name: updatedData.destination_name,
-          destination_region: updatedData.destination_region,
           description: updatedData.description,
           activities: updatedData.activities || [],
           licenseUrl: updatedData.license_document_url,
@@ -125,8 +122,8 @@ export const useProfileStore = create((set, get) => ({
 
   // Setters for form fields
   setFullName: (fullName) => set({ fullName }),
-  setDestination: (destination_id, destination_name, destination_region) => 
-    set({ destination_id, destination_name, destination_region }),
+  setDestination: (destination_id, destination_name) => 
+    set({ destination_id, destination_name }),
   setDescription: (description) => set({ description }),
   setActivities: (activities) => set({ activities }),
   setLicenseUrl: (licenseUrl) => set({ licenseUrl }),
@@ -136,7 +133,6 @@ export const useProfileStore = create((set, get) => ({
     fullName: "",
     destination_id: "",
     destination_name: "",
-    destination_region: "",
     description: "",
     activities: [],
     licenseUrl: "",

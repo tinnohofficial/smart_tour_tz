@@ -131,7 +131,7 @@ exports.getTourGuide = async (req, res) => {
 
   try {
     const [rows] = await db.query(
-      `SELECT tg.*, u.status, d.name as destination_name, d.region as destination_region,
+      `SELECT tg.*, u.status, d.name as destination_name,
               d.name as location
        FROM tour_guides tg 
        JOIN users u ON tg.user_id = u.id 
@@ -328,7 +328,7 @@ exports.updateGuideProfile = async (req, res) => {
 exports.getAllTourGuides = async (req, res) => {
   try {
     const [rows] = await db.query(
-      `SELECT tg.*, u.email, u.status, d.name as destination_name, d.region as destination_region,
+      `SELECT tg.*, u.email, u.status, d.name as destination_name,
               d.name as location
        FROM tour_guides tg 
        JOIN users u ON tg.user_id = u.id 
@@ -352,7 +352,7 @@ exports.getAvailableTourGuides = async (req, res) => {
   try {
     const [rows] = await db.query(
       `SELECT tg.user_id, tg.full_name, tg.description, tg.activities, tg.available, 
-              d.name as destination_name, d.region as destination_region,
+              d.name as destination_name,
               d.name as location
        FROM tour_guides tg 
        JOIN users u ON tg.user_id = u.id 
@@ -401,7 +401,7 @@ exports.getManagerProfile = async (req, res) => {
 
     // Try to get tour guide profile
     const [guideRows] = await db.query(
-      `SELECT tg.*, u.status, d.name as destination_name, d.region as destination_region,
+      `SELECT tg.*, u.status, d.name as destination_name,
               d.name as location
        FROM tour_guides tg 
        JOIN users u ON tg.user_id = u.id 
@@ -419,7 +419,6 @@ exports.getManagerProfile = async (req, res) => {
         full_name: null,
         destination_id: null,
         destination_name: null,
-        destination_region: null,
         location: null,
         description: null,
         activities: null,

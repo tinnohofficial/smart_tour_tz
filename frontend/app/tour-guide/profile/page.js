@@ -25,7 +25,6 @@ export default function TourGuideProfile() {
     fullName,
     destination_id,
     destination_name,
-    destination_region,
     description,
     licenseUrl,
     isAvailable,

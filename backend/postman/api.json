@@ -249,7 +249,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"name\": \"Zanzibar Beach\",\n    \"description\": \"Beautiful beaches with clear blue water\",\n    \"region\": \"Zanzibar, Tanzania\",\n    \"image_url\": \"https://example.com/zanzibar.jpg\"\n}"
+              "raw": "{\n    \"name\": \"Zanzibar Beach\",\n    \"description\": \"Beautiful beaches with clear blue water\",\n    \"image_url\": \"https://example.com/zanzibar.jpg\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/destinations",
@@ -276,7 +276,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"name\": \"Updated Destination Name\",\n    \"description\": \"Updated description\",\n    \"region\": \"Updated region\",\n    \"image_url\": \"https://example.com/updated.jpg\"\n}"
+              "raw": "{\n    \"name\": \"Updated Destination Name\",\n    \"description\": \"Updated description\",\n    \"image_url\": \"https://example.com/updated.jpg\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/destinations/1",
