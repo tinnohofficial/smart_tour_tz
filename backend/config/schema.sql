@@ -75,9 +75,7 @@ CREATE TABLE activities (
     name VARCHAR(255) NOT NULL,
     description TEXT,
     price DECIMAL(10, 2) CHECK (price > 0),
-    guide_user_id INT,
-    FOREIGN KEY (destination_id) REFERENCES destinations (id) ON DELETE SET NULL,
-    FOREIGN KEY (guide_user_id) REFERENCES tour_guides (user_id) ON DELETE SET NULL
+    FOREIGN KEY (destination_id) REFERENCES destinations (id) ON DELETE SET NULL
 );
 
 -- Table to track available origins/locations for transport routes
@@ -200,5 +198,4 @@ CREATE INDEX idx_payments_cart_id ON payments (cart_id);
 CREATE INDEX idx_payments_booking_id ON payments (booking_id);
 CREATE INDEX idx_payments_status ON payments (status);
 
-CREATE INDEX idx_activities_guide_id ON activities (guide_user_id);
 CREATE INDEX idx_activities_destination ON activities (destination_id);

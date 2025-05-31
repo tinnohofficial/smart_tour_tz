@@ -4,11 +4,9 @@ const db = require("../config/db");
 const getActivities = async (req, res) => {
   try {
     const [rows] = await db.query(`
-      SELECT a.*, d.name as destination_name, d.region as destination_region,
-             tg.full_name as guide_name
+      SELECT a.*, d.name as destination_name, d.region as destination_region
       FROM activities a
       LEFT JOIN destinations d ON a.destination_id = d.id
-      LEFT JOIN tour_guides tg ON a.guide_user_id = tg.user_id
       ORDER BY a.name
     `);
 
@@ -31,11 +29,9 @@ const getActivityById = async (req, res) => {
     const { id } = req.params;
 
     const [rows] = await db.query(`
-      SELECT a.*, d.name as destination_name, d.region as destination_region,
-             tg.full_name as guide_name
+      SELECT a.*, d.name as destination_name, d.region as destination_region
       FROM activities a
       LEFT JOIN destinations d ON a.destination_id = d.id
-      LEFT JOIN tour_guides tg ON a.guide_user_id = tg.user_id
       WHERE a.id = ?
     `, [id]);
 
@@ -260,11 +256,9 @@ const getActivitiesByDestination = async (req, res) => {
     const { destinationId } = req.params;
 
     const [rows] = await db.query(`
-      SELECT a.*, d.name as destination_name, d.region as destination_region,
-             tg.full_name as guide_name
+      SELECT a.*, d.name as destination_name, d.region as destination_region
       FROM activities a
       LEFT JOIN destinations d ON a.destination_id = d.id
-      LEFT JOIN tour_guides tg ON a.guide_user_id = tg.user_id
       WHERE a.destination_id = ?
       ORDER BY a.name
     `, [destinationId]);
