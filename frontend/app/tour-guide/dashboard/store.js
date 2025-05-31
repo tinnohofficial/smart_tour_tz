@@ -6,7 +6,6 @@ import { ERROR_MESSAGES, USER_STATUS } from '@/app/constants'
 export const useDashboardStore = create((set) => ({
   userData: null,
   tours: [],
-  earnings: null,
   isLoading: true,
   isAvailable: false,
   profileStatus: null,
@@ -63,15 +62,6 @@ export const useDashboardStore = create((set) => ({
             console.error('Error fetching tours:', error)
             // Don't fail the whole operation if tours fail to load
           }
-
-          // For now using mock earnings data
-          set({
-            earnings: {
-              total: "$5,200",
-              currentMonth: "$1,200",
-              pendingPayouts: "$800"
-            }
-          })
         }
 
         return data

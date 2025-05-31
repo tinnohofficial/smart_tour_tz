@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { Calendar, CreditCard, Map, Star, Users, ChevronRight, User } from "lucide-react"
+import { Calendar, Users, ChevronRight, User } from "lucide-react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -23,7 +23,6 @@ export default function TourGuideDashboard() {
   const {
     userData,
     tours,
-    earnings,
     isLoading,
     isAvailable,
     profileStatus,
@@ -129,17 +128,7 @@ export default function TourGuideDashboard() {
     )
   }
 
-  // Extract description and activities safely
-  const description = userData?.description || "";
-  const activities = userData?.activities || [];
-  
-  // Check if description and activities exist
-  const hasDescription = !!description && typeof description === 'string';
-  const hasActivities = Array.isArray(activities) && activities.length > 0;
-  const hasAnyInfo = hasDescription || hasActivities;
-
   const upcomingTours = tours.filter(t => t.status === "upcoming");
-  const totalTourists = upcomingTours.reduce((acc, tour) => acc + tour.touristCount, 0);
 
   return (
     <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 max-w-7xl">
@@ -193,7 +182,7 @@ export default function TourGuideDashboard() {
       {profileStatus === 'active' ? (
         <>
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6">
             {/* Upcoming Tours Card */}
             <Card className="bg-amber-50/50">
               <CardContent className="p-0">
@@ -220,75 +209,26 @@ export default function TourGuideDashboard() {
               </CardContent>
             </Card>
 
-            {/* Monthly Earnings Card */}
-            <Card className="bg-green-50/50">
-              <CardContent className="p-0">
-                <div className="flex justify-between items-center">
-                  <div className="p-4 sm:p-5">
-                    <p className="text-sm font-medium text-gray-500">Monthly Earnings</p>
-                    <p className="text-xl sm:text-2xl font-bold mt-2">
-                      {earnings?.currentMonth || '$1,200'}
-                    </p>
-                    <Link href="#" className="text-xs text-green-600 mt-3 font-medium flex items-center hover:text-green-700 transition-colors">
-                      View Earnings
-                      <ChevronRight className="h-3 w-3 ml-0.5" />
-                    </Link>
-                  </div>
-                  <div className="h-full flex items-center pr-4 sm:pr-5">
-                    <div className="bg-green-100 p-2 sm:p-3 rounded-full">
-                      <CreditCard className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Tourists Guided Card */}
-            <Card className="bg-purple-50/50">
-              <CardContent className="p-0">
-                <div className="flex justify-between items-center">
-                  <div className="p-4 sm:p-5">
-                    <p className="text-sm font-medium text-gray-500">Tourists Guided</p>
-                    <div className="flex items-end gap-1 mt-2">
-                      <p className="text-xl sm:text-2xl font-bold">
-                        {totalTourists}
-                      </p>
-                      <p className="text-xs text-gray-500 mb-1 ml-1">this month</p>
-                    </div>
-                    <Link href="#" className="text-xs text-purple-600 mt-3 font-medium flex items-center hover:text-purple-700 transition-colors">
-                      Tourist Details
-                      <ChevronRight className="h-3 w-3 ml-0.5" />
-                    </Link>
-                  </div>
-                  <div className="h-full flex items-center pr-4 sm:pr-5">
-                    <div className="bg-purple-100 p-2 sm:p-3 rounded-full">
-                      <Users className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            {/* Locations Covered Card */}
+            {/* Total Tours Card */}
             <Card className="bg-blue-50/50">
               <CardContent className="p-0">
                 <div className="flex justify-between items-center">
                   <div className="p-4 sm:p-5">
-                    <p className="text-sm font-medium text-gray-500">Locations Covered</p>
+                    <p className="text-sm font-medium text-gray-500">Total Assignments</p>
                     <div className="flex items-end gap-1 mt-2">
                       <p className="text-xl sm:text-2xl font-bold">
-                        {tours.length || 5}
+                        {tours.length}
                       </p>
-                      <p className="text-xs text-gray-500 mb-1 ml-1">destinations</p>
+                      <p className="text-xs text-gray-500 mb-1 ml-1">all time</p>
                     </div>
-                    <Link href="#" className="text-xs text-blue-600 mt-3 font-medium flex items-center hover:text-blue-700 transition-colors">
-                      View Map
+                    <Link href="/tour-guide/bookings" className="text-xs text-blue-600 mt-3 font-medium flex items-center hover:text-blue-700 transition-colors">
+                      View All
                       <ChevronRight className="h-3 w-3 ml-0.5" />
                     </Link>
                   </div>
                   <div className="h-full flex items-center pr-4 sm:pr-5">
                     <div className="bg-blue-100 p-2 sm:p-3 rounded-full">
-                      <Map className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+                      <Users className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                     </div>
                   </div>
                 </div>
@@ -316,41 +256,22 @@ export default function TourGuideDashboard() {
                     <AvatarFallback>{userData?.name?.charAt(0) || 'T'}</AvatarFallback>
                   </Avatar>
                   <h3 className="font-semibold text-base sm:text-lg text-gray-900">{userData?.name || 'Tour Guide'}</h3>
-                  <div className="flex items-center gap-1 mt-1 text-sm text-gray-500">
-                    <Map className="h-3 w-3" />
-                    <span>{userData?.location || 'Arusha, Tanzania'}</span>
-                  </div>
+                  <p className="text-sm text-gray-500 mt-1">{userData?.location || 'Tanzania'}</p>
                   
                   <div className="flex flex-wrap gap-2 mt-3 justify-center">
                     <Badge className="bg-amber-100 text-amber-700 border-0 text-xs">Tour Guide</Badge>
                     <Badge className="bg-gray-100 text-gray-600 border-0 text-xs">Verified</Badge>
                   </div>
                   
-                  <div className="w-full mt-6 border-t pt-5">
-                    <h4 className="font-medium text-sm mb-3 text-gray-700 text-left">Areas of Expertise</h4>
-                    <div className="flex flex-wrap gap-1 justify-start">
-                      {hasDescription && (
-                        <div className="text-sm text-gray-700 mb-2">
-                          {description}
-                        </div>
-                      )}
-                      
-                      {hasActivities && 
-                        activities.map((activityId, index) => (
-                          <Badge key={index} variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
-                            Activity {activityId}
-                          </Badge>
-                        ))
-                      }
-                      
-                      {!hasAnyInfo && (
-                        <span className="text-sm text-gray-500">No profile information provided</span>
-                      )}
+                  {userData?.description && (
+                    <div className="w-full mt-4 p-3 bg-gray-50 rounded-md">
+                      <p className="text-sm text-gray-700 text-left">{userData.description}</p>
                     </div>
-                    <Button className="w-full text-white bg-amber-700 hover:bg-amber-800 mt-5" size="sm" asChild>
-                      <Link href="/tour-guide/profile">Edit Profile</Link>
-                    </Button>
-                  </div>
+                  )}
+                  
+                  <Button className="w-full text-white bg-amber-700 hover:bg-amber-800 mt-4" size="sm" asChild>
+                    <Link href="/tour-guide/profile">Edit Profile</Link>
+                  </Button>
                 </CardContent>
               </Card>
             </div>
@@ -369,9 +290,9 @@ export default function TourGuideDashboard() {
                 </CardHeader>
                 <CardContent className="px-4 sm:px-6 pb-5">
                   {upcomingTours.length > 0 ? (
-                    upcomingTours.map((tour) => (
+                    upcomingTours.slice(0, 3).map((tour) => (
                       <div key={tour.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 py-4 border-b last:border-0">
-                        <div className="flex-shrink-0 relative h-16 w-20 sm:w-20 rounded-md overflow-hidden">
+                        <div className="flex-shrink-0 relative h-16 w-20 sm:w-20 rounded-md overflow-hidden bg-gray-200">
                           <Image
                             src={tour.image || "/placeholder.svg"}
                             alt={tour.destination}
@@ -387,11 +308,12 @@ export default function TourGuideDashboard() {
                                 {new Date(tour.startDate).toLocaleDateString()} - {new Date(tour.endDate).toLocaleDateString()}
                               </p>
                               <div className="flex items-center gap-1 mt-1">
-                                <Users className="h-3 w-3 text-gray-500" />
-                                <span className="text-xs sm:text-sm text-gray-500">{tour.touristCount} tourists</span>
+                                <span className="text-xs sm:text-sm text-gray-500">Tourist: {tour.touristEmail}</span>
                               </div>
                             </div>
-                            <Badge className="text-xs whitespace-nowrap">{new Date(tour.startDate).toLocaleDateString()}</Badge>
+                            <Badge variant="outline" className="text-xs whitespace-nowrap">
+                              {new Date(tour.startDate) > new Date() ? 'Upcoming' : 'Active'}
+                            </Badge>
                           </div>
                         </div>
                       </div>
