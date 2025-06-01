@@ -11,7 +11,6 @@ import {
   Loader2,
   ChevronRight,
   FileText,
-  DollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

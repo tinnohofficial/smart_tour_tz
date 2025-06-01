@@ -17,7 +17,6 @@ import {
   Wallet,
   AlertTriangle,
   CheckCircle,
-  DollarSign,
   Info,
   History,
 } from "lucide-react";
@@ -102,12 +101,6 @@ export default function AdminWithdrawPage() {
       {/* Withdrawal Form */}
       {isAdminInitialized && (
         <Card>
-          <CardHeader>
-            <CardTitle>Withdraw Funds</CardTitle>
-            <CardDescription>
-              Enter the amount of TZC tokens you want to withdraw from the vault
-            </CardDescription>
-          </CardHeader>
           <CardContent className="space-y-4">
             {/* Error Alert */}
             {error && (
@@ -180,10 +173,7 @@ export default function AdminWithdrawPage() {
                   Processing Withdrawal...
                 </>
               ) : (
-                <>
-                  <DollarSign className="h-4 w-4 mr-2" />
-                  Withdraw Funds
-                </>
+                <>Withdraw Funds</>
               )}
             </Button>
           </CardContent>

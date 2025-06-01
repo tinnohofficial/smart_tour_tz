@@ -9,7 +9,6 @@ import {
   User,
   MapPin,
   Star,
-  DollarSign,
   Mail,
   Phone,
   Globe,

@@ -9,7 +9,6 @@ import {
   Clock,
   Calendar,
   Loader2,
-  DollarSign,
   Percent,
   User,
   ArrowRight,
