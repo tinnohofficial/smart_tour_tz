@@ -8,10 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Eye, EyeOff, PiggyBank } from "lucide-react"
 import { toast } from "sonner"
 import { formatTZS } from "@/app/utils/currency"
-import { useAuthStore } from "@/app/stores/authStore"
-
 export function BalanceManagement() {
-  const { user } = useAuthStore()
+  const [user, setUser] = useState(null)
   const [balance, setBalance] = useState(0)
   const [newBalance, setNewBalance] = useState("")
   const [isVisible, setIsVisible] = useState(false)
@@ -19,10 +17,17 @@ export function BalanceManagement() {
   const [isUpdating, setIsUpdating] = useState(false)
 
   useEffect(() => {
-    if (user && user.role === 'tourist') {
-      fetchBalance()
+    // Get user data from localStorage
+    const userData = localStorage.getItem("userData")
+    if (userData) {
+      const parsedUser = JSON.parse(userData)
+      setUser(parsedUser)
+      
+      if (parsedUser.role === 'tourist') {
+        fetchBalance()
+      }
     }
-  }, [user])
+  }, [])
 
   const fetchBalance = async () => {
     setIsLoading(true)
