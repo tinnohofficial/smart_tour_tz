@@ -28,6 +28,7 @@
     "@radix-ui/react-switch": "^1.2.2",
     "@radix-ui/react-tabs": "^1.1.4",
     "@radix-ui/react-tooltip": "^1.2.0",
+    "@stripe/react-stripe-js": "^2.8.0",
     "@stripe/stripe-js": "^7.3.1",
     "@vercel/blob": "^1.0.0",
     "axios": "^1.9.0",

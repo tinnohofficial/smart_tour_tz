@@ -151,7 +151,10 @@ const useSavingsStore = create((set, get) => ({
   fetchBalance: async () => {
     try {
       const token = localStorage.getItem('token');
-      if (!token) return;
+      if (!token) {
+        console.warn('No authentication token found');
+        return;
+      }
 
       const response = await fetch('/api/savings/balance', {
         headers: {
@@ -163,32 +166,39 @@ const useSavingsStore = create((set, get) => ({
       if (response.ok) {
         const data = await response.json();
         set({ 
-          balance: data.balance || 0,
-          blockchainBalance: data.blockchainBalance || 0,
+          balance: parseFloat(data.balance) || 0,
+          blockchainBalance: parseFloat(data.blockchainBalance) || 0,
           walletAddress: data.walletAddress || null,
           isWalletConnected: Boolean(data.walletAddress)
         });
+      } else {
+        console.error('Failed to fetch balance - server response:', response.status);
+        if (response.status === 401) {
+          // Token might be expired
+          localStorage.removeItem('token');
+        }
       }
     } catch (error) {
       console.error('Failed to fetch balance:', error);
     }
   },
 
-  // Deposit funds (both fiat via Stripe and crypto via MetaMask)
+  // Deposit funds (crypto only - fiat is handled in frontend)
   depositFunds: async (amount, method) => {
     set({ isDepositing: true });
     try {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('No authentication token');
 
+      if (method !== 'crypto') {
+        return { success: false, error: 'Only crypto deposits are handled in the store' };
+      }
+
       const payload = {
         amount: parseFloat(amount),
         method: method,
+        walletAddress: get().walletAddress
       };
-
-      if (method === 'crypto' && get().walletAddress) {
-        payload.walletAddress = get().walletAddress;
-      }
 
       const response = await fetch('/api/savings/deposit', {
         method: 'POST',
@@ -202,63 +212,23 @@ const useSavingsStore = create((set, get) => ({
       const data = await response.json();
 
       if (response.ok) {
-        if (method === 'stripe' && data.clientSecret) {
-          return {
-            success: true,
-            requiresPayment: true,
-            clientSecret: data.clientSecret,
-            paymentIntentId: data.paymentIntentId
-          };
-        }
-        
-        if (method === 'crypto') {
-          await get().fetchBalance();
-          return {
-            success: true,
-            message: data.message
-          };
-        }
-        
-        return { success: true, data };
+        await get().fetchBalance();
+        return {
+          success: true,
+          message: data.message
+        };
       } else {
         return { success: false, error: data.message };
       }
     } catch (error) {
-      console.error('Deposit failed:', error);
+      console.error('Crypto deposit failed:', error);
       return { success: false, error: error.message };
     } finally {
       set({ isDepositing: false });
     }
   },
 
-  // Confirm Stripe payment
-  confirmStripePayment: async (paymentIntentId) => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('No authentication token');
 
-      const response = await fetch('/api/savings/confirm-payment', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ paymentIntentId })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        await get().fetchBalance();
-        return { success: true, data };
-      } else {
-        return { success: false, error: data.message };
-      }
-    } catch (error) {
-      console.error('Payment confirmation failed:', error);
-      return { success: false, error: error.message };
-    }
-  },
 
 
 

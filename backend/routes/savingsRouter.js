@@ -12,13 +12,15 @@ router.post(
   savingsController.depositFunds,
 );
 
-// Confirm Stripe payment
+// Record fiat deposit processed in frontend
 router.post(
-  "/confirm-payment",
+  "/record-fiat-deposit",
   authenticateToken,
   checkRole("tourist"),
-  savingsController.confirmStripePayment,
+  savingsController.recordFiatDeposit,
 );
+
+
 
 // Get savings balance
 router.get(

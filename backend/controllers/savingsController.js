@@ -1,17 +1,20 @@
 // Savings controller for handling user savings accounts
 const db = require("../config/db");
-const { createPaymentIntent } = require("../config/stripe");
 const blockchainService = require("../services/blockchainService");
 const exchangeRateService = require("../services/exchangeRateService");
 
 /**
- * Deposit funds into user's savings account
- * Supports both fiat (TZS via Stripe) and crypto deposits
+ * Deposit funds into user's savings account (crypto only)
  */
 const depositFunds = async (req, res) => {
   try {
-    const { amount, method = 'stripe' } = req.body; // method can be 'stripe' or 'crypto'
+    const { amount, method = 'crypto' } = req.body;
     const userId = req.user.id;
+
+    // Validate required fields
+    if (!amount) {
+      return res.status(400).json({ message: "Amount is required" });
+    }
 
     // Validate amount
     const depositAmount = parseFloat(amount);
@@ -20,71 +23,160 @@ const depositFunds = async (req, res) => {
     }
 
     // Validate deposit amount limits (in TZS)
+    if (depositAmount < 1) {
+      return res.status(400).json({ 
+        message: "Minimum deposit amount is 1 TZS" 
+      });
+    }
+
     if (depositAmount > 25000000) { // 25M TZS limit
       return res.status(400).json({ 
         message: "Deposit amount exceeds maximum limit of 25,000,000 TZS" 
       });
     }
 
-    if (method === 'stripe') {
-      // Handle Stripe payment intent creation
-      const paymentIntent = await createPaymentIntent(depositAmount, 'tzs');
-      
-      return res.status(200).json({
-        clientSecret: paymentIntent.client_secret,
-        paymentIntentId: paymentIntent.id,
-        amount: depositAmount,
-        currency: 'TZS'
-      });
-    } else if (method === 'crypto') {
-      // For crypto deposits, we'll check the blockchain for recent deposits
-      // This is called after the user has already made the deposit
-      const userWalletAddress = req.body.walletAddress;
-      
-      if (!userWalletAddress) {
-        return res.status(400).json({ message: "Wallet address is required for crypto deposits" });
-      }
+    // Only handle crypto deposits in backend
+    if (method !== 'crypto') {
+      return res.status(400).json({ message: "Backend only processes crypto deposits" });
+    }
 
-      // Update user's wallet address if not already set
-      await db.query(
-        "UPDATE users SET wallet_address = ? WHERE id = ? AND wallet_address IS NULL",
-        [userWalletAddress, userId]
-      );
+    // For crypto deposits, we'll check the blockchain for recent deposits
+    const userWalletAddress = req.body.walletAddress;
+    
+    if (!userWalletAddress) {
+      return res.status(400).json({ message: "Wallet address is required for crypto deposits" });
+    }
 
-      // Get conversion rates for display
-      const conversionRates = await exchangeRateService.getConversionRates(depositAmount);
-      const expectedUsdtAmount = conversionRates.usdt;
-      
-      const depositCheck = await blockchainService.checkRecentDeposits(
-        userWalletAddress, 
-        expectedUsdtAmount
-      );
+    // Update user's wallet address if not already set
+    await db.query(
+      "UPDATE users SET wallet_address = ? WHERE id = ? AND wallet_address IS NULL",
+      [userWalletAddress, userId]
+    );
 
-      if (!depositCheck.found) {
-        return res.status(400).json({ 
-          message: "Crypto deposit not found. Please ensure the transaction is confirmed.",
-          expectedAmount: expectedUsdtAmount,
-          conversionRates: conversionRates
-        });
-      }
+    // Get conversion rates for display
+    const conversionRates = await exchangeRateService.getConversionRates(depositAmount);
+    const expectedUsdtAmount = conversionRates.usdt;
+    
+    const depositCheck = await blockchainService.checkRecentDeposits(
+      userWalletAddress, 
+      expectedUsdtAmount
+    );
 
-      // Process the crypto deposit
-      await this.processCryptoDeposit(userId, depositAmount, depositCheck.transactionHash);
-      
-      return res.status(200).json({
-        message: "Crypto deposit processed successfully",
-        amount: depositAmount,
-        currency: 'TZS',
-        transactionHash: depositCheck.transactionHash,
+    if (!depositCheck.found) {
+      return res.status(400).json({ 
+        message: "Crypto deposit not found. Please ensure the transaction is confirmed.",
+        expectedAmount: expectedUsdtAmount,
         conversionRates: conversionRates
       });
     }
 
+    // Process the crypto deposit
+    await processCryptoDeposit(userId, depositAmount, depositCheck.transactionHash);
+    
+    return res.status(200).json({
+      message: "Crypto deposit processed successfully",
+      amount: depositAmount,
+      currency: 'TZS',
+      transactionHash: depositCheck.transactionHash,
+      conversionRates: conversionRates
+    });
+
   } catch (error) {
     console.error("Error processing deposit:", error);
-    res
-      .status(500)
-      .json({ message: "Failed to process deposit", error: error.message });
+    res.status(500).json({ 
+      message: "Failed to process deposit", 
+      error: error.message || "An unexpected error occurred" 
+    });
+  }
+};
+
+/**
+ * Record fiat deposit processed in frontend
+ */
+const recordFiatDeposit = async (req, res) => {
+  try {
+    const { amount, paymentMethod, reference } = req.body;
+    const userId = req.user.id;
+
+    // Validate required fields
+    if (!amount || !paymentMethod || !reference) {
+      return res.status(400).json({ message: "Amount, payment method, and reference are required" });
+    }
+
+    // Validate amount
+    const depositAmount = parseFloat(amount);
+    if (isNaN(depositAmount) || depositAmount <= 0) {
+      return res.status(400).json({ message: "Invalid deposit amount" });
+    }
+
+    // Validate deposit amount limits (in TZS)
+    if (depositAmount < 1150) {
+      return res.status(400).json({ 
+        message: "Minimum deposit amount for fiat is 1,150 TZS" 
+      });
+    }
+
+    if (depositAmount > 25000000) {
+      return res.status(400).json({ 
+        message: "Deposit amount exceeds maximum limit of 25,000,000 TZS" 
+      });
+    }
+
+    // Start transaction
+    const connection = await db.getConnection();
+    await connection.beginTransaction();
+    
+    try {
+      // Check if user already has a savings account
+      const accountQuery = "SELECT user_id, balance FROM savings_accounts WHERE user_id = ?";
+      const [accountResult] = await connection.query(accountQuery, [userId]);
+
+      let newBalance;
+      if (accountResult.length === 0) {
+        // Create new savings account
+        await connection.query(
+          "INSERT INTO savings_accounts (user_id, balance, blockchain_balance, currency) VALUES (?, ?, 0, 'TZS')",
+          [userId, depositAmount]
+        );
+        newBalance = depositAmount;
+      } else {
+        // Update existing account
+        newBalance = parseFloat(accountResult[0].balance) + depositAmount;
+        await connection.query(
+          "UPDATE savings_accounts SET balance = balance + ? WHERE user_id = ?",
+          [depositAmount, userId]
+        );
+      }
+
+      // Create payment record
+      await connection.query(
+        `INSERT INTO payments
+         (user_id, amount, payment_method, reference, status, currency)
+         VALUES (?, ?, ?, ?, 'successful', 'TZS')`,
+        [userId, depositAmount, paymentMethod, reference]
+      );
+      
+      await connection.commit();
+
+      res.status(200).json({
+        message: "Fiat deposit recorded successfully",
+        amount: depositAmount,
+        newBalance: newBalance,
+        currency: 'TZS'
+      });
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+
+  } catch (error) {
+    console.error("Error recording fiat deposit:", error);
+    res.status(500).json({ 
+      message: "Failed to record fiat deposit", 
+      error: error.message || "An unexpected error occurred" 
+    });
   }
 };
 
@@ -196,86 +288,6 @@ const processCryptoDeposit = async (userId, amountTzs, transactionHash) => {
     throw error;
   } finally {
     connection.release();
-  }
-};
-
-/**
- * Confirm Stripe payment and update balance
- */
-const confirmStripePayment = async (req, res) => {
-  try {
-    const { paymentIntentId } = req.body;
-    const userId = req.user.id;
-
-    const { confirmPayment } = require("../config/stripe");
-    const paymentIntent = await confirmPayment(paymentIntentId);
-
-    if (paymentIntent.status === 'succeeded') {
-      const amountTzs = parseFloat(paymentIntent.metadata.original_amount);
-      
-      // Start transaction
-      const connection = await db.getConnection();
-      await connection.beginTransaction();
-      
-      try {
-        // Check if user already has a savings account
-        const accountQuery = "SELECT user_id FROM savings_accounts WHERE user_id = ?";
-        const [accountResult] = await connection.query(accountQuery, [userId]);
-
-        if (accountResult.length === 0) {
-          // Create new savings account
-          await connection.query(
-            "INSERT INTO savings_accounts (user_id, balance, currency) VALUES (?, ?, 'TZS')",
-            [userId, amountTzs],
-          );
-        } else {
-          // Update existing account
-          await connection.query(
-            "UPDATE savings_accounts SET balance = balance + ? WHERE user_id = ?",
-            [amountTzs, userId],
-          );
-        }
-
-        // Create payment record
-        await connection.query(
-          `INSERT INTO payments
-           (user_id, amount, payment_method, reference, status, currency)
-           VALUES (?, ?, 'stripe', ?, 'successful', 'TZS')`,
-          [userId, amountTzs, paymentIntent.id],
-        );
-
-        // Get current balance
-        const [balanceResult] = await connection.query(
-          "SELECT balance FROM savings_accounts WHERE user_id = ?",
-          [userId],
-        );
-        
-        await connection.commit();
-
-        res.status(200).json({
-          message: "Payment confirmed and deposit completed successfully",
-          amount: amountTzs,
-          newBalance: balanceResult[0].balance,
-          currency: 'TZS'
-        });
-      } catch (error) {
-        await connection.rollback();
-        throw error;
-      } finally {
-        connection.release();
-      }
-    } else {
-      res.status(400).json({ 
-        message: "Payment was not successful", 
-        status: paymentIntent.status 
-      });
-    }
-  } catch (error) {
-    console.error("Error confirming payment:", error);
-    res.status(500).json({ 
-      message: "Failed to confirm payment", 
-      error: error.message 
-    });
   }
 };
 
@@ -509,9 +521,9 @@ const { ethers } = require('ethers');
 
 module.exports = {
   depositFunds,
+  recordFiatDeposit,
   getSavingsBalance,
   processCryptoDeposit,
-  confirmStripePayment,
   getLiveBlockchainBalance,
   connectWallet,
   disconnectWallet,
