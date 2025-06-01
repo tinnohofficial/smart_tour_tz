@@ -167,12 +167,7 @@ exports.updateApplicationStatus = async (req, res) => {
         "SELECT role FROM users WHERE id = ?",
         [userId],
       );
-      if (userRoleResult.length > 0 && userRoleResult[0].role === "tourist") {
-        await db.query(
-          "INSERT INTO savings_accounts (user_id, balance) VALUES (?, 0.00) ON DUPLICATE KEY UPDATE user_id=user_id",
-          [userId],
-        );
-      }
+      // Tourist users already have balance initialized in users table
     }
 
     res.json({ message: `Application status updated to ${newStatus}.` });

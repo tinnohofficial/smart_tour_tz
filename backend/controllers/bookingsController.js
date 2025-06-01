@@ -1076,17 +1076,17 @@ exports.processBookingPayment = async (req, res) => {
           break;
 
         case "savings":
-          // Check user's savings balance
+          // Check user's balance
           const balanceQuery = `
-            SELECT balance FROM savings_accounts
-            WHERE user_id = ?
+            SELECT balance FROM users
+            WHERE id = ?
           `;
           const [balanceResult] = await connection.query(balanceQuery, [userId]);
 
           if (balanceResult.length === 0) {
             await connection.rollback();
             connection.release();
-            return res.status(404).json({ message: "Savings account not found" });
+            return res.status(404).json({ message: "User not found" });
           }
 
           const balance = parseFloat(balanceResult[0].balance);
@@ -1095,7 +1095,7 @@ exports.processBookingPayment = async (req, res) => {
             await connection.rollback();
             connection.release();
             return res.status(400).json({
-              message: "Insufficient funds in savings account",
+              message: "Insufficient funds",
               balance,
               required: booking.total_cost,
             });
@@ -1103,7 +1103,7 @@ exports.processBookingPayment = async (req, res) => {
 
           // Update balance
           await connection.query(
-            "UPDATE savings_accounts SET balance = balance - ? WHERE user_id = ?",
+            "UPDATE users SET balance = balance - ? WHERE id = ?",
             [booking.total_cost, userId],
           );
           

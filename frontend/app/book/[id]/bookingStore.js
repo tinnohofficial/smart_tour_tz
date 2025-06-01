@@ -35,7 +35,6 @@ export const useBookingStore = create((set, get) => ({
   agreedToTerms: false,
   paymentMethod: "",
   isPaymentDialogOpen: false,
-  savingsBalance: 2000, // Mock savings balance
   
   // Enhanced payment state
   isEnhancedPaymentOpen: false,

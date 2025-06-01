@@ -3,7 +3,7 @@ CREATE TABLE users (
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     phone_number VARCHAR(20) UNIQUE,
-
+    balance DECIMAL(12, 2) DEFAULT 0.00,
     role ENUM (
         'tourist',
         'tour_guide',
@@ -152,11 +152,7 @@ CREATE TABLE booking_items (
     FOREIGN KEY (booking_id) REFERENCES bookings (id) ON DELETE CASCADE
 );
 
-CREATE TABLE savings_accounts (
-    user_id INT PRIMARY KEY,
-    balance DECIMAL(12, 2) DEFAULT 0.00,
-    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
-);
+
 
 CREATE TABLE payments (
     id INT AUTO_INCREMENT PRIMARY KEY,

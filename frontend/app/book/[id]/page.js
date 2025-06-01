@@ -79,6 +79,7 @@ function BookLocation({ params }) {
   // Get savings store (simplified)
   const { balance } = useSavingsStore();
 
+
   // Get state and actions from Zustand store
   const {
     step,
@@ -95,7 +96,6 @@ function BookLocation({ params }) {
     paymentMethod,
     isPaymentDialogOpen,
     isEnhancedPaymentOpen,
-    savingsBalance,
     setIsEnhancedPaymentOpen,
     processEnhancedPayment,
     setStartDate,
@@ -301,7 +301,7 @@ function BookLocation({ params }) {
       return;
     }
 
-    if (paymentMethod === "savings" && savingsBalance < totalPrice) {
+    if (paymentMethod === "savings" && balance < totalPrice) {
       toast.error("Insufficient funds in savings account");
       return;
     }
@@ -373,7 +373,7 @@ function BookLocation({ params }) {
     }
   }, [
     paymentMethod,
-    savingsBalance,
+    balance,
     totalPrice,
     id,
     startDate,
@@ -1913,7 +1913,7 @@ function BookLocation({ params }) {
                 <div className="flex justify-between items-center mb-2">
                   <span>Available Balance:</span>
                   <span className="font-semibold">
-                    {formatTZS(savingsBalance)}
+                    {formatTZS(balance)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -1925,15 +1925,15 @@ function BookLocation({ params }) {
                   <span>Remaining Balance:</span>
                   <span
                     className={
-                      savingsBalance >= totalPrice
+                      balance >= totalPrice
                         ? "text-green-600"
                         : "text-red-600"
                     }
                   >
-                    {formatTZS(savingsBalance - totalPrice)}
+                    {formatTZS(balance - totalPrice)}
                   </span>
                 </div>
-                {savingsBalance < totalPrice && (
+                {balance < totalPrice && (
                   <Alert variant="destructive" className="mt-2">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
@@ -2052,7 +2052,7 @@ function BookLocation({ params }) {
             <Button
               onClick={processPayment}
               disabled={
-                (paymentMethod === "savings" && savingsBalance < totalPrice) ||
+                (paymentMethod === "savings" && balance < totalPrice) ||
                 !paymentMethod
               }
             >

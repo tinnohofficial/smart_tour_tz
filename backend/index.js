@@ -14,7 +14,7 @@ const tourGuidesRouter = require("./routes/tourGuidesRouter");
 const bookingsRouter = require("./routes/bookingsRouter");
 const activitiesRouter = require("./routes/activitiesRouter");
 const transportsRouter = require("./routes/transportsRouter");
-const savingsRouter = require("./routes/savingsRouter");
+
 const applicationsRouter = require("./routes/applicationsRouter");
 const cartRouter = require("./routes/cartRouter");
 
@@ -50,7 +50,7 @@ router.use("/tour-guides", tourGuidesRouter);
 router.use("/bookings", bookingsRouter);
 router.use("/activities", activitiesRouter);
 router.use("/transports", transportsRouter);
-router.use("/savings", savingsRouter);
+
 router.use("/applications", applicationsRouter);
 router.use("/cart", cartRouter);
 

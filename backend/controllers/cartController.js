@@ -481,15 +481,15 @@ exports.checkoutCart = async (req, res) => {
         return res.status(400).json({ message: "Cart is empty" });
       }
 
-      // Get user's savings balance
-      const [savingsRows] = await connection.query(
-        "SELECT balance FROM savings_accounts WHERE user_id = ?",
+      // Get user's balance
+      const [userRows] = await connection.query(
+        "SELECT balance FROM users WHERE id = ?",
         [userId]
       );
 
       let userBalance = 0;
-      if (savingsRows.length > 0) {
-        userBalance = parseFloat(savingsRows[0].balance);
+      if (userRows.length > 0) {
+        userBalance = parseFloat(userRows[0].balance);
       }
 
       let paymentReference = '';
@@ -501,16 +501,16 @@ exports.checkoutCart = async (req, res) => {
           await connection.rollback();
           connection.release();
           return res.status(400).json({ 
-            message: "Insufficient savings balance",
+            message: "Insufficient balance",
             required: paymentAmount,
             available: userBalance
           });
         }
 
-        // Deduct from savings
-        if (savingsRows.length > 0) {
+        // Deduct from user balance
+        if (userRows.length > 0) {
           await connection.query(
-            "UPDATE savings_accounts SET balance = balance - ? WHERE user_id = ?",
+            "UPDATE users SET balance = balance - ? WHERE id = ?",
             [paymentAmount, userId]
           );
         }

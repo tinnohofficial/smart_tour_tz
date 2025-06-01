@@ -55,19 +55,19 @@ async function testUserRegistration() {
   }
 }
 
-async function testCreateSavingsAccount() {
-  console.log('🧪 Testing savings account creation...');
+async function testGetBalance() {
+  console.log('🧪 Testing balance retrieval...');
   
-  const result = await makeRequest('/savings', {
-    method: 'POST'
+  const result = await makeRequest('/auth/balance', {
+    method: 'GET'
   });
   
   if (result.ok) {
-    console.log('✅ Savings account created successfully');
+    console.log('✅ Balance retrieved successfully');
     console.log('   Balance:', result.data.balance);
     return true;
   } else {
-    console.log('❌ Savings account creation failed:', result.data.message);
+    console.log('❌ Balance retrieval failed:', result.data.message);
     return false;
   }
 }
@@ -76,7 +76,7 @@ async function testUpdateBalance() {
   console.log('🧪 Testing balance update...');
   
   const newBalance = 1500.50;
-  const result = await makeRequest('/savings', {
+  const result = await makeRequest('/auth/balance', {
     method: 'PUT',
     body: JSON.stringify({ balance: newBalance })
   });
@@ -92,26 +92,10 @@ async function testUpdateBalance() {
   }
 }
 
-async function testDuplicateAccountCreation() {
-  console.log('🧪 Testing duplicate account creation (should fail)...');
-  
-  const result = await makeRequest('/savings', {
-    method: 'POST'
-  });
-  
-  if (!result.ok && result.data.message.includes('already exists')) {
-    console.log('✅ Duplicate account creation properly rejected');
-    return true;
-  } else {
-    console.log('❌ Duplicate account creation test failed');
-    return false;
-  }
-}
-
 async function testInvalidBalanceUpdate() {
   console.log('🧪 Testing invalid balance update (should fail)...');
   
-  const result = await makeRequest('/savings', {
+  const result = await makeRequest('/auth/balance', {
     method: 'PUT',
     body: JSON.stringify({ balance: -100 })
   });
@@ -131,8 +115,8 @@ async function testUnauthorizedAccess() {
   const originalToken = authToken;
   authToken = '';
   
-  const result = await makeRequest('/savings', {
-    method: 'POST'
+  const result = await makeRequest('/auth/balance', {
+    method: 'GET'
   });
   
   authToken = originalToken;
@@ -146,17 +130,56 @@ async function testUnauthorizedAccess() {
   }
 }
 
+async function testNonTouristAccess() {
+  console.log('🧪 Testing non-tourist balance access (should fail)...');
+  
+  // Register a hotel manager
+  const nonTouristUser = {
+    email: 'hotel@example.com',
+    password: 'testpassword123',
+    role: 'hotel_manager'
+  };
+  
+  const registerResult = await makeRequest('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify(nonTouristUser)
+  });
+  
+  if (!registerResult.ok) {
+    console.log('❌ Failed to register non-tourist user for test');
+    return false;
+  }
+  
+  const nonTouristToken = registerResult.data.token;
+  const originalToken = authToken;
+  authToken = nonTouristToken;
+  
+  const balanceResult = await makeRequest('/auth/balance', {
+    method: 'GET'
+  });
+  
+  authToken = originalToken;
+  
+  if (!balanceResult.ok && balanceResult.data.message.includes('Only tourists')) {
+    console.log('✅ Non-tourist access properly rejected');
+    return true;
+  } else {
+    console.log('❌ Non-tourist access test failed');
+    return false;
+  }
+}
+
 // Main test runner
 async function runTests() {
-  console.log('🚀 Starting Simplified Savings API Tests\n');
+  console.log('🚀 Starting User Balance API Tests\n');
   
   const tests = [
     testUserRegistration,
-    testCreateSavingsAccount,
+    testGetBalance,
     testUpdateBalance,
-    testDuplicateAccountCreation,
     testInvalidBalanceUpdate,
-    testUnauthorizedAccess
+    testUnauthorizedAccess,
+    testNonTouristAccess
   ];
   
   let passed = 0;
@@ -178,7 +201,7 @@ async function runTests() {
   console.log(`   Success Rate: ${Math.round((passed/total) * 100)}%`);
   
   if (passed === total) {
-    console.log('🎉 All tests passed! Simplified savings system is working correctly.');
+    console.log('🎉 All tests passed! User balance system is working correctly.');
   } else {
     console.log('⚠️  Some tests failed. Please check the implementation.');
   }

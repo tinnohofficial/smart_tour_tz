@@ -35,13 +35,7 @@ exports.register = async (req, res) => {
       [email, hashedPassword, phone_number, role, initialStatus],
     );
 
-    // If tourist, create savings account
-    if (role === "tourist") {
-      await db.query(
-        "INSERT INTO savings_accounts (user_id, balance) VALUES (?, 0.00) ON DUPLICATE KEY UPDATE user_id=user_id",
-        [result.insertId],
-      );
-    }
+    // Tourist users already have balance initialized in users table
 
     // Generate JWT token just like in login
     const token = jwt.sign(
@@ -316,5 +310,94 @@ exports.updatePhone = async (req, res) => {
     res
       .status(500)
       .json({ message: "Failed to update phone number", error: error.message });
+  }
+};
+
+// Get user balance (for tourists only)
+exports.getBalance = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    if (userRole !== 'tourist') {
+      return res.status(403).json({ 
+        message: "Only tourists can access balance information" 
+      });
+    }
+
+    const [result] = await db.query(
+      "SELECT balance FROM users WHERE id = ?",
+      [userId]
+    );
+
+    if (result.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({
+      balance: parseFloat(result[0].balance) || 0,
+      user_id: userId
+    });
+  } catch (error) {
+    console.error("Error fetching balance:", error);
+    res.status(500).json({ 
+      message: "Failed to get balance", 
+      error: error.message 
+    });
+  }
+};
+
+// Update user balance (for tourists only)
+exports.updateBalance = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const userRole = req.user.role;
+    const { balance } = req.body;
+
+    if (userRole !== 'tourist') {
+      return res.status(403).json({ 
+        message: "Only tourists can update balance" 
+      });
+    }
+
+    // Validate balance
+    if (balance === undefined || isNaN(parseFloat(balance)) || parseFloat(balance) < 0) {
+      return res.status(400).json({ 
+        message: "Valid balance is required and must be non-negative" 
+      });
+    }
+
+    const newBalance = parseFloat(balance);
+
+    // Get current balance for response
+    const [currentResult] = await db.query(
+      "SELECT balance FROM users WHERE id = ?",
+      [userId]
+    );
+
+    if (currentResult.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const previousBalance = parseFloat(currentResult[0].balance);
+
+    // Update balance
+    await db.query(
+      "UPDATE users SET balance = ? WHERE id = ?",
+      [newBalance, userId]
+    );
+
+    res.json({
+      message: "Balance updated successfully",
+      user_id: userId,
+      balance: newBalance,
+      previous_balance: previousBalance
+    });
+  } catch (error) {
+    console.error("Error updating balance:", error);
+    res.status(500).json({ 
+      message: "Failed to update balance", 
+      error: error.message 
+    });
   }
 };

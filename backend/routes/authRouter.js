@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const authController = require("../controllers/authController");
 const authenticateToken = require("../middleware/authenticateToken");
+const checkRole = require("../middleware/checkRole");
 const { body } = require("express-validator");
 const { isValidPhoneNumber } = require('libphonenumber-js');
 
@@ -41,6 +42,10 @@ router.put("/password", authenticateToken, authController.updatePassword);
 router.put("/email", authenticateToken, authController.updateEmail);
 
 // F4.3: Update phone number
-router.put("/phone", authenticateToken, authController.updatePhone);
+router.put("/update-phone", authenticateToken, authController.updatePhone);
+
+// Balance management routes (for tourists only)
+router.get("/balance", authenticateToken, checkRole("tourist"), authController.getBalance);
+router.put("/balance", authenticateToken, checkRole("tourist"), authController.updateBalance);
 
 module.exports = router;

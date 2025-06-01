@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Dialog,
   DialogContent,
@@ -27,8 +27,14 @@ export function EnhancedPaymentDialog({
 }) {
   const [paymentMethod, setPaymentMethod] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
+  const { balance: userBalance, fetchBalance } = useSavingsStore()
 
-  const { balance: savingsBalance } = useSavingsStore()
+  // Fetch user balance on component mount
+  useEffect(() => {
+    if (isOpen) {
+      fetchBalance()
+    }
+  }, [isOpen, fetchBalance])
 
   const handleProcessPayment = async () => {
     if (!paymentMethod) {
@@ -107,6 +113,10 @@ export function EnhancedPaymentDialog({
     })
 
     const data = await response.json()
+    if (response.ok) {
+      // Refresh balance after successful payment
+      await fetchBalance()
+    }
     return { success: response.ok, ...data }
   }
 
@@ -131,7 +141,7 @@ export function EnhancedPaymentDialog({
     return { success: response.ok, ...data }
   }
 
-  const canPayWithSavings = savingsBalance >= amount
+  const canPayWithSavings = userBalance >= amount
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -178,11 +188,11 @@ export function EnhancedPaymentDialog({
                     <div className="flex-1">
                       <p className="font-medium">Savings Account</p>
                       <p className="text-sm text-gray-600">
-                        Available: {formatTZS(savingsBalance)}
+                        Available: {formatTZS(userBalance)}
                       </p>
                       {!canPayWithSavings && (
                         <p className="text-xs text-red-600">
-                          Insufficient balance. Need {formatTZS(amount - savingsBalance)} more.
+                          Insufficient balance. Need {formatTZS(amount - userBalance)} more.
                         </p>
                       )}
                     </div>
