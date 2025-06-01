@@ -56,6 +56,7 @@ import { useBookingStore, useBookingNights } from "./bookingStore";
 import { useCartStore } from "../../store/cartStore";
 // Import savings store for wallet functionality
 import { useSavingsStore } from "../../savings/savingStore";
+import blockchainService from "../../services/blockchainService";
 // Import RouteProtection component
 import { RouteProtection } from "@/components/route-protection";
 // Import shared utilities
@@ -296,9 +297,15 @@ function BookLocation({ params }) {
     }
 
     // Validation based on payment method
-    if (paymentMethod === "crypto" && !isWalletConnected) {
-      toast.error("Please connect your wallet for crypto payments");
-      return;
+    if (paymentMethod === "crypto") {
+      // Check wallet connection or try to connect
+      if (!blockchainService.isConnected()) {
+        const connectResult = await blockchainService.connectWallet();
+        if (!connectResult.success) {
+          toast.error("Please connect your wallet for crypto payments");
+          return;
+        }
+      }
     }
 
     if (paymentMethod === "savings" && balance < totalPrice) {
@@ -329,13 +336,17 @@ function BookLocation({ params }) {
 
       switch (paymentMethod) {
         case "crypto":
-          // For crypto payments, we need the wallet address
-          paymentResult = await bookingCreationService.processPayment(
+          // Process crypto payment using blockchain service
+          paymentResult = await blockchainService.processCryptoPayment(
             booking.bookingId,
-            {
-              paymentMethod: "crypto",
-            },
+            totalPrice,
+            "vault"
           );
+          
+          if (!paymentResult.success) {
+            toast.error(paymentResult.error || "Crypto payment failed");
+            return;
+          }
           break;
 
         case "savings":

@@ -31,6 +31,8 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
+import blockchainService from "../services/blockchainService";
+import exchangeRate from "../utils/exchangeRate";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "pk_test_placeholder",
@@ -71,11 +73,12 @@ function StripeCheckoutForm({ amount, onSuccess, onError }) {
     const cardElement = elements.getElement(CardElement);
 
     try {
-      // Convert TZS to USD (1 USD = 2300 TZS)
-      const amountInUsd = Math.round((amount / 2300) * 100) / 100;
+      // Convert TZS to USD using live exchange rate
+      const usdToTzsRate = await exchangeRate.getUsdToTzsRate();
+      const amountInUsd = Math.round((amount / usdToTzsRate) * 100) / 100;
 
       if (amountInUsd < 0.5) {
-        throw new Error("Minimum amount for card payments is 1,150 TZS");
+        throw new Error(`Minimum amount for card payments is ${Math.ceil(usdToTzsRate * 0.5)} TZS`);
       }
 
       // Create payment intent directly with Stripe
@@ -142,7 +145,7 @@ function StripeCheckoutForm({ amount, onSuccess, onError }) {
         </div>
         <p className="text-2xl font-bold text-blue-900">{formatTZS(amount)}</p>
         <p className="text-sm text-blue-700">
-          Secure payment processing (≈ ${(amount / 2300).toFixed(2)} USD)
+          Secure payment processing (≈ ${(amount / 2500).toFixed(2)} USD)
         </p>
       </div>
 
@@ -204,6 +207,24 @@ export default function Savings() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [activePaymentMethod, setActivePaymentMethod] = useState("stripe");
+  const [usdcAmount, setUsdcAmount] = useState("0");
+
+  // Calculate USDC amount from TZS amount
+  const calculateUsdcAmount = async (tzsAmount) => {
+    if (!tzsAmount || isNaN(Number(tzsAmount)) || Number(tzsAmount) <= 0) {
+      return "0";
+    }
+    // Convert TZS to USDC using live exchange rate
+    const amountInUSDC = await exchangeRate.convertTzsToUsdc(parseFloat(tzsAmount));
+    return amountInUSDC.toFixed(6);
+  };
+
+  // Handle TZS amount input change
+  const handleTzsAmountChange = (e) => {
+    const newTzsAmount = e.target.value;
+    setDepositAmount(newTzsAmount);
+    // USDC amount will be updated by the effect
+  };
 
   useEffect(() => {
     // Get user data from localStorage
@@ -213,10 +234,25 @@ export default function Savings() {
       setUser(parsedUser);
 
       if (parsedUser.role === "tourist") {
-        fetchBalance();
+        // Initialize blockchain service and fetch balances
+        const initBlockchain = async () => {
+          await blockchainService.initialize();
+          fetchBalance();
+        };
+
+        initBlockchain();
       }
     }
   }, [fetchBalance]);
+
+  // Update USDC amount when depositAmount changes
+  useEffect(() => {
+    const updateUsdcAmount = async () => {
+      const newUsdcAmount = await calculateUsdcAmount(depositAmount);
+      setUsdcAmount(newUsdcAmount);
+    };
+    updateUsdcAmount();
+  }, [depositAmount]);
 
   const handleStripeSuccess = async (paymentResult) => {
     toast.success(
@@ -224,6 +260,7 @@ export default function Savings() {
     );
     setDialogOpen(false);
     setDepositAmount("");
+    // USDC amount will be updated by the effect
     await fetchBalance();
   };
 
@@ -248,6 +285,7 @@ export default function Savings() {
       toast.success(`Successfully saved ${formatTZS(amount)} to your account!`);
       setDialogOpen(false);
       setDepositAmount("");
+      // USDC amount will be updated by the effect
     } else {
       toast.error(
         result.error || "Failed to process crypto deposit. Please try again.",
@@ -413,24 +451,42 @@ export default function Savings() {
             </DialogHeader>
 
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="amount" className="text-base font-medium">
-                  Amount (TZS)
-                </Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  placeholder="Enter amount to save"
-                  className="mt-2 text-lg"
-                  value={depositAmount}
-                  onChange={(e) => setDepositAmount(e.target.value)}
-                  min="1"
-                  max="25000000"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Card payments: Min 1,150 TZS | Crypto: Min 1 TZS | Max:
-                  25,000,000 TZS
-                </p>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="amount" className="text-base font-medium">
+                    Amount (TZS)
+                  </Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    placeholder="Enter amount to save"
+                    className="mt-2 text-lg"
+                    value={depositAmount}
+                    onChange={handleTzsAmountChange}
+                    min="1"
+                    max="25000000"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Card payments: Min 1,150 TZS | Crypto: Min 1 TZS | Max:
+                    25,000,000 TZS
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="usdcAmount" className="text-base font-medium">
+                    Equivalent Amount (USDC)
+                  </Label>
+                  <Input
+                    id="usdcAmount"
+                    type="text"
+                    className="mt-2 text-lg bg-gray-50"
+                    value={usdcAmount}
+                    readOnly
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Conversion rate: 1 USDC = 2,300 TZS
+                  </p>
+                </div>
               </div>
 
               <Tabs
@@ -515,16 +571,25 @@ export default function Savings() {
                           Send USDC to your connected wallet, then click the
                           button below to process the deposit.
                         </p>
+                        {depositAmount && !isNaN(Number(depositAmount)) && Number(depositAmount) > 0 && (
+                          <div className="mt-3 p-2 bg-white rounded border border-amber-200">
+                            <p className="text-sm text-amber-800 font-medium">You will deposit:</p>
+                            <p className="text-lg font-bold text-amber-900">{usdcAmount} USDC</p>
+                            <p className="text-xs text-amber-700">Equivalent to {formatTZS(depositAmount)}</p>
+                          </div>
+                        )}
                       </div>
 
                       <Button
                         onClick={handleCryptoDeposit}
                         className="w-full bg-green-600 hover:bg-green-700"
-                        disabled={isDepositing || !depositAmount}
+                        disabled={isDepositing || !depositAmount || isNaN(Number(depositAmount)) || Number(depositAmount) <= 0}
                       >
                         {isDepositing
                           ? "Processing..."
-                          : "Process Crypto Deposit"}
+                          : depositAmount && !isNaN(Number(depositAmount)) && Number(depositAmount) > 0
+                            ? `Deposit ${usdcAmount} USDC`
+                            : "Process Crypto Deposit"}
                       </Button>
                     </>
                   )}

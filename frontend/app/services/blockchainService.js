@@ -1,10 +1,12 @@
 import { ethers } from 'ethers'
+import exchangeRate from '../utils/exchangeRate'
 
 // Contract ABI for Smart Tour Vault
 const SMART_TOUR_VAULT_ABI = [
   "function deposit(uint256 amount) external",
   "function getUserBalance(address user) external view returns (uint256)",
   "function payFromSavings(address user, uint256 amount) external",
+  "function adminWithdraw(uint256 amount) external",
   "event Deposit(address indexed user, uint256 amount)",
   "event PaymentFromSavings(address indexed user, uint256 amount)"
 ]
@@ -26,11 +28,15 @@ class BlockchainService {
     this.contract = null
     this.usdcContract = null
     this.connected = false
+    this.adminWallet = null
 
     // Contract addresses from environment
     this.contractAddress = process.env.NEXT_PUBLIC_SMART_TOUR_VAULT_ADDRESS
     this.usdcAddress = process.env.NEXT_PUBLIC_USDC_ADDRESS
     this.providerUrl = process.env.NEXT_PUBLIC_BLOCKCHAIN_PROVIDER_URL
+    
+    // Admin private key for server-side operations (only use in secure contexts)
+    this.adminPrivateKey = process.env.NEXT_PUBLIC_ADMIN_PRIVATE_KEY
   }
 
   // Initialize the service
@@ -362,11 +368,309 @@ class BlockchainService {
     return this.connected && this.signer !== null
   }
 
+  // Convert TZS to USDC using live exchange rate
+  async convertTzsToUsdc(tzsAmount) {
+    try {
+      return await exchangeRate.convertTzsToUsdc(tzsAmount)
+    } catch (error) {
+      console.warn('Error converting TZS to USDC:', error.message)
+      return tzsAmount / 2500 // Fallback rate
+    }
+  }
+
+  // Convert USDC to TZS using live exchange rate
+  async convertUsdcToTzs(usdcAmount) {
+    try {
+      return await exchangeRate.convertUsdcToTzs(usdcAmount)
+    } catch (error) {
+      console.warn('Error converting USDC to TZS:', error.message)
+      return usdcAmount * 2500 // Fallback rate
+    }
+  }
+
+  // Get conversion rates for a TZS amount
+  async getConversionRates(tzsAmount) {
+    try {
+      const usdToTzsRate = await exchangeRate.getUsdToTzsRate()
+      const usdAmount = tzsAmount / usdToTzsRate
+      
+      return {
+        tzs: tzsAmount,
+        usd: usdAmount,
+        usdc: usdAmount, // Since 1 USDC = 1 USD
+        rates: { 
+          USD_TZS: usdToTzsRate, 
+          USD_USDC: 1.0 
+        }
+      }
+    } catch (error) {
+      console.warn('Error getting conversion rates:', error.message)
+      const usdAmount = tzsAmount / 2500
+      
+      return {
+        tzs: tzsAmount,
+        usd: usdAmount,
+        usdc: usdAmount,
+        rates: { 
+          USD_TZS: 2500, 
+          USD_USDC: 1.0 
+        }
+      }
+    }
+  }
+
+  // Process payment from user's vault balance
+  async payFromVault(userAddress, tzsAmount) {
+    try {
+      if (!this.connected || !this.signer || !this.contract) {
+        throw new Error('Wallet not connected or contracts not initialized')
+      }
+
+      // Convert TZS to USDC
+      const usdcAmount = await this.convertTzsToUsdc(tzsAmount)
+      
+      // Check if user has sufficient vault balance
+      const vaultBalance = await this.getUserVaultBalance(userAddress)
+      if (parseFloat(vaultBalance) < usdcAmount) {
+        throw new Error(`Insufficient vault balance. Required: ${usdcAmount} USDC, Available: ${vaultBalance} USDC`)
+      }
+
+      const amountWei = ethers.parseUnits(usdcAmount.toString(), 6)
+
+      // Execute payment from vault
+      const tx = await this.contract.payFromSavings(userAddress, amountWei)
+      const receipt = await tx.wait()
+
+      return {
+        success: true,
+        transactionHash: receipt.hash,
+        amountUSDC: usdcAmount,
+        amountTZS: tzsAmount,
+        gasUsed: receipt.gasUsed.toString()
+      }
+    } catch (error) {
+      console.error('Error processing payment from vault:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
+
+  // Check if user has sufficient balance for a transaction
+  async checkSufficientBalance(userAddress, requiredTzsAmount) {
+    try {
+      const vaultBalance = await this.getUserVaultBalance(userAddress)
+      const walletBalances = await this.getWalletBalances(userAddress)
+      const requiredUsdcAmount = await this.convertTzsToUsdc(requiredTzsAmount)
+      
+      return {
+        vaultBalance: parseFloat(vaultBalance),
+        walletBalance: parseFloat(walletBalances.usdc),
+        totalBalance: parseFloat(vaultBalance) + parseFloat(walletBalances.usdc),
+        sufficient: (parseFloat(vaultBalance) + parseFloat(walletBalances.usdc)) >= requiredUsdcAmount,
+        requiredAmount: requiredUsdcAmount,
+        requiredTzs: requiredTzsAmount
+      }
+    } catch (error) {
+      console.error('Error checking sufficient balance:', error)
+      return {
+        vaultBalance: 0,
+        walletBalance: 0,
+        totalBalance: 0,
+        sufficient: false,
+        requiredAmount: 0,
+        requiredTzs: requiredTzsAmount
+      }
+    }
+  }
+
+  // Process crypto payment for booking
+  async processCryptoPayment(bookingId, tzsAmount, paymentMethod = 'vault') {
+    try {
+      if (!this.connected || !this.signer) {
+        throw new Error('Wallet not connected')
+      }
+
+      const userAddress = await this.signer.getAddress()
+      
+      if (paymentMethod === 'vault') {
+        // Pay from vault balance
+        const result = await this.payFromVault(userAddress, tzsAmount)
+        
+        if (result.success) {
+          // Call backend to confirm payment
+          const response = await fetch(`/api/bookings/${bookingId}/pay`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              paymentMethod: 'crypto',
+              walletAddress: userAddress,
+              transactionHash: result.transactionHash,
+              useVaultBalance: true,
+              amountUSDC: result.amountUSDC,
+              amountTZS: result.amountTZS
+            })
+          })
+
+          if (!response.ok) {
+            throw new Error('Failed to confirm payment with backend')
+          }
+
+          return {
+            success: true,
+            transactionHash: result.transactionHash,
+            paymentMethod: 'crypto-vault'
+          }
+        } else {
+          throw new Error(result.error)
+        }
+      } else {
+        // Direct wallet payment (simplified)
+        const response = await fetch(`/api/bookings/${bookingId}/pay`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            paymentMethod: 'crypto',
+            walletAddress: userAddress,
+            useVaultBalance: false
+          })
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to process crypto payment')
+        }
+
+        return {
+          success: true,
+          paymentMethod: 'crypto-direct'
+        }
+      }
+    } catch (error) {
+      console.error('Error processing crypto payment:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
+
+  // Process cart checkout with crypto
+  async processCryptoCartCheckout(cartId, totalTzsAmount, paymentMethod = 'vault') {
+    try {
+      if (!this.connected || !this.signer) {
+        throw new Error('Wallet not connected')
+      }
+
+      const userAddress = await this.signer.getAddress()
+      
+      if (paymentMethod === 'vault') {
+        // Pay from vault balance
+        const result = await this.payFromVault(userAddress, totalTzsAmount)
+        
+        if (result.success) {
+          // Call backend to confirm payment
+          const response = await fetch('/api/cart/checkout', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              paymentMethod: 'crypto',
+              walletAddress: userAddress,
+              transactionHash: result.transactionHash,
+              useVaultBalance: true,
+              amountUSDC: result.amountUSDC,
+              amountTZS: result.amountTZS
+            })
+          })
+
+          if (!response.ok) {
+            throw new Error('Failed to confirm cart checkout with backend')
+          }
+
+          return {
+            success: true,
+            transactionHash: result.transactionHash,
+            paymentMethod: 'crypto-vault'
+          }
+        } else {
+          throw new Error(result.error)
+        }
+      } else {
+        // Direct wallet payment (simplified)
+        const response = await fetch('/api/cart/checkout', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            paymentMethod: 'crypto',
+            walletAddress: userAddress,
+            useVaultBalance: false
+          })
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to process crypto cart checkout')
+        }
+
+        return {
+          success: true,
+          paymentMethod: 'crypto-direct'
+        }
+      }
+    } catch (error) {
+      console.error('Error processing crypto cart checkout:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
+
   // Get contract addresses
   getContractAddresses() {
     return {
       vault: this.contractAddress,
       usdc: this.usdcAddress
+    }
+  }
+
+  // Initialize admin functions (for server-side operations)
+  async initializeAdmin() {
+    try {
+      if (!this.adminPrivateKey || this.adminPrivateKey === 'your_admin_private_key_here') {
+        return false
+      }
+
+      // Create a JsonRpcProvider for admin operations
+      const adminProvider = new ethers.JsonRpcProvider(
+        this.providerUrl || 'https://polygon-rpc.com'
+      )
+
+      this.adminWallet = new ethers.Wallet(this.adminPrivateKey, adminProvider)
+      
+      if (this.contractAddress) {
+        this.adminContract = new ethers.Contract(
+          this.contractAddress,
+          SMART_TOUR_VAULT_ABI,
+          this.adminWallet
+        )
+      }
+
+      return true
+    } catch (error) {
+      console.error('Error initializing admin functions:', error)
+      return false
     }
   }
 }

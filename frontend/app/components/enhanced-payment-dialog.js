@@ -16,6 +16,7 @@ import { CreditCard, PiggyBank, Wallet } from "lucide-react"
 import { toast } from "sonner"
 import { formatTZS } from "@/app/utils/currency"
 import { useSavingsStore } from "@/app/savings/savingStore"
+import blockchainService from "@/app/services/blockchainService"
 
 export function EnhancedPaymentDialog({ 
   isOpen, 
@@ -121,26 +122,30 @@ export function EnhancedPaymentDialog({
   }
 
   const processCryptoPayment = async () => {
-    const endpoint = bookingId ? `/api/bookings/${bookingId}/pay` : `/api/cart/checkout`
-    const token = localStorage.getItem('token')
+    // Check if wallet is connected
+    if (!blockchainService.isConnected()) {
+      // Try to connect wallet first
+      const connectResult = await blockchainService.connectWallet()
+      if (!connectResult.success) {
+        throw new Error('Please connect your wallet to proceed with crypto payment')
+      }
+    }
 
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        paymentMethod: 'crypto',
-        walletAddress: 'simple-crypto-payment',
-        ...(cartId && { cartId })
-      })
-    })
-
-    const data = await response.json()
-    return { success: response.ok, ...data }
+    try {
+      if (bookingId) {
+        // Process individual booking payment
+        const result = await blockchainService.processCryptoPayment(bookingId, amount, 'vault')
+        return result
+      } else {
+        // Process cart checkout
+        const result = await blockchainService.processCryptoCartCheckout(cartId, amount, 'vault')
+        return result
+      }
+    } catch (error) {
+      console.error('Crypto payment error:', error)
+      throw new Error(error.message || 'Failed to process crypto payment')
+    }
   }
-
   const canPayWithSavings = userBalance >= amount
 
   return (

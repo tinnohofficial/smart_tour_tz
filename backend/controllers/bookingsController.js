@@ -1055,9 +1055,12 @@ exports.processBookingPayment = async (req, res) => {
           break;
 
         case "crypto":
-          // Enhanced crypto payment processing with automatic payment support
+          // Enhanced crypto payment processing 
           const walletAddress = req.body.walletAddress;
           const useVaultBalance = req.body.useVaultBalance || false;
+          const transactionHash = req.body.transactionHash;
+          const amountUSDC = req.body.amountUSDC;
+          const amountTZS = req.body.amountTZS;
           
           if (!walletAddress) {
             await connection.rollback();
@@ -1065,12 +1068,19 @@ exports.processBookingPayment = async (req, res) => {
             return res.status(400).json({ message: "Wallet address required for crypto payment" });
           }
 
-          // Simple crypto payment validation
+          // If vault balance is used, verify transaction hash
+          if (useVaultBalance && !transactionHash) {
+            await connection.rollback();
+            connection.release();
+            return res.status(400).json({ message: "Transaction hash required for vault payments" });
+          }
 
-          let cryptoPaymentResult;
-          
-          // Simple crypto payment processing
-          paymentReference = `CRYPTO-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+          // Set payment reference based on payment type
+          if (useVaultBalance) {
+            paymentReference = `CRYPTO-VAULT-${transactionHash}`;
+          } else {
+            paymentReference = `CRYPTO-DIRECT-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+          }
 
           paymentSuccess = true;
           break;

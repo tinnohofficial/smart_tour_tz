@@ -518,8 +518,12 @@ exports.checkoutCart = async (req, res) => {
         paymentReference = `SAVINGS_${Date.now()}`;
 
       } else if (paymentMethod === 'crypto') {
-        // Simple crypto payment processing
+        // Enhanced crypto payment processing
         const walletAddress = req.body.walletAddress;
+        const useVaultBalance = req.body.useVaultBalance || false;
+        const transactionHash = req.body.transactionHash;
+        const amountUSDC = req.body.amountUSDC;
+        const amountTZS = req.body.amountTZS;
 
         if (!walletAddress) {
           await connection.rollback();
@@ -527,8 +531,19 @@ exports.checkoutCart = async (req, res) => {
           return res.status(400).json({ message: "Wallet address is required for crypto payments" });
         }
 
-        // Generate simple payment reference
-        paymentReference = `CRYPTO-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        // If vault balance is used, verify transaction hash
+        if (useVaultBalance && !transactionHash) {
+          await connection.rollback();
+          connection.release();
+          return res.status(400).json({ message: "Transaction hash required for vault payments" });
+        }
+
+        // Set payment reference based on payment type
+        if (useVaultBalance) {
+          paymentReference = `CRYPTO-VAULT-${transactionHash}`;
+        } else {
+          paymentReference = `CRYPTO-DIRECT-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        }
 
       } else if (paymentMethod === 'stripe') {
         // Stripe payment would be handled here
