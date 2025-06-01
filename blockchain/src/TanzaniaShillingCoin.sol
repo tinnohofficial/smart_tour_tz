@@ -6,11 +6,8 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract TanzaniaShillingCoin is ERC20, Ownable {
     uint8 private constant DECIMALS = 18;
-    uint256 private constant INITIAL_SUPPLY = 1000000000 * 10**DECIMALS; // 1 billion TZC
 
-    constructor() ERC20("Tanzania Shilling Coin", "TZC") Ownable(msg.sender) {
-        _mint(msg.sender, INITIAL_SUPPLY);
-    }
+    constructor() ERC20("Tanzania Shilling Coin", "TZC") Ownable(msg.sender) {}
 
     function decimals() public pure override returns (uint8) {
         return DECIMALS;
@@ -22,13 +19,5 @@ contract TanzaniaShillingCoin is ERC20, Ownable {
 
     function burn(uint256 amount) external {
         _burn(msg.sender, amount);
-    }
-
-    function burnFrom(address account, uint256 amount) external {
-        uint256 currentAllowance = allowance(account, msg.sender);
-        require(currentAllowance >= amount, "ERC20: burn amount exceeds allowance");
-        
-        _approve(account, msg.sender, currentAllowance - amount);
-        _burn(account, amount);
     }
 }
