@@ -321,8 +321,8 @@ class BlockchainService {
     }
   }
 
-  // Switch to correct network (Mumbai testnet)
-  async switchToMumbai() {
+  // Switch to correct network (Base Sepolia testnet)
+  async switchToBaseSepolia() {
     try {
       if (!window.ethereum) {
         throw new Error('MetaMask not found')
@@ -330,7 +330,7 @@ class BlockchainService {
       
       await window.ethereum.request({
         method: 'wallet_switchEthereumChain',
-        params: [{ chainId: '0x13881' }], // Mumbai testnet
+        params: [{ chainId: '0x14A34' }], // Base Sepolia testnet
       })
       
       return { success: true }
@@ -341,15 +341,15 @@ class BlockchainService {
           await window.ethereum.request({
             method: 'wallet_addEthereumChain',
             params: [{
-              chainId: '0x13881',
-              chainName: 'Mumbai Testnet',
+              chainId: '0x14A34',
+              chainName: 'Base Sepolia',
               nativeCurrency: {
-                name: 'MATIC',
-                symbol: 'MATIC',
+                name: 'ETH',
+                symbol: 'ETH',
                 decimals: 18
               },
-              rpcUrls: ['https://rpc-mumbai.maticvigil.com/'],
-              blockExplorerUrls: ['https://mumbai.polygonscan.com/']
+              rpcUrls: ['https://sepolia.base.org'],
+              blockExplorerUrls: ['https://sepolia.basescan.org/']
             }]
           })
           return { success: true }
@@ -623,7 +623,7 @@ class BlockchainService {
 
       // Create a JsonRpcProvider for admin operations
       const adminProvider = new ethers.JsonRpcProvider(
-        this.providerUrl || 'https://polygon-rpc.com'
+        this.providerUrl || 'https://sepolia.base.org'
       )
 
       this.adminWallet = new ethers.Wallet(this.adminPrivateKey, adminProvider)
