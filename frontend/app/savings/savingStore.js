@@ -1,101 +1,127 @@
 import { create } from "zustand";
-import blockchainService from '../services/blockchainService';
 
 const useSavingsStore = create((set, get) => ({
-  balance: 0, // Total balance (fiat + crypto in TZS)
-  blockchainBalance: 0, // Crypto balance in TZS
+  balance: 0,
+  blockchainBalance: 0,
   walletAddress: null,
-  walletTokenBalance: { eth: 0, usdt: 0 }, // Live wallet token balances
-  conversionRates: null, // Live conversion rates
-  savingDuration: 30, // Saving duration in days
   depositAmount: "",
   isDepositing: false,
   isBalanceVisible: false,
   isWalletConnected: false,
   isConnectingWallet: false,
-  targetAmount: 13000000, // 13M TZS target
-  transactions: [],
-  networkInfo: null,
+
 
   setBalance: (newBalance) => set({ balance: newBalance }),
   setBlockchainBalance: (blockchainBalance) => set({ blockchainBalance }),
   setWalletAddress: (address) => set({ walletAddress: address }),
-  setWalletTokenBalance: (balance) => set({ walletTokenBalance: balance }),
-  setConversionRates: (rates) => set({ conversionRates: rates }),
-  setSavingDuration: (duration) => set({ savingDuration: duration }),
   setDepositAmount: (amount) => set({ depositAmount: amount }),
   setIsDepositing: (depositing) => set({ isDepositing: depositing }),
   setIsBalanceVisible: (visible) => set({ isBalanceVisible: visible }),
   setIsWalletConnected: (connected) => set({ isWalletConnected: connected }),
   setIsConnectingWallet: (connecting) => set({ isConnectingWallet: connecting }),
-  setTargetAmount: (amount) => set({ targetAmount: amount }),
-  setNetworkInfo: (info) => set({ networkInfo: info }),
+
 
   toggleBalanceVisibility: () => set((state) => ({ isBalanceVisible: !state.isBalanceVisible })),
 
-  // Connect MetaMask wallet with enhanced blockchain service
+  // Connect MetaMask wallet
   connectWallet: async () => {
+    const currentState = get();
+    
+    // If wallet is already connected, return success
+    if (currentState.isWalletConnected && currentState.walletAddress) {
+      return { success: true, address: currentState.walletAddress };
+    }
+
     set({ isConnectingWallet: true });
     try {
-      // Initialize blockchain service
-      await blockchainService.initialize();
-      
-      // Connect to wallet
-      const walletResult = await blockchainService.connectWallet();
-      
-      if (walletResult.success) {
-        // Get wallet balances
-        const walletBalances = await blockchainService.getWalletBalances();
-        const vaultBalance = await blockchainService.getUserVaultBalance();
-        
-        set({ 
-          walletAddress: walletResult.address,
-          isWalletConnected: true,
-          walletTokenBalance: walletBalances
+      if (typeof window.ethereum === 'undefined') {
+        throw new Error('MetaMask is not installed. Please install MetaMask to continue.');
+      }
+
+      let accounts;
+      try {
+        // First try to get existing accounts
+        accounts = await window.ethereum.request({ 
+          method: 'eth_accounts' 
         });
         
-        // Connect wallet with backend
-        const token = localStorage.getItem('token');
-        if (token) {
+        // If no accounts are connected, request connection
+        if (!accounts || accounts.length === 0) {
+          accounts = await window.ethereum.request({ 
+            method: 'eth_requestAccounts' 
+          });
+        }
+      } catch (requestError) {
+        // If the user rejected the request or other error occurred
+        if (requestError.code === 4001) {
+          throw new Error('Connection request was rejected by user.');
+        }
+        throw new Error('Failed to connect to MetaMask. Please try again.');
+      }
+      
+      if (!accounts || accounts.length === 0) {
+        throw new Error('No accounts found. Please unlock MetaMask and try again.');
+      }
+
+      const address = accounts[0];
+      
+      if (!address || typeof address !== 'string' || address.length === 0) {
+        throw new Error('Invalid wallet address received from MetaMask.');
+      }
+      set({ 
+        walletAddress: address, 
+        isWalletConnected: true 
+      });
+      
+      // Connect wallet with backend
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
           const response = await fetch('/api/savings/connect-wallet', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ walletAddress: walletResult.address })
+            body: JSON.stringify({ walletAddress: address })
           });
-          
-          if (response.ok) {
-            const data = await response.json();
-            set({ 
-              walletTokenBalance: data.walletTokenBalance || walletBalances 
-            });
+
+          if (!response.ok) {
+            console.warn('Backend wallet connection failed, but continuing with local connection');
           }
+        } catch (backendError) {
+          console.warn('Backend wallet connection failed:', backendError);
+          // Continue with local connection even if backend fails
         }
-        
-        // Fetch updated balance from backend
-        await get().fetchBalance();
-        
-        return { success: true, address: walletResult.address };
-      } else {
-        throw new Error(walletResult.error || 'Failed to connect wallet');
       }
+      
+      await get().fetchBalance();
+      return { success: true, address };
     } catch (error) {
       console.error('Failed to connect wallet:', error);
-      return { success: false, error: error.message };
+      set({ 
+        walletAddress: null, 
+        isWalletConnected: false 
+      });
+      
+      // Handle specific error types
+      let errorMessage = 'Failed to connect wallet';
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && Object.keys(error).length === 0) {
+        errorMessage = 'MetaMask connection failed. Please ensure MetaMask is unlocked and try again.';
+      }
+      
+      return { success: false, error: errorMessage };
     } finally {
       set({ isConnectingWallet: false });
     }
   },
+</edits>
 
   // Disconnect wallet
   disconnectWallet: async () => {
     try {
-      // Disconnect from blockchain service
-      blockchainService.disconnect();
-      
-      // Disconnect from backend
       const token = localStorage.getItem('token');
       if (token) {
         await fetch('/api/savings/disconnect-wallet', {
@@ -110,17 +136,14 @@ const useSavingsStore = create((set, get) => ({
       set({ 
         walletAddress: null, 
         isWalletConnected: false,
-        blockchainBalance: 0,
-        walletTokenBalance: { eth: 0, usdt: 0 }
+        blockchainBalance: 0
       });
     } catch (error) {
       console.error('Error disconnecting wallet:', error);
-      // Still disconnect locally even if backend call fails
       set({ 
         walletAddress: null, 
         isWalletConnected: false,
-        blockchainBalance: 0,
-        walletTokenBalance: { eth: 0, usdt: 0 }
+        blockchainBalance: 0
       });
     }
   },
@@ -144,9 +167,7 @@ const useSavingsStore = create((set, get) => ({
           balance: data.balance || 0,
           blockchainBalance: data.blockchainBalance || 0,
           walletAddress: data.walletAddress || null,
-          isWalletConnected: Boolean(data.walletAddress),
-          walletTokenBalance: data.walletTokenBalance || { eth: 0, usdt: 0 },
-          conversionRates: data.conversionRates || null
+          isWalletConnected: Boolean(data.walletAddress)
         });
       }
     } catch (error) {
@@ -154,42 +175,8 @@ const useSavingsStore = create((set, get) => ({
     }
   },
 
-  // Fetch live blockchain balance from smart contract
-  fetchLiveBlockchainBalance: async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
-      const response = await fetch('/api/savings/live-balance', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        set({ 
-          blockchainBalance: data.balance || 0,
-          walletAddress: data.walletAddress,
-          isWalletConnected: Boolean(data.walletAddress),
-          walletTokenBalance: data.walletTokenBalance || { eth: 0, usdt: 0 },
-          conversionRates: data.conversionRates || null
-        });
-        
-        // Also refresh total balance
-        await get().fetchBalance();
-        
-        return { success: true, balance: data.balance };
-      }
-    } catch (error) {
-      console.error('Failed to fetch live blockchain balance:', error);
-      return { success: false, error: error.message };
-    }
-  },
-
   // Deposit funds (both fiat via Stripe and crypto via MetaMask)
-  depositFunds: async (amount, method, walletAddress = null) => {
+  depositFunds: async (amount, method) => {
     set({ isDepositing: true });
     try {
       const token = localStorage.getItem('token');
@@ -200,9 +187,8 @@ const useSavingsStore = create((set, get) => ({
         method: method,
       };
 
-      // Add wallet address for crypto deposits
-      if (method === 'crypto' && walletAddress) {
-        payload.walletAddress = walletAddress;
+      if (method === 'crypto' && get().walletAddress) {
+        payload.walletAddress = get().walletAddress;
       }
 
       const response = await fetch('/api/savings/deposit', {
@@ -217,7 +203,6 @@ const useSavingsStore = create((set, get) => ({
       const data = await response.json();
 
       if (response.ok) {
-        // For Stripe payments, return client secret
         if (method === 'stripe' && data.clientSecret) {
           return {
             success: true,
@@ -227,20 +212,17 @@ const useSavingsStore = create((set, get) => ({
           };
         }
         
-        // For crypto payments, return success with transaction info
         if (method === 'crypto') {
-          await get().fetchBalance(); // Refresh balance
+          await get().fetchBalance();
           return {
             success: true,
-            message: data.message,
-            transactionHash: data.transactionHash,
-            conversionRates: data.conversionRates
+            message: data.message
           };
         }
         
         return { success: true, data };
       } else {
-        return { success: false, error: data.message, conversionRates: data.conversionRates };
+        return { success: false, error: data.message };
       }
     } catch (error) {
       console.error('Deposit failed:', error);
@@ -268,7 +250,6 @@ const useSavingsStore = create((set, get) => ({
       const data = await response.json();
 
       if (response.ok) {
-        // Refresh balance after successful payment
         await get().fetchBalance();
         return { success: true, data };
       } else {
@@ -280,163 +261,20 @@ const useSavingsStore = create((set, get) => ({
     }
   },
 
-  getProgress: () => {
-    const state = get();
-    return (state.balance / state.targetAmount) * 100;
-  },
 
-  getMonthlyGrowth: () => {
-    const state = get();
-    const currentMonth = new Date().getMonth();
-    const currentMonthDeposits = state.transactions
-      .filter((t) => {
-        const transactionMonth = new Date(t.date).getMonth();
-        return transactionMonth === currentMonth;
-      })
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-    const previousMonthDeposits = state.transactions
-      .filter((t) => {
-        const transactionMonth = new Date(t.date).getMonth();
-        return transactionMonth === previousMonth;
-      })
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    if (previousMonthDeposits === 0) return 0;
-    return ((currentMonthDeposits - previousMonthDeposits) / previousMonthDeposits) * 100;
-  },
-
-  getLastDeposit: () => {
-    const state = get();
-    return state.transactions[0]?.amount || 0;
-  },
-
-  // Get conversion rates for an amount
-  getConversionRates: async (amount) => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return null;
-
-      const response = await fetch(`/api/savings/conversion-rates?amount=${amount}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        set({ conversionRates: data.conversionRates });
-        return data.conversionRates;
-      }
-    } catch (error) {
-      console.error('Failed to get conversion rates:', error);
-    }
-    return null;
-  },
-
-  // Get network information
-  getNetworkInfo: async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return null;
-
-      const response = await fetch('/api/savings/network-info', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        set({ networkInfo: data.networkInfo });
-        return data.networkInfo;
-      }
-    } catch (error) {
-      console.error('Failed to get network info:', error);
-    }
-    return null;
-  },
-
-  // Deposit USDT to vault using MetaMask
-  depositToVault: async (usdtAmount) => {
-    try {
-      if (!blockchainService.isConnected()) {
-        throw new Error('Wallet not connected');
-      }
-
-      const result = await blockchainService.depositToVault(usdtAmount);
-      
-      if (result.success) {
-        // Refresh balances after successful deposit
-        await get().fetchBalance();
-        await get().fetchLiveBlockchainBalance();
-      }
-      
-      return result;
-    } catch (error) {
-      console.error('Failed to deposit to vault:', error);
-      return { success: false, error: error.message };
-    }
-  },
-
-  // Process crypto payment for booking checkout
-  processCryptoPayment: async (amount, useVaultBalance = false) => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('No authentication token');
-
-      const { walletAddress } = get();
-      if (!walletAddress) throw new Error('No wallet connected');
-
-      const response = await fetch('/api/savings/crypto-payment', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          amount: parseFloat(amount),
-          walletAddress: walletAddress,
-          useVaultBalance: useVaultBalance
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Refresh balance after successful payment
-        await get().fetchBalance();
-        return { success: true, ...data };
-      } else {
-        return { success: false, error: data.message };
-      }
-    } catch (error) {
-      console.error('Crypto payment failed:', error);
-      return { success: false, error: error.message };
-    }
-  },
 
   // Reset store
   reset: () => {
-    blockchainService.disconnect();
     set({
       balance: 0,
       blockchainBalance: 0,
       walletAddress: null,
-      walletTokenBalance: { eth: 0, usdt: 0 },
-      conversionRates: null,
-      savingDuration: 30,
       depositAmount: "",
       isDepositing: false,
       isBalanceVisible: false,
       isWalletConnected: false,
       isConnectingWallet: false,
-      targetAmount: 13000000,
-      transactions: [],
-      networkInfo: null
+
     });
   }
 }));
