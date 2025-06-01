@@ -117,7 +117,6 @@ const useSavingsStore = create((set, get) => ({
       set({ isConnectingWallet: false });
     }
   },
-</edits>
 
   // Disconnect wallet
   disconnectWallet: async () => {
