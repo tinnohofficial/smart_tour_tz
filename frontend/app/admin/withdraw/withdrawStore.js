@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { blockchainService } from '@/app/services/blockchainService'
+import blockchainService from '@/app/services/blockchainService'
 
 export const useWithdrawStore = create((set, get) => ({
   // State
@@ -36,7 +36,12 @@ export const useWithdrawStore = create((set, get) => ({
       setError(null)
       
       // Initialize blockchain service
-      await blockchainService.initialize()
+      const serviceInit = await blockchainService.initialize()
+      if (!serviceInit) {
+        setError("Failed to initialize blockchain service. Please check your network connection and contract addresses.")
+        setBalanceLoading(false)
+        return
+      }
       
       // Initialize admin
       const adminInit = await blockchainService.initializeAdmin()
@@ -45,13 +50,15 @@ export const useWithdrawStore = create((set, get) => ({
       if (adminInit) {
         // Fetch vault balance
         const balance = await blockchainService.getVaultTotalBalance()
-        setVaultBalance(balance)
+        setVaultBalance(balance || '0')
       } else {
         setError("Admin not properly configured. Please check your admin private key in environment variables.")
+        setVaultBalance('0')
       }
     } catch (err) {
       console.error("Error initializing:", err)
       setError(`Failed to initialize: ${err.message}`)
+      setVaultBalance('0')
     } finally {
       setBalanceLoading(false)
     }
@@ -63,10 +70,11 @@ export const useWithdrawStore = create((set, get) => ({
     
     try {
       const balance = await blockchainService.getVaultTotalBalance()
-      setVaultBalance(balance)
+      setVaultBalance(balance || '0')
     } catch (err) {
       console.error("Error refreshing balance:", err)
       setError(`Failed to refresh balance: ${err.message}`)
+      setVaultBalance('0')
     }
   },
 

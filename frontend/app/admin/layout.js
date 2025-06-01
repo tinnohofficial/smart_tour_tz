@@ -1,22 +1,35 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
-import { LayoutDashboard, Users, MapPin, Activity, Calendar, LogOut, Menu, Lock, Wallet } from "lucide-react"
-import { publishAuthChange } from "@/components/Navbar"
-import { useLayoutStore } from "@/app/store/layoutStore"
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  LayoutDashboard,
+  Users,
+  MapPin,
+  Activity,
+  Calendar,
+  LogOut,
+  Menu,
+  Lock,
+  Wallet,
+} from "lucide-react";
+import { publishAuthChange } from "@/components/Navbar";
+import { useLayoutStore } from "@/app/store/layoutStore";
 
-import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { cn } from "@/lib/utils"
-import { RouteProtection } from "@/components/route-protection"
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
+import { RouteProtection } from "@/components/route-protection";
 
 export default function AdminLayout({ children }) {
-  const pathname = usePathname()
-  const router = useRouter()
+  const pathname = usePathname();
+  const router = useRouter();
   // Use the shared layout store
-  const { isSidebarOpen: isMobileSidebarOpen, setIsSidebarOpen: setMobileSidebarOpen } = useLayoutStore()
+  const {
+    isSidebarOpen: isMobileSidebarOpen,
+    setIsSidebarOpen: setMobileSidebarOpen,
+  } = useLayoutStore();
 
   const routes = [
     {
@@ -50,43 +63,45 @@ export default function AdminLayout({ children }) {
       active: pathname === "/admin/assignments",
     },
     {
-      label: "Change Password",
-      icon: Lock,
-      href: "/admin/password",
-      active: pathname === "/admin/password",
-    },
-    {
       label: "Withdraw Funds",
       icon: Wallet,
       href: "/admin/withdraw",
       active: pathname === "/admin/withdraw",
     },
-  ]
+    {
+      label: "Change Password",
+      icon: Lock,
+      href: "/admin/password",
+      active: pathname === "/admin/password",
+    },
+  ];
 
   // Helper function to close the sidebar, using the store's action
-  const closeMobileSidebar = () => setMobileSidebarOpen(false)
-  
+  const closeMobileSidebar = () => setMobileSidebarOpen(false);
+
   const handleLogout = () => {
     // Clear authentication data
-    localStorage.removeItem('token')
-    localStorage.removeItem('userData')
-    
+    localStorage.removeItem("token");
+    localStorage.removeItem("userData");
+
     // Notify navbar about auth state change
-    publishAuthChange() 
-    
+    publishAuthChange();
+
     // Navigate to login page immediately
-    router.push('/login')
-  }
+    router.push("/login");
+  };
 
   // Use RouteProtection to protect the entire admin layout
   return (
-    <RouteProtection allowedRoles={['admin']}>
+    <RouteProtection allowedRoles={["admin"]}>
       <div className="fixed inset-0 h-screen w-screen">
         {/* --- Desktop Sidebar --- */}
         <div className="hidden h-full md:flex md:w-72 md:flex-col md:fixed md:inset-y-0 z-[80] bg-amber-900">
           <div className="h-20 flex items-center justify-center border-b border-amber-800">
             <Link href="/admin/dashboard" className="flex items-center">
-              <h1 className="text-2xl font-bold text-white">Smart Tour Admin</h1>
+              <h1 className="text-2xl font-bold text-white">
+                Smart Tour Admin
+              </h1>
             </Link>
           </div>
           <ScrollArea className="flex flex-col flex-grow p-4">
@@ -101,7 +116,12 @@ export default function AdminLayout({ children }) {
                   )}
                 >
                   <div className="flex items-center flex-1">
-                    <route.icon className={cn("h-5 w-5 mr-3", route.active ? "text-white" : "text-amber-200")} />
+                    <route.icon
+                      className={cn(
+                        "h-5 w-5 mr-3",
+                        route.active ? "text-white" : "text-amber-200",
+                      )}
+                    />
                     {route.label}
                   </div>
                 </Link>
@@ -109,8 +129,8 @@ export default function AdminLayout({ children }) {
             </div>
           </ScrollArea>
           <div className="p-4 border-t border-amber-800">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               className="w-full justify-start text-amber-200 hover:text-white hover:bg-amber-800/50"
               onClick={handleLogout}
             >
@@ -125,7 +145,10 @@ export default function AdminLayout({ children }) {
           {/* --- Mobile Header / Trigger --- */}
           <div className="flex items-center bg-white p-4 md:hidden border-b">
             {/* Use Zustand state and action for the Sheet */}
-            <Sheet open={isMobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
+            <Sheet
+              open={isMobileSidebarOpen}
+              onOpenChange={setMobileSidebarOpen}
+            >
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="md:hidden">
                   <Menu />
@@ -135,8 +158,14 @@ export default function AdminLayout({ children }) {
               <SheetContent side="left" className="p-0 bg-amber-900">
                 <div className="h-20 flex items-center justify-center border-b border-amber-800">
                   {/* Close sidebar on link click */}
-                  <Link href="/admin/dashboard" className="flex items-center" onClick={closeMobileSidebar}>
-                    <h1 className="text-2xl font-bold text-white">Smart Tour Admin</h1>
+                  <Link
+                    href="/admin/dashboard"
+                    className="flex items-center"
+                    onClick={closeMobileSidebar}
+                  >
+                    <h1 className="text-2xl font-bold text-white">
+                      Smart Tour Admin
+                    </h1>
                   </Link>
                 </div>
                 <ScrollArea className="flex flex-col flex-grow p-4">
@@ -148,11 +177,18 @@ export default function AdminLayout({ children }) {
                         onClick={closeMobileSidebar} // Close sidebar on link click
                         className={cn(
                           "text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-amber-800/50 rounded-lg transition",
-                          route.active ? "text-white bg-amber-800" : "text-amber-200",
+                          route.active
+                            ? "text-white bg-amber-800"
+                            : "text-amber-200",
                         )}
                       >
                         <div className="flex items-center flex-1">
-                          <route.icon className={cn("h-5 w-5 mr-3", route.active ? "text-white" : "text-amber-200")} />
+                          <route.icon
+                            className={cn(
+                              "h-5 w-5 mr-3",
+                              route.active ? "text-white" : "text-amber-200",
+                            )}
+                          />
                           {route.label}
                         </div>
                       </Link>
@@ -178,5 +214,5 @@ export default function AdminLayout({ children }) {
         </div>
       </div>
     </RouteProtection>
-  )
+  );
 }

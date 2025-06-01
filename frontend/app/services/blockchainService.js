@@ -41,28 +41,48 @@ class BlockchainService {
   // Initialize the service
   async initialize() {
     try {
-      if (typeof window !== 'undefined' && window.ethereum) {
-        this.provider = new ethers.BrowserProvider(window.ethereum)
+      if (typeof window === 'undefined') return false
 
-        if (this.contractAddress) {
-          this.contract = new ethers.Contract(
-            this.contractAddress,
-            SMART_TOUR_VAULT_ABI,
-            this.provider
-          )
-        }
-
-        if (this.tzcAddress) {
-          this.tzcContract = new ethers.Contract(
-            this.tzcAddress,
-            ERC20_ABI,
-            this.provider
-          )
-        }
-
-        return true
+      // Validate environment variables
+      if (!this.providerUrl) {
+        console.warn('Blockchain provider URL not configured')
+        return false
       }
-      return false
+
+      if (!this.contractAddress || !ethers.isAddress(this.contractAddress)) {
+        console.warn('Invalid or missing Smart Tour Vault contract address')
+        return false
+      }
+
+      if (!this.tzcAddress || !ethers.isAddress(this.tzcAddress)) {
+        console.warn('Invalid or missing TZC contract address')
+        return false
+      }
+
+      this.provider = new ethers.JsonRpcProvider(this.providerUrl)
+
+      // Test provider connection
+      try {
+        await this.provider.getNetwork()
+      } catch (providerError) {
+        console.warn('Failed to connect to blockchain provider:', providerError.message)
+        return false
+      }
+
+      // Initialize contracts
+      this.contract = new ethers.Contract(
+        this.contractAddress,
+        SMART_TOUR_VAULT_ABI,
+        this.provider
+      )
+
+      this.tzcContract = new ethers.Contract(
+        this.tzcAddress,
+        ERC20_ABI,
+        this.provider
+      )
+
+      return true
     } catch (error) {
       console.error('Error initializing blockchain service:', error)
       return false
@@ -675,22 +695,45 @@ class BlockchainService {
 
   async getVaultTotalBalance() {
     try {
+      // Initialize contracts if not already done
       if (!this.tzcContract) {
-        throw new Error('TZC contract not initialized')
+        await this.initialize()
+      }
+
+      if (!this.tzcContract) {
+        console.warn('TZC contract not available')
+        return '0'
       }
 
       if (!this.contractAddress) {
-        throw new Error('Vault contract address not found')
+        console.warn('Vault contract address not found')
+        return '0'
       }
 
-      // Get the vault's TZC balance
-      const balance = await this.tzcContract.balanceOf(this.contractAddress)
-      
-      // Convert from wei to TZC
-      return ethers.formatUnits(balance, 18)
+      // Validate contract address format
+      if (!ethers.isAddress(this.contractAddress)) {
+        console.warn('Invalid vault contract address format')
+        return '0'
+      }
+
+      if (!ethers.isAddress(this.tzcAddress)) {
+        console.warn('Invalid TZC contract address format')
+        return '0'
+      }
+
+      try {
+        // Get the vault's TZC balance
+        const balance = await this.tzcContract.balanceOf(this.contractAddress)
+        
+        // Convert from wei to TZC
+        return ethers.formatUnits(balance, 18)
+      } catch (contractError) {
+        console.warn('Contract call failed, returning 0 balance:', contractError.message)
+        return '0'
+      }
     } catch (error) {
       console.error('Error getting vault total balance:', error)
-      throw new Error(`Failed to get vault balance: ${error.message}`)
+      return '0'
     }
   }
 }

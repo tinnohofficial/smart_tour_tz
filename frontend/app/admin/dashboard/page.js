@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Users, MapPin, Activity, Calendar, AlertTriangle, Wallet } from "lucide-react"
 import Link from "next/link"
 import { applicationsService, destinationsService, activitiesService, bookingsService } from "@/app/services/api"
-import { blockchainService } from "@/app/services/blockchainService"
+import blockchainService from "@/app/services/blockchainService"
 
 const useAdminDashboardStore = create((set) => ({
   // Initial State
@@ -41,9 +41,12 @@ const useAdminDashboardStore = create((set) => ({
         if (adminInit) {
           const balance = await blockchainService.getVaultTotalBalance();
           vaultBalance = parseFloat(balance) || 0;
+        } else {
+          console.warn("Admin not initialized, skipping vault balance");
         }
       } catch (vaultError) {
         console.warn("Could not fetch vault balance:", vaultError);
+        vaultBalance = 0;
       }
 
       // Fetch data in parallel
