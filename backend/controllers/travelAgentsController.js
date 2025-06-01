@@ -173,9 +173,16 @@ exports.getAgency = async (req, res) => {
 
     const agency = rows[0];
 
-    // Get routes for this agency
+    // Get routes for this agency with origin and destination names
     const [routes] = await db.query(
-      "SELECT * FROM transports WHERE agency_id = ?",
+      `SELECT 
+        t.*,
+        origin.name as origin_name,
+        d.name as destination_name
+      FROM transports t
+      LEFT JOIN transport_origins origin ON t.origin_id = origin.id
+      LEFT JOIN destinations d ON t.destination_id = d.id
+      WHERE t.agency_id = ?`,
       [agencyId],
     );
 

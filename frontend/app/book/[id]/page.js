@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useCallback, useEffect, use } from "react";
+import React, { useMemo, useCallback, useEffect, use, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -80,6 +80,9 @@ function BookLocation({ params }) {
   // Get savings store (simplified)
   const { balance } = useSavingsStore();
 
+  // Wallet state management
+  const [isWalletConnected, setIsWalletConnected] = useState(false);
+  const [walletAddress, setWalletAddress] = useState("");
 
   // Get state and actions from Zustand store
   const {
@@ -160,6 +163,38 @@ function BookLocation({ params }) {
   }, [prevStep]);
 
 
+
+  // Handle wallet disconnection
+  const handleWalletDisconnect = useCallback(() => {
+    try {
+      blockchainService.disconnect();
+      setIsWalletConnected(false);
+      setWalletAddress("");
+      toast.success("Wallet disconnected");
+    } catch (error) {
+      console.error("Error disconnecting wallet:", error);
+      toast.error("Error disconnecting wallet");
+    }
+  }, []);
+
+  // Check wallet connection status on component mount
+  useEffect(() => {
+    const checkWalletConnection = async () => {
+      const connected = blockchainService.isConnected();
+      setIsWalletConnected(connected);
+      
+      if (connected) {
+        try {
+          const address = await blockchainService.getConnectedAddress();
+          setWalletAddress(address || "");
+        } catch (error) {
+          console.error("Error getting wallet address:", error);
+        }
+      }
+    };
+    
+    checkWalletConnection();
+  }, []);
 
   // Fetch destination data when component mounts
   useEffect(() => {
@@ -304,6 +339,15 @@ function BookLocation({ params }) {
         if (!connectResult.success) {
           toast.error("Please connect your wallet for crypto payments");
           return;
+        } else {
+          // Update wallet state after successful connection
+          setIsWalletConnected(true);
+          try {
+            const address = await blockchainService.getConnectedAddress();
+            setWalletAddress(address || "");
+          } catch (error) {
+            console.error("Error getting wallet address after connection:", error);
+          }
         }
       }
     }
@@ -1964,8 +2008,21 @@ function BookLocation({ params }) {
                     Connect your MetaMask wallet to pay with cryptocurrency
                   </p>
                   <Button
-                    onClick={() => {
-                      toast.info("Crypto payment functionality simplified");
+                    onClick={async () => {
+                      try {
+                        const connectResult = await blockchainService.connectWallet();
+                        if (connectResult.success) {
+                          setIsWalletConnected(true);
+                          const address = await blockchainService.getConnectedAddress();
+                          setWalletAddress(address || "");
+                          toast.success("Wallet connected successfully");
+                        } else {
+                          toast.error("Failed to connect wallet");
+                        }
+                      } catch (error) {
+                        console.error("Error connecting wallet:", error);
+                        toast.error("Error connecting wallet");
+                      }
                     }}
                     disabled={false}
                     className="text-white bg-amber-700 hover:bg-amber-800"
@@ -1983,9 +2040,20 @@ function BookLocation({ params }) {
                   </div>
 
                   <div className="mt-4">
-                    <Label htmlFor="cryptoWallet">
-                      Connected Wallet Address
-                    </Label>
+                    <div className="flex justify-between items-center mb-2">
+                      <Label htmlFor="cryptoWallet">
+                        Connected Wallet Address
+                      </Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleWalletDisconnect}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        Disconnect
+                      </Button>
+                    </div>
                     <div className="mt-1">
                       <Input
                         id="cryptoWallet"
