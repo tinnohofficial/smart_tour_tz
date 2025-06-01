@@ -44,9 +44,6 @@ importers:
       sharp:
         specifier: ^0.34.2
         version: 0.34.2
-      stripe:
-        specifier: ^18.1.1
-        version: 18.1.1(@types/node@22.7.5)
 
 packages:
 
@@ -668,15 +665,6 @@ packages:
 
   string_decoder@1.1.1:
     resolution: {integrity: sha512-n/ShnvDi6FHbbVfviro+WojiFzv+s8MPMHBczVePfUpDJLwoLT0ht1l4YwBCbi8pJAveEEdnkHyPyTP/mzRfwg==}
-
-  stripe@18.1.1:
-    resolution: {integrity: sha512-hlF0ripc2nJrihpsJZQDl3xirS7tpdpS7DlmSNLEDRW8j7Qr215y5DHOI3+aEY/lq6PG8y4GR1RZPtEoIoAs/g==}
-    engines: {node: '>=12.*'}
-    peerDependencies:
-      '@types/node': '>=12.x.x'
-    peerDependenciesMeta:
-      '@types/node':
-        optional: true
 
   toidentifier@1.0.1:
     resolution: {integrity: sha512-o5sSPKEkg/DIQNmH43V0/uerLrpzVedkUh8tGNvaeXpfpuwjKenlSox/2O/BTlZUtEe+JG7s5YhEz608PlAHRA==}
@@ -1390,12 +1378,6 @@ snapshots:
   string_decoder@1.1.1:
     dependencies:
       safe-buffer: 5.1.2
-
-  stripe@18.1.1(@types/node@22.7.5):
-    dependencies:
-      qs: 6.14.0
-    optionalDependencies:
-      '@types/node': 22.7.5
 
   toidentifier@1.0.1: {}
 
