@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const authController = require("../controllers/authController");
+const usersController = require("../controllers/usersController");
 const authenticateToken = require("../middleware/authenticateToken");
 const checkRole = require("../middleware/checkRole");
 const { body } = require("express-validator");
@@ -32,20 +32,20 @@ validateRegistration = [
     .withMessage("Invalid role selected for registration"),
 ];
 
-router.post("/register", validateRegistration, authController.register);
-router.post("/login", authController.login);
+router.post("/register", validateRegistration, usersController.register);
+router.post("/login", usersController.login);
 
 // F4.1: Update password - migrated from users controller
-router.put("/password", authenticateToken, authController.updatePassword);
+router.put("/password", authenticateToken, usersController.updatePassword);
 
 // F4.2: Update email
-router.put("/email", authenticateToken, authController.updateEmail);
+router.put("/email", authenticateToken, usersController.updateEmail);
 
 // F4.3: Update phone number
-router.put("/update-phone", authenticateToken, authController.updatePhone);
+router.put("/update-phone", authenticateToken, usersController.updatePhone);
 
 // Balance management routes (for tourists only)
-router.get("/balance", authenticateToken, checkRole("tourist"), authController.getBalance);
-router.put("/balance", authenticateToken, checkRole("tourist"), authController.updateBalance);
+router.get("/balance", authenticateToken, checkRole("tourist"), usersController.getBalance);
+router.put("/balance", authenticateToken, checkRole("tourist"), usersController.updateBalance);
 
 module.exports = router;

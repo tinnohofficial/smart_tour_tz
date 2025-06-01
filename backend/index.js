@@ -6,7 +6,7 @@ const path = require("path");
 const app = express();
 const { runSchema } = require("./config/setupDb");
 const router = express.Router();
-const authRouter = require("./routes/authRouter");
+const usersRouter = require("./routes/usersRouter");
 const destinationsRouter = require("./routes/destinationsRouter");
 const hotelsRouter = require("./routes/hotelsRouter");
 const travelAgentsRouter = require("./routes/travelAgentsRouter");
@@ -23,12 +23,12 @@ const uploadRouter = require("./routes/uploadRouter");
 const PORT = process.env.PORT;
 
 // Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, 'uploads');
+const uploadsDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
   // Create a .gitkeep file to ensure the directory is tracked in git
-  fs.writeFileSync(path.join(uploadsDir, '.gitkeep'), '');
-  console.log('Created uploads directory');
+  fs.writeFileSync(path.join(uploadsDir, ".gitkeep"), "");
+  console.log("Created uploads directory");
 }
 
 // Middleware
@@ -37,12 +37,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Serve static files (uploads)
-app.use('/uploads', express.static('uploads'));
+app.use("/uploads", express.static("uploads"));
 
 router.get("/", (req, res) => {
   res.send("Welcome to the Smart Tour backend!");
 });
-router.use("/auth", authRouter);
+router.use("/users", usersRouter);
 router.use("/destinations", destinationsRouter);
 router.use("/hotels", hotelsRouter);
 router.use("/travel-agents", travelAgentsRouter);
@@ -72,4 +72,3 @@ async function startServer() {
 }
 
 startServer();
-
