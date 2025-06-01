@@ -33,7 +33,7 @@ import {
 } from "@stripe/react-stripe-js";
 
 const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "pk_test_placeholder"
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "pk_test_placeholder",
 );
 
 const cardElementOptions = {
@@ -73,16 +73,17 @@ function StripeCheckoutForm({ amount, onSuccess, onError }) {
     try {
       // Convert TZS to USD (1 USD = 2300 TZS)
       const amountInUsd = Math.round((amount / 2300) * 100) / 100;
-      
-      if (amountInUsd < 0.50) {
+
+      if (amountInUsd < 0.5) {
         throw new Error("Minimum amount for card payments is 1,150 TZS");
       }
 
       // Create payment intent directly with Stripe
-      const { error: intentError, paymentIntent } = await stripe.createPaymentMethod({
-        type: 'card',
-        card: cardElement,
-      });
+      const { error: intentError, paymentIntent } =
+        await stripe.createPaymentMethod({
+          type: "card",
+          card: cardElement,
+        });
 
       if (intentError) {
         throw new Error(intentError.message);
@@ -90,9 +91,9 @@ function StripeCheckoutForm({ amount, onSuccess, onError }) {
 
       // For this implementation, we'll simulate a successful payment
       // In a real scenario, you'd create the payment intent on your own server
-      
+
       // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // Record the payment in our database
       await recordFiatDeposit(amount);
@@ -100,9 +101,8 @@ function StripeCheckoutForm({ amount, onSuccess, onError }) {
       onSuccess({
         amount: amount,
         paymentMethodId: paymentIntent?.id || `pm_${Date.now()}`,
-        currency: 'TZS'
+        currency: "TZS",
       });
-
     } catch (error) {
       console.error("Payment failed:", error);
       setCardError(error.message);
@@ -114,14 +114,14 @@ function StripeCheckoutForm({ amount, onSuccess, onError }) {
 
   const recordFiatDeposit = async (amount) => {
     const token = localStorage.getItem("token");
-    const response = await fetch("/api/auth/balance", {
+    const response = await fetch("/api/users/balance", {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        balance: amount
+        balance: amount,
       }),
     });
 
@@ -142,7 +142,7 @@ function StripeCheckoutForm({ amount, onSuccess, onError }) {
         </div>
         <p className="text-2xl font-bold text-blue-900">{formatTZS(amount)}</p>
         <p className="text-sm text-blue-700">
-          Secure payment processing (≈ ${((amount / 2300).toFixed(2))} USD)
+          Secure payment processing (≈ ${(amount / 2300).toFixed(2)} USD)
         </p>
       </div>
 
@@ -156,9 +156,7 @@ function StripeCheckoutForm({ amount, onSuccess, onError }) {
             }}
           />
         </div>
-        {cardError && (
-          <p className="text-sm text-red-600">{cardError}</p>
-        )}
+        {cardError && <p className="text-sm text-red-600">{cardError}</p>}
       </div>
 
       <Button
@@ -213,8 +211,8 @@ export default function Savings() {
     if (userData) {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
-      
-      if (parsedUser.role === 'tourist') {
+
+      if (parsedUser.role === "tourist") {
         fetchBalance();
       }
     }
@@ -222,7 +220,7 @@ export default function Savings() {
 
   const handleStripeSuccess = async (paymentResult) => {
     toast.success(
-      `Successfully saved ${formatTZS(paymentResult.amount)} to your account!`
+      `Successfully saved ${formatTZS(paymentResult.amount)} to your account!`,
     );
     setDialogOpen(false);
     setDepositAmount("");
@@ -251,7 +249,9 @@ export default function Savings() {
       setDialogOpen(false);
       setDepositAmount("");
     } else {
-      toast.error(result.error || "Failed to process crypto deposit. Please try again.");
+      toast.error(
+        result.error || "Failed to process crypto deposit. Please try again.",
+      );
     }
   };
 
@@ -266,7 +266,7 @@ export default function Savings() {
     } else {
       if (result.error.includes("MetaMask is not installed")) {
         toast.error(
-          "❌ MetaMask not found. Please install MetaMask extension first."
+          "❌ MetaMask not found. Please install MetaMask extension first.",
         );
       } else if (result.error.includes("No accounts found")) {
         toast.error("🔒 Please unlock your MetaMask wallet and try again.");
@@ -285,12 +285,16 @@ export default function Savings() {
 
   const fiatBalance = balance - blockchainBalance;
 
-  if (!user || user.role !== 'tourist') {
+  if (!user || user.role !== "tourist") {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
-          <p className="text-gray-600">Only tourists can access the savings feature.</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            Access Denied
+          </h1>
+          <p className="text-gray-600">
+            Only tourists can access the savings feature.
+          </p>
         </div>
       </div>
     );
@@ -403,8 +407,8 @@ export default function Savings() {
             <DialogHeader>
               <DialogTitle>Add Money to Savings</DialogTitle>
               <DialogDescription>
-                Select your preferred method to add money to your travel
-                savings account.
+                Select your preferred method to add money to your travel savings
+                account.
               </DialogDescription>
             </DialogHeader>
 
@@ -424,11 +428,16 @@ export default function Savings() {
                   max="25000000"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Card payments: Min 1,150 TZS | Crypto: Min 1 TZS | Max: 25,000,000 TZS
+                  Card payments: Min 1,150 TZS | Crypto: Min 1 TZS | Max:
+                  25,000,000 TZS
                 </p>
               </div>
 
-              <Tabs value={activePaymentMethod} onValueChange={setActivePaymentMethod} className="w-full">
+              <Tabs
+                value={activePaymentMethod}
+                onValueChange={setActivePaymentMethod}
+                className="w-full"
+              >
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="stripe">
                     <CreditCard className="h-4 w-4 mr-2" />
@@ -441,7 +450,9 @@ export default function Savings() {
                 </TabsList>
 
                 <TabsContent value="stripe" className="space-y-4">
-                  {depositAmount && !isNaN(Number(depositAmount)) && Number(depositAmount) >= 1150 ? (
+                  {depositAmount &&
+                  !isNaN(Number(depositAmount)) &&
+                  Number(depositAmount) >= 1150 ? (
                     <Elements stripe={stripePromise}>
                       <StripeCheckoutForm
                         amount={Number(depositAmount)}
@@ -472,7 +483,9 @@ export default function Savings() {
                         disabled={isConnectingWallet || isWalletConnected}
                         className="bg-orange-600 hover:bg-orange-700"
                       >
-                        {isConnectingWallet ? "Connecting..." : "Connect Wallet"}
+                        {isConnectingWallet
+                          ? "Connecting..."
+                          : "Connect Wallet"}
                       </Button>
                     </div>
                   ) : (
@@ -493,13 +506,14 @@ export default function Savings() {
                           Disconnect
                         </Button>
                       </div>
-                      
+
                       <div className="p-4 bg-amber-50 rounded-lg">
                         <p className="text-sm text-amber-800 font-medium">
                           Crypto Deposit Instructions
                         </p>
                         <p className="text-sm text-amber-700 mt-1">
-                          Send USDC to your connected wallet, then click the button below to process the deposit.
+                          Send USDC to your connected wallet, then click the
+                          button below to process the deposit.
                         </p>
                       </div>
 
@@ -508,7 +522,9 @@ export default function Savings() {
                         className="w-full bg-green-600 hover:bg-green-700"
                         disabled={isDepositing || !depositAmount}
                       >
-                        {isDepositing ? "Processing..." : "Process Crypto Deposit"}
+                        {isDepositing
+                          ? "Processing..."
+                          : "Process Crypto Deposit"}
                       </Button>
                     </>
                   )}

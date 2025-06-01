@@ -9,38 +9,42 @@ const useSavingsStore = create((set, get) => ({
   setIsBalanceVisible: (visible) => set({ isBalanceVisible: visible }),
   setIsLoading: (loading) => set({ isLoading: loading }),
 
-  toggleBalanceVisibility: () => set((state) => ({ isBalanceVisible: !state.isBalanceVisible })),
+  toggleBalanceVisibility: () =>
+    set((state) => ({ isBalanceVisible: !state.isBalanceVisible })),
 
   // Fetch balance from user API
   fetchBalance: async () => {
     set({ isLoading: true });
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       if (!token) {
-        console.warn('No authentication token found');
+        console.warn("No authentication token found");
         return;
       }
 
-      const response = await fetch('/api/auth/balance', {
+      const response = await fetch("/api/users/balance", {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
       if (response.ok) {
         const data = await response.json();
-        set({ 
-          balance: parseFloat(data.balance) || 0
+        set({
+          balance: parseFloat(data.balance) || 0,
         });
       } else {
-        console.error('Failed to fetch balance - server response:', response.status);
+        console.error(
+          "Failed to fetch balance - server response:",
+          response.status,
+        );
         if (response.status === 401) {
-          localStorage.removeItem('token');
+          localStorage.removeItem("token");
         }
       }
     } catch (error) {
-      console.error('Failed to fetch balance:', error);
+      console.error("Failed to fetch balance:", error);
     } finally {
       set({ isLoading: false });
     }
@@ -50,16 +54,16 @@ const useSavingsStore = create((set, get) => ({
   updateBalance: async (newBalance) => {
     set({ isLoading: true });
     try {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('No authentication token');
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("No authentication token");
 
-      const response = await fetch('/api/auth/balance', {
-        method: 'PUT',
+      const response = await fetch("/api/users/balance", {
+        method: "PUT",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ balance: parseFloat(newBalance) })
+        body: JSON.stringify({ balance: parseFloat(newBalance) }),
       });
 
       const data = await response.json();
@@ -71,7 +75,7 @@ const useSavingsStore = create((set, get) => ({
         return { success: false, error: data.message };
       }
     } catch (error) {
-      console.error('Update balance failed:', error);
+      console.error("Update balance failed:", error);
       return { success: false, error: error.message };
     } finally {
       set({ isLoading: false });
@@ -82,12 +86,12 @@ const useSavingsStore = create((set, get) => ({
   depositFunds: async (amount, method) => {
     const currentBalance = get().balance;
     const newBalance = currentBalance + parseFloat(amount);
-    
+
     const result = await get().updateBalance(newBalance);
     if (result.success) {
       return {
         success: true,
-        message: `Successfully deposited ${amount} TZS to your account!`
+        message: `Successfully deposited ${amount} TZS to your account!`,
       };
     }
     return result;
@@ -100,7 +104,7 @@ const useSavingsStore = create((set, get) => ({
       isBalanceVisible: false,
       isLoading: false,
     });
-  }
+  },
 }));
 
 export { useSavingsStore };
