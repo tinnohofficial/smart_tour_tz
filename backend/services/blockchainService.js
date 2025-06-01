@@ -3,11 +3,11 @@ const exchangeRateService = require('./exchangeRateService');
 
 // Contract ABI (simplified for the functions we need)
 const SMART_TOUR_VAULT_ABI = [
-  "function deposit(address token, uint256 amount) external",
+  "function deposit(uint256 amount) external",
   "function getUserBalance(address user) external view returns (uint256)",
   "function payFromSavings(address user, uint256 amount) external",
-  "function adminWithdraw(address token, uint256 amount) external",
-  "event Deposit(address indexed user, address indexed token, uint256 amount)",
+  "function adminWithdraw(uint256 amount) external",
+  "event Deposit(address indexed user, uint256 amount)",
   "event PaymentFromSavings(address indexed user, uint256 amount)"
 ];
 
@@ -54,14 +54,14 @@ class BlockchainService {
       this.adminWallet = null;
     }
     
-    // USDT contract address and contract instance
-    this.usdtAddress = process.env.USDT_ADDRESS;
-    if (this.usdtAddress && this.provider) {
-      this.usdtContract = new ethers.Contract(this.usdtAddress, ERC20_ABI, this.provider);
+    // USDC contract address and contract instance
+    this.usdcAddress = process.env.USDC_ADDRESS;
+    if (this.usdcAddress && this.provider) {
+      this.usdcContract = new ethers.Contract(this.usdcAddress, ERC20_ABI, this.provider);
     }
   }
 
-  // Get user's USDT balance from the vault
+  // Get user's USDC balance from the vault
   async getUserBalance(userAddress) {
     try {
       if (!this.contract || !this.contractAddress || !userAddress) {
@@ -69,7 +69,7 @@ class BlockchainService {
       }
       
       const balance = await this.contract.getUserBalance(userAddress);
-      return ethers.formatUnits(balance, 6); // USDT has 6 decimals
+      return ethers.formatUnits(balance, 6); // USDC has 6 decimals
     } catch (error) {
       console.error('Error getting user balance:', error);
       return 0;
@@ -83,7 +83,7 @@ class BlockchainService {
         throw new Error('Admin wallet or contract not configured');
       }
 
-      const amountInWei = ethers.parseUnits(amount.toString(), 6); // USDT has 6 decimals
+      const amountInWei = ethers.parseUnits(amount.toString(), 6); // USDC has 6 decimals
       
       const tx = await this.contract.payFromSavings(userAddress, amountInWei);
       const receipt = await tx.wait();
@@ -139,23 +139,23 @@ class BlockchainService {
     }
   }
 
-  // Convert TZS to USDT using live exchange rate
-  async convertTzsToUsdt(tzsAmount) {
+  // Convert TZS to USDC using live exchange rate
+  async convertTzsToUsdc(tzsAmount) {
     try {
-      return await exchangeRateService.convertTzsToUsdt(tzsAmount);
+      return await exchangeRateService.convertTzsToUsdc(tzsAmount);
     } catch (error) {
-      console.warn('Error converting TZS to USDT:', error.message);
+      console.warn('Error converting TZS to USDC:', error.message);
       return tzsAmount / 2500; // Fallback rate
     }
   }
 
-  // Convert USDT to TZS using live exchange rate  
-  async convertUsdtToTzs(usdtAmount) {
+  // Convert USDC to TZS using live exchange rate  
+  async convertUsdcToTzs(usdcAmount) {
     try {
-      return await exchangeRateService.convertUsdtToTzs(usdtAmount);
+      return await exchangeRateService.convertUsdcToTzs(usdcAmount);
     } catch (error) {
-      console.warn('Error converting USDT to TZS:', error.message);
-      return usdtAmount * 2500; // Fallback rate
+      console.warn('Error converting USDC to TZS:', error.message);
+      return usdcAmount * 2500; // Fallback rate
     }
   }
 
@@ -169,59 +169,57 @@ class BlockchainService {
       return {
         tzs: tzsAmount,
         usd: usdAmount,
-        usdt: usdAmount,
-        eth: usdAmount / 2000,
-        btc: usdAmount / 43000,
-        rates: { USD_TZS: 2500, USD_USDT: 1.0, ETH_USD: 2000, BTC_USD: 43000 }
+        usdc: usdAmount,
+        rates: { USD_TZS: 2500, USD_USDC: 1.0 }
       };
     }
   }
 
-  // Get user's wallet token balance (ETH, USDT, etc.)
+  // Get user's wallet token balance (ETH, USDC, etc.)
   async getWalletTokenBalance(userAddress, tokenAddress = null) {
     try {
       if (!this.provider || !userAddress) {
-        return { eth: 0, usdt: 0 };
+        return { eth: 0, usdc: 0 };
       }
 
       // Get ETH balance
       const ethBalance = await this.provider.getBalance(userAddress);
       const ethFormatted = ethers.formatEther(ethBalance);
 
-      // Get USDT balance
-      let usdtFormatted = 0;
-      if (this.usdtContract && (tokenAddress === this.usdtAddress || !tokenAddress)) {
+      // Get USDC balance
+      let usdcFormatted = 0;
+      if (this.usdcContract && (tokenAddress === this.usdcAddress || !tokenAddress)) {
         try {
-          const usdtBalance = await this.usdtContract.balanceOf(userAddress);
-          usdtFormatted = ethers.formatUnits(usdtBalance, 6); // USDT has 6 decimals
+          const usdcBalance = await this.usdcContract.balanceOf(userAddress);
+          usdcFormatted = ethers.formatUnits(usdcBalance, 6); // USDC has 6 decimals
         } catch (error) {
-          console.warn('Could not fetch USDT balance:', error.message);
+          console.warn('Could not fetch USDC balance:', error.message);
         }
       }
 
       return {
         eth: parseFloat(ethFormatted),
-        usdt: parseFloat(usdtFormatted),
+        usdc: parseFloat(usdcFormatted),
         address: userAddress
       };
     } catch (error) {
       console.error('Error getting wallet token balance:', error);
-      return { eth: 0, usdt: 0, address: userAddress };
+      return { eth: 0, usdc: 0, address: userAddress };
     }
   }
 
   // Check if user has sufficient balance for a transaction
-  async checkSufficientBalance(userAddress, requiredUsdtAmount) {
+  async checkSufficientBalance(userAddress, requiredUsdcAmount) {
     try {
       const vaultBalance = await this.getUserBalance(userAddress);
       const walletBalance = await this.getWalletTokenBalance(userAddress);
       
       return {
         vaultBalance: parseFloat(vaultBalance),
-        walletBalance: walletBalance.usdt,
-        totalBalance: parseFloat(vaultBalance) + walletBalance.usdt,
-        sufficient: (parseFloat(vaultBalance) + walletBalance.usdt) >= requiredUsdtAmount,
-        requiredAmount: requiredUsdtAmount
+        walletBalance: walletBalance.usdc,
+        totalBalance: parseFloat(vaultBalance) + walletBalance.usdc,
+        sufficient: (parseFloat(vaultBalance) + walletBalance.usdc) >= requiredUsdcAmount,
+        requiredAmount: requiredUsdcAmount
       };
     } catch (error) {
       console.error('Error checking sufficient balance:', error);
@@ -230,7 +228,7 @@ class BlockchainService {
         walletBalance: 0,
         totalBalance: 0,
         sufficient: false,
-        requiredAmount: requiredUsdtAmount
+        requiredAmount: requiredUsdcAmount
       };
     }
   }
@@ -277,7 +275,7 @@ class BlockchainService {
     return !!(this.contractAddress && 
               this.contractAddress !== '0x1234567890123456789012345678901234567890' &&
               this.provider && 
-              this.usdtAddress &&
+              this.usdcAddress &&
               this.contract);
   }
 
@@ -305,7 +303,7 @@ class BlockchainService {
         name: network.name,
         blockNumber: blockNumber,
         contractAddress: this.contractAddress,
-        usdtAddress: this.usdtAddress,
+        usdcAddress: this.usdcAddress,
         hasAdminAccess: this.hasAdminAccess()
       };
     } catch (error) {
@@ -321,31 +319,31 @@ class BlockchainService {
         throw new Error('Admin access not configured for automatic payments');
       }
 
-      // Convert TZS to USDT
-      const usdtAmount = await this.convertTzsToUsdt(tzsAmount);
+      // Convert TZS to USDC
+      const usdcAmount = await this.convertTzsToUsdc(tzsAmount);
       
       // Check if user has sufficient balance
-      const balanceCheck = await this.checkSufficientBalance(userAddress, usdtAmount);
+      const balanceCheck = await this.checkSufficientBalance(userAddress, usdcAmount);
       if (!balanceCheck.sufficient) {
         return {
           success: false,
           error: 'Insufficient vault balance',
-          required: usdtAmount,
+          required: usdcAmount,
           available: balanceCheck.vaultBalance
         };
       }
 
       // Execute the payment
-      const result = await this.payFromSavings(userAddress, usdtAmount);
+      const result = await this.payFromSavings(userAddress, usdcAmount);
       
       if (result.success) {
         return {
           success: true,
           transactionHash: result.transactionHash,
           gasUsed: result.gasUsed,
-          amountUSDT: usdtAmount,
+          amountUSDC: usdcAmount,
           amountTZS: tzsAmount,
-          exchangeRate: tzsAmount / usdtAmount
+          exchangeRate: tzsAmount / usdcAmount
         };
       } else {
         return {

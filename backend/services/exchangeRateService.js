@@ -6,9 +6,7 @@ class ExchangeRateService {
     this.apiKey = process.env.EXCHANGE_RATE_API_KEY;
     this.fallbackRates = {
       USD_TZS: 2500,  // 1 USD = 2500 TZS
-      USD_USDT: 1.0,  // 1 USD = 1 USDT (stable)
-      ETH_USD: 2000,  // 1 ETH = 2000 USD (approximate)
-      BTC_USD: 43000  // 1 BTC = 43000 USD (approximate)
+      USD_USDC: 1.0   // 1 USD = 1 USDC (stable)
     };
     this.cache = {};
     this.cacheExpiry = 300000; // 5 minutes
@@ -60,9 +58,7 @@ class ExchangeRateService {
         // Convert to our format
         return {
           USD_TZS: response.data.rates.TZS || this.fallbackRates.USD_TZS,
-          USD_USDT: 1.0, // USDT is pegged to USD
-          ETH_USD: 1 / (response.data.rates.ETH || 0.0005), // Approximate ETH rate
-          BTC_USD: 1 / (response.data.rates.BTC || 0.000023) // Approximate BTC rate
+          USD_USDC: 1.0 // USDC is pegged to USD
         };
       }
       
@@ -77,7 +73,7 @@ class ExchangeRateService {
   async fetchFromCoinGecko() {
     try {
       const cryptoResponse = await axios.get(
-        'https://api.coingecko.com/api/v3/simple/price?ids=ethereum,bitcoin,tether&vs_currencies=usd',
+        'https://api.coingecko.com/api/v3/simple/price?ids=usd-coin&vs_currencies=usd',
         { timeout: 5000 }
       );
 
@@ -91,9 +87,7 @@ class ExchangeRateService {
 
       return {
         USD_TZS: tzsRate,
-        USD_USDT: cryptoResponse.data.tether?.usd || 1.0,
-        ETH_USD: cryptoResponse.data.ethereum?.usd || this.fallbackRates.ETH_USD,
-        BTC_USD: cryptoResponse.data.bitcoin?.usd || this.fallbackRates.BTC_USD
+        USD_USDC: cryptoResponse.data['usd-coin']?.usd || 1.0
       };
     } catch (error) {
       console.warn('CoinGecko API failed:', error.message);
@@ -123,28 +117,28 @@ class ExchangeRateService {
     }
   }
 
-  // Convert TZS to USDT
-  async convertTzsToUsdt(tzsAmount) {
+  // Convert TZS to USDC
+  async convertTzsToUsdc(tzsAmount) {
     try {
       const rates = await this.getLiveRates();
       const usdAmount = tzsAmount / rates.USD_TZS;
-      return usdAmount * rates.USD_USDT;
+      return usdAmount * rates.USD_USDC;
     } catch (error) {
-      console.warn('Error converting TZS to USDT:', error.message);
+      console.warn('Error converting TZS to USDC:', error.message);
       const usdAmount = tzsAmount / this.fallbackRates.USD_TZS;
-      return usdAmount * this.fallbackRates.USD_USDT;
+      return usdAmount * this.fallbackRates.USD_USDC;
     }
   }
 
-  // Convert USDT to TZS
-  async convertUsdtToTzs(usdtAmount) {
+  // Convert USDC to TZS
+  async convertUsdcToTzs(usdcAmount) {
     try {
       const rates = await this.getLiveRates();
-      const usdAmount = usdtAmount / rates.USD_USDT;
+      const usdAmount = usdcAmount / rates.USD_USDC;
       return usdAmount * rates.USD_TZS;
     } catch (error) {
-      console.warn('Error converting USDT to TZS:', error.message);
-      const usdAmount = usdtAmount / this.fallbackRates.USD_USDT;
+      console.warn('Error converting USDC to TZS:', error.message);
+      const usdAmount = usdcAmount / this.fallbackRates.USD_USDC;
       return usdAmount * this.fallbackRates.USD_TZS;
     }
   }
@@ -158,9 +152,7 @@ class ExchangeRateService {
       return {
         tzs: tzsAmount,
         usd: usdAmount,
-        usdt: usdAmount * rates.USD_USDT,
-        eth: usdAmount / rates.ETH_USD,
-        btc: usdAmount / rates.BTC_USD,
+        usdc: usdAmount * rates.USD_USDC,
         rates: rates
       };
     } catch (error) {
@@ -170,9 +162,7 @@ class ExchangeRateService {
       return {
         tzs: tzsAmount,
         usd: usdAmount,
-        usdt: usdAmount * this.fallbackRates.USD_USDT,
-        eth: usdAmount / this.fallbackRates.ETH_USD,
-        btc: usdAmount / this.fallbackRates.BTC_USD,
+        usdc: usdAmount * this.fallbackRates.USD_USDC,
         rates: this.fallbackRates
       };
     }

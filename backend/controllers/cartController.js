@@ -1,5 +1,4 @@
 const db = require("../config/db");
-const blockchainService = require("../services/blockchainService");
 
 /**
  * Helper function to safely parse JSON fields in objects
@@ -484,13 +483,13 @@ exports.checkoutCart = async (req, res) => {
 
       // Get user's savings balance
       const [savingsRows] = await connection.query(
-        "SELECT balance, blockchain_balance FROM savings_accounts WHERE user_id = ?",
+        "SELECT balance FROM savings_accounts WHERE user_id = ?",
         [userId]
       );
 
       let userBalance = 0;
       if (savingsRows.length > 0) {
-        userBalance = parseFloat(savingsRows[0].balance) + parseFloat(savingsRows[0].blockchain_balance);
+        userBalance = parseFloat(savingsRows[0].balance);
       }
 
       let paymentReference = '';
@@ -508,104 +507,28 @@ exports.checkoutCart = async (req, res) => {
           });
         }
 
-        // Deduct from savings (prioritize fiat balance first)
-        let remaining = paymentAmount;
-        let fiatDeduction = 0;
-        let cryptoDeduction = 0;
-
+        // Deduct from savings
         if (savingsRows.length > 0) {
-          const fiatBalance = parseFloat(savingsRows[0].balance);
-          const cryptoBalance = parseFloat(savingsRows[0].blockchain_balance);
-
-          if (fiatBalance >= remaining) {
-            fiatDeduction = remaining;
-            remaining = 0;
-          } else {
-            fiatDeduction = fiatBalance;
-            remaining -= fiatBalance;
-            cryptoDeduction = remaining;
-          }
-
           await connection.query(
-            "UPDATE savings_accounts SET balance = balance - ?, blockchain_balance = blockchain_balance - ? WHERE user_id = ?",
-            [fiatDeduction, cryptoDeduction, userId]
+            "UPDATE savings_accounts SET balance = balance - ? WHERE user_id = ?",
+            [paymentAmount, userId]
           );
         }
 
         paymentReference = `SAVINGS_${Date.now()}`;
 
       } else if (paymentMethod === 'crypto') {
-        // Enhanced crypto payment processing with automatic payment support
+        // Simple crypto payment processing
         const walletAddress = req.body.walletAddress;
-        const useVaultBalance = req.body.useVaultBalance || false;
-        
+
         if (!walletAddress) {
           await connection.rollback();
           connection.release();
-          return res.status(400).json({ message: "Wallet address required for crypto payment" });
+          return res.status(400).json({ message: "Wallet address is required for crypto payments" });
         }
 
-        // Update user's wallet address if not already set
-        await connection.query(
-          "UPDATE users SET wallet_address = ? WHERE id = ? AND wallet_address IS NULL",
-          [walletAddress, userId]
-        );
-
-        try {
-          let cryptoPaymentResult;
-          
-          if (useVaultBalance) {
-            // Use vault balance for automatic payment
-            cryptoPaymentResult = await blockchainService.processAutomaticPayment(
-              walletAddress, 
-              paymentAmount
-            );
-            
-            if (!cryptoPaymentResult.success) {
-              await connection.rollback();
-              connection.release();
-              return res.status(400).json({ 
-                message: cryptoPaymentResult.error || "Crypto payment from vault failed",
-                errorDetails: cryptoPaymentResult
-              });
-            }
-            
-            // Update blockchain balance in database
-            await connection.query(
-              "UPDATE savings_accounts SET blockchain_balance = blockchain_balance - ? WHERE user_id = ?",
-              [paymentAmount, userId]
-            );
-            
-            paymentReference = cryptoPaymentResult.transactionHash;
-          } else {
-            // Check for recent deposits (new payment)
-            const blockchainService = require('../services/blockchainService');
-            const expectedUsdtAmount = await blockchainService.convertTzsToUsdt(paymentAmount);
-            const depositCheck = await blockchainService.checkRecentDeposits(
-              walletAddress, 
-              expectedUsdtAmount,
-              600000 // 10 minutes window
-            );
-
-            if (!depositCheck.found) {
-              await connection.rollback();
-              connection.release();
-              return res.status(400).json({ 
-                message: "Crypto payment not found. Please ensure your transaction is confirmed.",
-                expectedAmount: expectedUsdtAmount,
-                currency: 'USDT',
-                walletAddress: walletAddress
-              });
-            }
-            
-            paymentReference = depositCheck.transactionHash;
-          }
-        } catch (cryptoError) {
-          console.error('Crypto payment error:', cryptoError);
-          await connection.rollback();
-          connection.release();
-          return res.status(400).json({ message: "Crypto payment processing failed", error: cryptoError.message });
-        }
+        // Generate simple payment reference
+        paymentReference = `CRYPTO-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
       } else if (paymentMethod === 'stripe') {
         // Stripe payment would be handled here
@@ -617,8 +540,8 @@ exports.checkoutCart = async (req, res) => {
 
       // Create payment record
       await connection.query(
-        `INSERT INTO payments (cart_id, user_id, amount, payment_method, reference, status, currency)
-         VALUES (?, ?, ?, ?, ?, 'successful', 'TZS')`,
+        `INSERT INTO payments (cart_id, user_id, amount, payment_method, reference, status)
+         VALUES (?, ?, ?, ?, ?, 'successful')`,
         [cart.id, userId, paymentAmount, paymentMethod, paymentReference]
       );
 

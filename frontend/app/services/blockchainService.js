@@ -2,10 +2,10 @@ import { ethers } from 'ethers'
 
 // Contract ABI for Smart Tour Vault
 const SMART_TOUR_VAULT_ABI = [
-  "function deposit(address token, uint256 amount) external",
+  "function deposit(uint256 amount) external",
   "function getUserBalance(address user) external view returns (uint256)",
   "function payFromSavings(address user, uint256 amount) external",
-  "event Deposit(address indexed user, address indexed token, uint256 amount)",
+  "event Deposit(address indexed user, uint256 amount)",
   "event PaymentFromSavings(address indexed user, uint256 amount)"
 ]
 
@@ -24,12 +24,12 @@ class BlockchainService {
     this.provider = null
     this.signer = null
     this.contract = null
-    this.usdtContract = null
+    this.usdcContract = null
     this.connected = false
 
     // Contract addresses from environment
     this.contractAddress = process.env.NEXT_PUBLIC_SMART_TOUR_VAULT_ADDRESS
-    this.usdtAddress = process.env.NEXT_PUBLIC_USDT_ADDRESS
+    this.usdcAddress = process.env.NEXT_PUBLIC_USDC_ADDRESS
     this.providerUrl = process.env.NEXT_PUBLIC_BLOCKCHAIN_PROVIDER_URL
   }
 
@@ -47,9 +47,9 @@ class BlockchainService {
           )
         }
 
-        if (this.usdtAddress) {
-          this.usdtContract = new ethers.Contract(
-            this.usdtAddress,
+        if (this.usdcAddress) {
+          this.usdcContract = new ethers.Contract(
+            this.usdcAddress,
             ERC20_ABI,
             this.provider
           )
@@ -90,8 +90,8 @@ class BlockchainService {
       if (this.contract) {
         this.contract = this.contract.connect(this.signer)
       }
-      if (this.usdtContract) {
-        this.usdtContract = this.usdtContract.connect(this.signer)
+      if (this.usdcContract) {
+        this.usdcContract = this.usdcContract.connect(this.signer)
       }
 
       // Get network info
@@ -123,9 +123,9 @@ class BlockchainService {
         this.provider
       )
     }
-    if (this.usdtContract) {
-      this.usdtContract = new ethers.Contract(
-        this.usdtAddress,
+    if (this.usdcContract) {
+      this.usdcContract = new ethers.Contract(
+        this.usdcAddress,
         ERC20_ABI,
         this.provider
       )
@@ -158,7 +158,7 @@ class BlockchainService {
       }
 
       const balance = await this.contract.getUserBalance(userAddress)
-      return ethers.formatUnits(balance, 6) // USDT has 6 decimals
+      return ethers.formatUnits(balance, 6) // USDC has 6 decimals
     } catch (error) {
       console.error('Error getting vault balance:', error)
       return '0'
@@ -173,7 +173,7 @@ class BlockchainService {
         throw new Error('No wallet connected')
       }
 
-      const balances = { eth: '0', usdt: '0' }
+      const balances = { eth: '0', usdc: '0' }
 
       // Get ETH balance
       if (this.provider) {
@@ -181,55 +181,55 @@ class BlockchainService {
         balances.eth = ethers.formatEther(ethBalance)
       }
 
-      // Get USDT balance
-      if (this.usdtContract) {
+      // Get USDC balance
+      if (this.usdcContract) {
         try {
-          const usdtBalance = await this.usdtContract.balanceOf(userAddress)
-          balances.usdt = ethers.formatUnits(usdtBalance, 6)
+          const usdcBalance = await this.usdcContract.balanceOf(userAddress)
+          balances.usdc = ethers.formatUnits(usdcBalance, 6)
         } catch (error) {
-          console.warn('Could not fetch USDT balance:', error.message)
+          console.warn('Could not fetch USDC balance:', error.message)
         }
       }
 
       return balances
     } catch (error) {
       console.error('Error getting wallet balances:', error)
-      return { eth: '0', usdt: '0' }
+      return { eth: '0', usdc: '0' }
     }
   }
 
-  // Deposit USDT to vault
-  async depositToVault(usdtAmount) {
+  // Deposit USDC to vault
+  async depositToVault(usdcAmount) {
     try {
-      if (!this.connected || !this.signer || !this.contract || !this.usdtContract) {
+      if (!this.connected || !this.signer || !this.contract || !this.usdcContract) {
         throw new Error('Wallet not connected or contracts not initialized')
       }
 
       const userAddress = await this.signer.getAddress()
-      const amountWei = ethers.parseUnits(usdtAmount.toString(), 6)
+      const amountWei = ethers.parseUnits(usdcAmount.toString(), 6)
 
-      // Check USDT balance
-      const usdtBalance = await this.usdtContract.balanceOf(userAddress)
-      if (usdtBalance < amountWei) {
-        throw new Error('Insufficient USDT balance')
+      // Check USDC balance
+      const usdcBalance = await this.usdcContract.balanceOf(userAddress)
+      if (usdcBalance < amountWei) {
+        throw new Error('Insufficient USDC balance')
       }
 
       // Check allowance
-      const allowance = await this.usdtContract.allowance(userAddress, this.contractAddress)
+      const allowance = await this.usdcContract.allowance(userAddress, this.contractAddress)
       if (allowance < amountWei) {
-        // Approve USDT spending
-        const approveTx = await this.usdtContract.approve(this.contractAddress, amountWei)
+        // Approve USDC spending
+        const approveTx = await this.usdcContract.approve(this.contractAddress, amountWei)
         await approveTx.wait()
       }
 
       // Deposit to vault
-      const depositTx = await this.contract.deposit(this.usdtAddress, amountWei)
+      const depositTx = await this.contract.deposit(amountWei)
       const receipt = await depositTx.wait()
 
       return {
         success: true,
         transactionHash: receipt.hash,
-        amount: usdtAmount
+        amount: usdcAmount
       }
     } catch (error) {
       console.error('Error depositing to vault:', error)
@@ -259,8 +259,7 @@ class BlockchainService {
         try {
           const block = await this.provider.getBlock(event.blockNumber)
           const eventTime = new Date(block.timestamp * 1000)
-          const
- now = new Date()
+          const now = new Date()
           
           if ((now - eventTime) <= timeWindow) {
             recentEvents.push({
@@ -309,7 +308,7 @@ class BlockchainService {
         name: network.name,
         blockNumber: blockNumber,
         contractAddress: this.contractAddress,
-        usdtAddress: this.usdtAddress
+        usdcAddress: this.usdcAddress
       }
     } catch (error) {
       console.error('Error getting network info:', error)
@@ -367,7 +366,7 @@ class BlockchainService {
   getContractAddresses() {
     return {
       vault: this.contractAddress,
-      usdt: this.usdtAddress
+      usdc: this.usdcAddress
     }
   }
 }

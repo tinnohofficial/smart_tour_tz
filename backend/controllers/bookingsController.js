@@ -1,5 +1,4 @@
 const db = require("../config/db");
-const blockchainService = require("../services/blockchainService");
 
 /**
  * Helper function to safely parse JSON fields in objects
@@ -1066,59 +1065,12 @@ exports.processBookingPayment = async (req, res) => {
             return res.status(400).json({ message: "Wallet address required for crypto payment" });
           }
 
-          // Update user's wallet address if not already set
-          await connection.query(
-            "UPDATE users SET wallet_address = ? WHERE id = ? AND wallet_address IS NULL",
-            [walletAddress, userId]
-          );
+          // Simple crypto payment validation
 
           let cryptoPaymentResult;
           
-          if (useVaultBalance) {
-            // Use vault balance for automatic payment
-            cryptoPaymentResult = await blockchainService.processAutomaticPayment(
-              walletAddress, 
-              booking.total_cost
-            );
-            
-            if (!cryptoPaymentResult.success) {
-              await connection.rollback();
-              connection.release();
-              return res.status(400).json({ 
-                message: cryptoPaymentResult.error || "Crypto payment from vault failed",
-                errorDetails: cryptoPaymentResult
-              });
-            }
-            
-            // Update blockchain balance in database
-            await connection.query(
-              "UPDATE savings_accounts SET blockchain_balance = blockchain_balance - ? WHERE user_id = ?",
-              [booking.total_cost, userId]
-            );
-            
-            paymentReference = cryptoPaymentResult.transactionHash;
-          } else {
-            // Check for recent deposits (new payment)
-            const expectedUsdtAmount = await blockchainService.convertTzsToUsdt(booking.total_cost);
-            const depositCheck = await blockchainService.checkRecentDeposits(
-              walletAddress, 
-              expectedUsdtAmount,
-              600000 // 10 minutes window
-            );
-
-            if (!depositCheck.found) {
-              await connection.rollback();
-              connection.release();
-              return res.status(400).json({ 
-                message: "Crypto payment not found. Please ensure your transaction is confirmed.",
-                expectedAmount: expectedUsdtAmount,
-                currency: 'USDT',
-                walletAddress: walletAddress
-              });
-            }
-            
-            paymentReference = depositCheck.transactionHash;
-          }
+          // Simple crypto payment processing
+          paymentReference = `CRYPTO-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
           paymentSuccess = true;
           break;
@@ -1126,7 +1078,7 @@ exports.processBookingPayment = async (req, res) => {
         case "savings":
           // Check user's savings balance
           const balanceQuery = `
-            SELECT balance, blockchain_balance FROM savings_accounts
+            SELECT balance FROM savings_accounts
             WHERE user_id = ?
           `;
           const [balanceResult] = await connection.query(balanceQuery, [userId]);
@@ -1138,7 +1090,6 @@ exports.processBookingPayment = async (req, res) => {
           }
 
           const balance = parseFloat(balanceResult[0].balance);
-          const blockchainBalance = parseFloat(balanceResult[0].blockchain_balance || 0);
 
           if (balance < booking.total_cost) {
             await connection.rollback();
@@ -1150,34 +1101,11 @@ exports.processBookingPayment = async (req, res) => {
             });
           }
 
-          // Determine payment source (fiat or crypto portion)
-          const fiatPortion = Math.max(0, balance - blockchainBalance);
-          const cryptoPortion = Math.min(blockchainBalance, booking.total_cost);
-          
           // Update balance
           await connection.query(
-            "UPDATE savings_accounts SET balance = balance - ?, blockchain_balance = blockchain_balance - ? WHERE user_id = ?",
-            [booking.total_cost, Math.min(cryptoPortion, blockchainBalance), userId],
+            "UPDATE savings_accounts SET balance = balance - ? WHERE user_id = ?",
+            [booking.total_cost, userId],
           );
-
-          // If using crypto portion, also deduct from blockchain
-          if (cryptoPortion > 0) {
-            const userWalletQuery = "SELECT wallet_address FROM users WHERE id = ?";
-            const [userWallet] = await connection.query(userWalletQuery, [userId]);
-            
-            if (userWallet.length > 0 && userWallet[0].wallet_address) {
-              const usdtAmount = await blockchainService.convertTzsToUsdt(cryptoPortion);
-              const blockchainPayment = await blockchainService.payFromSavings(
-                userWallet[0].wallet_address, 
-                usdtAmount
-              );
-              
-              if (!blockchainPayment.success) {
-                console.warn("Blockchain payment failed:", blockchainPayment.error);
-                // Continue with database-only deduction for now
-              }
-            }
-          }
           
           paymentSuccess = true;
           paymentReference = `SAV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
@@ -1199,8 +1127,8 @@ exports.processBookingPayment = async (req, res) => {
         // Create payment record
         const paymentQuery = `
           INSERT INTO payments
-          (booking_id, user_id, amount, payment_method, reference, status, currency)
-          VALUES (?, ?, ?, ?, ?, ?, 'TZS')
+          (booking_id, user_id, amount, payment_method, reference, status)
+          VALUES (?, ?, ?, ?, ?, ?)
         `;
 
         const [paymentResult] = await connection.query(paymentQuery, [

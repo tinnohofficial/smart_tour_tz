@@ -38,7 +38,7 @@ exports.register = async (req, res) => {
     // If tourist, create savings account
     if (role === "tourist") {
       await db.query(
-        "INSERT INTO savings_accounts (user_id) VALUES (?) ON DUPLICATE KEY UPDATE user_id=user_id",
+        "INSERT INTO savings_accounts (user_id, balance) VALUES (?, 0.00) ON DUPLICATE KEY UPDATE user_id=user_id",
         [result.insertId],
       );
     }

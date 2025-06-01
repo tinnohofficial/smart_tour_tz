@@ -3,7 +3,7 @@ CREATE TABLE users (
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     phone_number VARCHAR(20) UNIQUE,
-    wallet_address VARCHAR(255) NULL, -- For blockchain integration
+
     role ENUM (
         'tourist',
         'tour_guide',
@@ -155,8 +155,6 @@ CREATE TABLE booking_items (
 CREATE TABLE savings_accounts (
     user_id INT PRIMARY KEY,
     balance DECIMAL(12, 2) DEFAULT 0.00,
-    currency VARCHAR(10) DEFAULT 'TZS', -- TZS for Tanzanian Shilling
-    blockchain_balance DECIMAL(12, 2) DEFAULT 0.00, -- USDT equivalent from blockchain
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
@@ -169,8 +167,6 @@ CREATE TABLE payments (
     payment_method ENUM ('external', 'savings', 'stripe', 'crypto') NOT NULL,
     reference VARCHAR(255), -- Reference from payment gateway or internal ref
     status ENUM ('successful', 'failed', 'pending') NOT NULL,
-    currency VARCHAR(10) DEFAULT 'TZS',
-    exchange_rate DECIMAL(10, 4) DEFAULT 1.0000, -- For crypto conversions
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (cart_id) REFERENCES booking_carts (id) ON DELETE SET NULL,
     FOREIGN KEY (booking_id) REFERENCES bookings (id) ON DELETE SET NULL,

@@ -76,14 +76,8 @@ function BookLocation({ params }) {
   // Get cart store actions
   const { addToCart } = useCartStore();
 
-  // Get wallet-related state from savings store
-  const {
-    isWalletConnected,
-    isConnectingWallet,
-    walletAddress,
-    connectWallet,
-    disconnectWallet,
-  } = useSavingsStore();
+  // Get savings store (simplified)
+  const { balance } = useSavingsStore();
 
   // Get state and actions from Zustand store
   const {
@@ -1959,18 +1953,13 @@ function BookLocation({ params }) {
                     Connect your MetaMask wallet to pay with cryptocurrency
                   </p>
                   <Button
-                    onClick={async () => {
-                      const result = await connectWallet();
-                      if (result.success) {
-                        toast.success("Wallet connected successfully!");
-                      } else {
-                        toast.error(result.error || "Failed to connect wallet");
-                      }
+                    onClick={() => {
+                      toast.info("Crypto payment functionality simplified");
                     }}
-                    disabled={isConnectingWallet}
+                    disabled={false}
                     className="text-white bg-amber-700 hover:bg-amber-800"
                   >
-                    {isConnectingWallet ? "Connecting..." : "Connect MetaMask"}
+                    Connect MetaMask
                   </Button>
                 </div>
               ) : (
@@ -2025,10 +2014,10 @@ function BookLocation({ params }) {
                         </svg>
                         <div className="flex-1">
                           <p className="font-medium">
-                            USDT (via Smart Contract)
+                            USDC (via Smart Contract)
                           </p>
                           <p className="text-xs text-gray-500">
-                            Recommended - {(totalPrice / 2600).toFixed(2)} USDT
+                            Recommended - {(totalPrice / 2600).toFixed(2)} USDC
                           </p>
                         </div>
                         <div className="text-right">
@@ -2044,7 +2033,7 @@ function BookLocation({ params }) {
                     <AlertCircle className="h-4 w-4 text-yellow-600" />
                     <AlertDescription className="text-sm">
                       Payment will be processed through Smart Tour TZ blockchain
-                      vault. Send USDT to the contract and confirm your
+                      vault. Send USDC to the contract and confirm your
                       transaction.
                     </AlertDescription>
                   </Alert>
