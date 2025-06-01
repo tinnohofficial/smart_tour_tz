@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutDashboard, Users, MapPin, Activity, Calendar, LogOut, Menu, Lock } from "lucide-react"
+import { LayoutDashboard, Users, MapPin, Activity, Calendar, LogOut, Menu, Lock, Wallet } from "lucide-react"
 import { publishAuthChange } from "@/components/Navbar"
 import { useLayoutStore } from "@/app/store/layoutStore"
 
@@ -54,6 +54,12 @@ export default function AdminLayout({ children }) {
       icon: Lock,
       href: "/admin/password",
       active: pathname === "/admin/password",
+    },
+    {
+      label: "Withdraw Funds",
+      icon: Wallet,
+      href: "/admin/withdraw",
+      active: pathname === "/admin/withdraw",
     },
   ]
 

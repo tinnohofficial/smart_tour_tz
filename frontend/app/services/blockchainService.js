@@ -642,6 +642,57 @@ class BlockchainService {
       return false
     }
   }
+
+  async adminWithdraw(amount) {
+    try {
+      if (!this.adminContract) {
+        const adminInitialized = await this.initializeAdmin()
+        if (!adminInitialized) {
+          throw new Error('Admin not initialized. Please check your admin private key.')
+        }
+      }
+
+      // Convert amount to TZC (assuming 18 decimals)
+      const amountInWei = ethers.parseUnits(amount.toString(), 18)
+      
+      // Call the adminWithdraw function
+      const tx = await this.adminContract.adminWithdraw(amountInWei)
+      
+      // Wait for transaction confirmation
+      const receipt = await tx.wait()
+      
+      return {
+        success: true,
+        transactionHash: receipt.hash,
+        amount: amount,
+        message: 'Withdrawal successful'
+      }
+    } catch (error) {
+      console.error('Error during admin withdrawal:', error)
+      throw new Error(`Withdrawal failed: ${error.message}`)
+    }
+  }
+
+  async getVaultTotalBalance() {
+    try {
+      if (!this.tzcContract) {
+        throw new Error('TZC contract not initialized')
+      }
+
+      if (!this.contractAddress) {
+        throw new Error('Vault contract address not found')
+      }
+
+      // Get the vault's TZC balance
+      const balance = await this.tzcContract.balanceOf(this.contractAddress)
+      
+      // Convert from wei to TZC
+      return ethers.formatUnits(balance, 18)
+    } catch (error) {
+      console.error('Error getting vault total balance:', error)
+      throw new Error(`Failed to get vault balance: ${error.message}`)
+    }
+  }
 }
 
 // Export singleton instance

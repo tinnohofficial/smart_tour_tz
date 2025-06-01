@@ -7,9 +7,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Users, MapPin, Activity, Calendar, AlertTriangle } from "lucide-react"
+import { Users, MapPin, Activity, Calendar, AlertTriangle, Wallet } from "lucide-react"
 import Link from "next/link"
 import { applicationsService, destinationsService, activitiesService, bookingsService } from "@/app/services/api"
+import { blockchainService } from "@/app/services/blockchainService"
 
 const useAdminDashboardStore = create((set) => ({
   // Initial State
@@ -19,6 +20,7 @@ const useAdminDashboardStore = create((set) => ({
     destinations: 0,
     activities: 0,
     unassignedBookings: 0,
+    vaultBalance: 0,
   },
   error: null,
 
@@ -31,6 +33,19 @@ const useAdminDashboardStore = create((set) => ({
   fetchDashboardData: async () => {
     set({ isLoading: true, error: null }); 
     try {
+      // Initialize blockchain service and get vault balance
+      let vaultBalance = 0;
+      try {
+        await blockchainService.initialize();
+        const adminInit = await blockchainService.initializeAdmin();
+        if (adminInit) {
+          const balance = await blockchainService.getVaultTotalBalance();
+          vaultBalance = parseFloat(balance) || 0;
+        }
+      } catch (vaultError) {
+        console.warn("Could not fetch vault balance:", vaultError);
+      }
+
       // Fetch data in parallel
       const [pendingApplications, destinations, activities, unassignedBookings] = await Promise.all([
         applicationsService.getPendingApplications(),
@@ -45,6 +60,7 @@ const useAdminDashboardStore = create((set) => ({
           destinations: destinations.length,
           activities: activities.length,
           unassignedBookings: unassignedBookings.length,
+          vaultBalance: vaultBalance,
         }
       });
     } catch (err) {
@@ -84,7 +100,7 @@ export default function AdminDashboard() {
       )}
 
       {/* Stat Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Applications</CardTitle>
@@ -153,11 +169,27 @@ export default function AdminDashboard() {
             )}
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Vault Balance</CardTitle>
+            <Wallet className="h-3 w-3 sm:h-4 sm:w-4 text-amber-700" />
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-6 sm:h-8 w-16 sm:w-20" />
+            ) : (
+              <>
+                <div className="text-xl sm:text-2xl font-bold">{stats.vaultBalance.toLocaleString()} TZC</div>
+                <p className="text-xs text-gray-500">Available for withdrawal</p>
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Tabs for Actions and Overview */}
-          <h3 value="actions">Quick Actions</h3>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <h3 value="actions">Quick Actions</h3>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader>
                 <CardTitle className="text-base sm:text-lg">Account Approvals</CardTitle>
@@ -199,6 +231,17 @@ export default function AdminDashboard() {
               <CardContent className="flex justify-end">
                 <Button asChild className="text-white bg-amber-700 hover:bg-amber-800 w-full sm:w-auto text-sm">
                   <Link href="/admin/assignments">Manage Assignments</Link>
+                </Button>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base sm:text-lg">Withdraw Funds</CardTitle>
+                <CardDescription className="text-sm">Withdraw TZC tokens from the Smart Tour vault</CardDescription>
+              </CardHeader>
+              <CardContent className="flex justify-end">
+                <Button asChild className="text-white bg-amber-700 hover:bg-amber-800 w-full sm:w-auto text-sm">
+                  <Link href="/admin/withdraw">Withdraw Funds</Link>
                 </Button>
               </CardContent>
             </Card>
