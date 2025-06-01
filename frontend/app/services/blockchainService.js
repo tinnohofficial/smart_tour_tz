@@ -1,5 +1,4 @@
 import { ethers } from 'ethers'
-import exchangeRate from '../utils/exchangeRate'
 
 // Contract ABI for Smart Tour Vault
 const SMART_TOUR_VAULT_ABI = [
@@ -26,13 +25,13 @@ class BlockchainService {
     this.provider = null
     this.signer = null
     this.contract = null
-    this.usdcContract = null
+    this.tzcContract = null
     this.connected = false
     this.adminWallet = null
 
     // Contract addresses from environment
     this.contractAddress = process.env.NEXT_PUBLIC_SMART_TOUR_VAULT_ADDRESS
-    this.usdcAddress = process.env.NEXT_PUBLIC_USDC_ADDRESS
+    this.tzcAddress = process.env.NEXT_PUBLIC_TZC_ADDRESS
     this.providerUrl = process.env.NEXT_PUBLIC_BLOCKCHAIN_PROVIDER_URL
     
     // Admin private key for server-side operations (only use in secure contexts)
@@ -53,9 +52,9 @@ class BlockchainService {
           )
         }
 
-        if (this.usdcAddress) {
-          this.usdcContract = new ethers.Contract(
-            this.usdcAddress,
+        if (this.tzcAddress) {
+          this.tzcContract = new ethers.Contract(
+            this.tzcAddress,
             ERC20_ABI,
             this.provider
           )
@@ -96,8 +95,8 @@ class BlockchainService {
       if (this.contract) {
         this.contract = this.contract.connect(this.signer)
       }
-      if (this.usdcContract) {
-        this.usdcContract = this.usdcContract.connect(this.signer)
+      if (this.tzcContract) {
+        this.tzcContract = this.tzcContract.connect(this.signer)
       }
 
       // Get network info
@@ -129,9 +128,9 @@ class BlockchainService {
         this.provider
       )
     }
-    if (this.usdcContract) {
-      this.usdcContract = new ethers.Contract(
-        this.usdcAddress,
+    if (this.tzcContract) {
+      this.tzcContract = new ethers.Contract(
+        this.tzcAddress,
         ERC20_ABI,
         this.provider
       )
@@ -164,7 +163,7 @@ class BlockchainService {
       }
 
       const balance = await this.contract.getUserBalance(userAddress)
-      return ethers.formatUnits(balance, 6) // USDC has 6 decimals
+      return ethers.formatUnits(balance, 18) // TZC has 18 decimals
     } catch (error) {
       console.error('Error getting vault balance:', error)
       return '0'
@@ -179,7 +178,7 @@ class BlockchainService {
         throw new Error('No wallet connected')
       }
 
-      const balances = { eth: '0', usdc: '0' }
+      const balances = { eth: '0', tzc: '0' }
 
       // Get ETH balance
       if (this.provider) {
@@ -187,44 +186,44 @@ class BlockchainService {
         balances.eth = ethers.formatEther(ethBalance)
       }
 
-      // Get USDC balance
-      if (this.usdcContract) {
+      // Get TZC balance
+      if (this.tzcContract) {
         try {
-          const usdcBalance = await this.usdcContract.balanceOf(userAddress)
-          balances.usdc = ethers.formatUnits(usdcBalance, 6)
+          const tzcBalance = await this.tzcContract.balanceOf(userAddress)
+          balances.tzc = ethers.formatUnits(tzcBalance, 18)
         } catch (error) {
-          console.warn('Could not fetch USDC balance:', error.message)
+          console.warn('Could not fetch TZC balance:', error.message)
         }
       }
 
       return balances
     } catch (error) {
       console.error('Error getting wallet balances:', error)
-      return { eth: '0', usdc: '0' }
+      return { eth: '0', tzc: '0' }
     }
   }
 
-  // Deposit USDC to vault
-  async depositToVault(usdcAmount) {
+  // Deposit TZC to vault
+  async depositToVault(tzcAmount) {
     try {
-      if (!this.connected || !this.signer || !this.contract || !this.usdcContract) {
+      if (!this.connected || !this.signer || !this.contract || !this.tzcContract) {
         throw new Error('Wallet not connected or contracts not initialized')
       }
 
       const userAddress = await this.signer.getAddress()
-      const amountWei = ethers.parseUnits(usdcAmount.toString(), 6)
+      const amountWei = ethers.parseUnits(tzcAmount.toString(), 18)
 
-      // Check USDC balance
-      const usdcBalance = await this.usdcContract.balanceOf(userAddress)
-      if (usdcBalance < amountWei) {
-        throw new Error('Insufficient USDC balance')
+      // Check TZC balance
+      const tzcBalance = await this.tzcContract.balanceOf(userAddress)
+      if (tzcBalance < amountWei) {
+        throw new Error('Insufficient TZC balance')
       }
 
       // Check allowance
-      const allowance = await this.usdcContract.allowance(userAddress, this.contractAddress)
+      const allowance = await this.tzcContract.allowance(userAddress, this.contractAddress)
       if (allowance < amountWei) {
-        // Approve USDC spending
-        const approveTx = await this.usdcContract.approve(this.contractAddress, amountWei)
+        // Approve TZC spending
+        const approveTx = await this.tzcContract.approve(this.contractAddress, amountWei)
         await approveTx.wait()
       }
 
@@ -235,7 +234,7 @@ class BlockchainService {
       return {
         success: true,
         transactionHash: receipt.hash,
-        amount: usdcAmount
+        amount: tzcAmount
       }
     } catch (error) {
       console.error('Error depositing to vault:', error)
@@ -314,7 +313,7 @@ class BlockchainService {
         name: network.name,
         blockNumber: blockNumber,
         contractAddress: this.contractAddress,
-        usdcAddress: this.usdcAddress
+        tzcAddress: this.tzcAddress
       }
     } catch (error) {
       console.error('Error getting network info:', error)
@@ -368,53 +367,23 @@ class BlockchainService {
     return this.connected && this.signer !== null
   }
 
-  // Convert TZS to USDC using live exchange rate
-  async convertTzsToUsdc(tzsAmount) {
-    try {
-      return await exchangeRate.convertTzsToUsdc(tzsAmount)
-    } catch (error) {
-      console.warn('Error converting TZS to USDC:', error.message)
-      return tzsAmount / 2500 // Fallback rate
-    }
+  // Convert TZS to TZC (1:1 ratio)
+  async convertTzsToTzc(tzsAmount) {
+    return tzsAmount // 1 TZS = 1 TZC
   }
 
-  // Convert USDC to TZS using live exchange rate
-  async convertUsdcToTzs(usdcAmount) {
-    try {
-      return await exchangeRate.convertUsdcToTzs(usdcAmount)
-    } catch (error) {
-      console.warn('Error converting USDC to TZS:', error.message)
-      return usdcAmount * 2500 // Fallback rate
-    }
+  // Convert TZC to TZS (1:1 ratio)
+  async convertTzcToTzs(tzcAmount) {
+    return tzcAmount // 1 TZC = 1 TZS
   }
 
   // Get conversion rates for a TZS amount
   async getConversionRates(tzsAmount) {
-    try {
-      const usdToTzsRate = await exchangeRate.getUsdToTzsRate()
-      const usdAmount = tzsAmount / usdToTzsRate
-      
-      return {
-        tzs: tzsAmount,
-        usd: usdAmount,
-        usdc: usdAmount, // Since 1 USDC = 1 USD
-        rates: { 
-          USD_TZS: usdToTzsRate, 
-          USD_USDC: 1.0 
-        }
-      }
-    } catch (error) {
-      console.warn('Error getting conversion rates:', error.message)
-      const usdAmount = tzsAmount / 2500
-      
-      return {
-        tzs: tzsAmount,
-        usd: usdAmount,
-        usdc: usdAmount,
-        rates: { 
-          USD_TZS: 2500, 
-          USD_USDC: 1.0 
-        }
+    return {
+      tzs: tzsAmount,
+      tzc: tzsAmount, // 1 TZS = 1 TZC
+      rates: { 
+        TZS_TZC: 1.0 
       }
     }
   }
@@ -426,16 +395,16 @@ class BlockchainService {
         throw new Error('Wallet not connected or contracts not initialized')
       }
 
-      // Convert TZS to USDC
-      const usdcAmount = await this.convertTzsToUsdc(tzsAmount)
+      // Convert TZS to TZC (1:1 ratio)
+      const tzcAmount = await this.convertTzsToTzc(tzsAmount)
       
       // Check if user has sufficient vault balance
       const vaultBalance = await this.getUserVaultBalance(userAddress)
-      if (parseFloat(vaultBalance) < usdcAmount) {
-        throw new Error(`Insufficient vault balance. Required: ${usdcAmount} USDC, Available: ${vaultBalance} USDC`)
+      if (parseFloat(vaultBalance) < tzcAmount) {
+        throw new Error(`Insufficient vault balance. Required: ${tzcAmount} TZC, Available: ${vaultBalance} TZC`)
       }
 
-      const amountWei = ethers.parseUnits(usdcAmount.toString(), 6)
+      const amountWei = ethers.parseUnits(tzcAmount.toString(), 18)
 
       // Execute payment from vault
       const tx = await this.contract.payFromSavings(userAddress, amountWei)
@@ -444,7 +413,7 @@ class BlockchainService {
       return {
         success: true,
         transactionHash: receipt.hash,
-        amountUSDC: usdcAmount,
+        amountTZC: tzcAmount,
         amountTZS: tzsAmount,
         gasUsed: receipt.gasUsed.toString()
       }
@@ -462,14 +431,14 @@ class BlockchainService {
     try {
       const vaultBalance = await this.getUserVaultBalance(userAddress)
       const walletBalances = await this.getWalletBalances(userAddress)
-      const requiredUsdcAmount = await this.convertTzsToUsdc(requiredTzsAmount)
+      const requiredTzcAmount = await this.convertTzsToTzc(requiredTzsAmount)
       
       return {
         vaultBalance: parseFloat(vaultBalance),
-        walletBalance: parseFloat(walletBalances.usdc),
-        totalBalance: parseFloat(vaultBalance) + parseFloat(walletBalances.usdc),
-        sufficient: (parseFloat(vaultBalance) + parseFloat(walletBalances.usdc)) >= requiredUsdcAmount,
-        requiredAmount: requiredUsdcAmount,
+        walletBalance: parseFloat(walletBalances.tzc),
+        totalBalance: parseFloat(vaultBalance) + parseFloat(walletBalances.tzc),
+        sufficient: (parseFloat(vaultBalance) + parseFloat(walletBalances.tzc)) >= requiredTzcAmount,
+        requiredAmount: requiredTzcAmount,
         requiredTzs: requiredTzsAmount
       }
     } catch (error) {
@@ -511,7 +480,7 @@ class BlockchainService {
               walletAddress: userAddress,
               transactionHash: result.transactionHash,
               useVaultBalance: true,
-              amountUSDC: result.amountUSDC,
+              amountTZC: result.amountTZC,
               amountTZS: result.amountTZS
             })
           })
@@ -587,7 +556,7 @@ class BlockchainService {
               walletAddress: userAddress,
               transactionHash: result.transactionHash,
               useVaultBalance: true,
-              amountUSDC: result.amountUSDC,
+              amountTZC: result.amountTZC,
               amountTZS: result.amountTZS
             })
           })
@@ -641,7 +610,7 @@ class BlockchainService {
   getContractAddresses() {
     return {
       vault: this.contractAddress,
-      usdc: this.usdcAddress
+      tzc: this.tzcAddress
     }
   }
 

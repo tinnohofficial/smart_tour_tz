@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import blockchainService from "../services/blockchainService";
-import exchangeRate from "../utils/exchangeRate";
 
 const useSavingsStore = create((set, get) => ({
   balance: 0,
@@ -75,8 +74,8 @@ const useSavingsStore = create((set, get) => ({
       const balance = await blockchainService.getUserVaultBalance(address);
       const numericBalance = parseFloat(balance) || 0;
 
-      // Convert to TZS using live exchange rate
-      const balanceInTZS = await exchangeRate.convertUsdcToTzs(numericBalance);
+      // Since 1 TZC = 1 TZS, no conversion needed
+      const balanceInTZS = numericBalance;
 
       set({ blockchainBalance: balanceInTZS });
     } catch (error) {
@@ -169,11 +168,11 @@ const useSavingsStore = create((set, get) => ({
     if (method === "crypto") {
       set({ isDepositing: true });
       try {
-        // Convert TZS to USDC using live exchange rate
-        const amountInUSDC = (await exchangeRate.convertTzsToUsdc(parseFloat(amount))).toFixed(6);
+        // Since 1 TZS = 1 TZC, no conversion needed
+        const amountInTZC = parseFloat(amount);
 
         // Deposit to smart contract
-        const result = await blockchainService.depositToVault(amountInUSDC);
+        const result = await blockchainService.depositToVault(amountInTZC);
 
         if (result.success) {
           // Refresh blockchain balance

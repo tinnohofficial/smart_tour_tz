@@ -2025,10 +2025,10 @@ function BookLocation({ params }) {
                         </svg>
                         <div className="flex-1">
                           <p className="font-medium">
-                            USDC (via Smart Contract)
+                            TZC (via Smart Contract)
                           </p>
                           <p className="text-xs text-gray-500">
-                            Recommended - {(totalPrice / 2600).toFixed(2)} USDC
+                            Recommended - {formatTZS(totalPrice)} TZC
                           </p>
                         </div>
                         <div className="text-right">
@@ -2044,7 +2044,7 @@ function BookLocation({ params }) {
                     <AlertCircle className="h-4 w-4 text-yellow-600" />
                     <AlertDescription className="text-sm">
                       Payment will be processed through Smart Tour TZ blockchain
-                      vault. Send USDC to the contract and confirm your
+                      vault. Send TZC to the contract and confirm your
                       transaction.
                     </AlertDescription>
                   </Alert>

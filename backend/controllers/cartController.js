@@ -522,7 +522,7 @@ exports.checkoutCart = async (req, res) => {
         const walletAddress = req.body.walletAddress;
         const useVaultBalance = req.body.useVaultBalance || false;
         const transactionHash = req.body.transactionHash;
-        const amountUSDC = req.body.amountUSDC;
+        const amountTZC = req.body.amountTZC;
         const amountTZS = req.body.amountTZS;
 
         if (!walletAddress) {
