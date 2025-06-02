@@ -62,7 +62,7 @@ import { RouteProtection } from "@/components/route-protection";
 // Import shared utilities
 import { formatBookingDate } from "@/app/utils/dateUtils";
 import { TransportIcon } from "@/app/components/shared/TransportIcon";
-import { EnhancedPaymentDialog } from "@/app/components/enhanced-payment-dialog";
+
 import { formatTZS } from "@/app/utils/currency";
 import { debounce } from "@/app/utils/debounce";
 import { toast } from "sonner";
@@ -99,9 +99,6 @@ function BookLocation({ params }) {
     agreedToTerms,
     paymentMethod,
     isPaymentDialogOpen,
-    isEnhancedPaymentOpen,
-    setIsEnhancedPaymentOpen,
-    processEnhancedPayment,
     setStartDate,
     setEndDate,
     setSelectedOrigin,
@@ -162,8 +159,6 @@ function BookLocation({ params }) {
     }
   }, [prevStep]);
 
-
-
   // Handle wallet disconnection
   const handleWalletDisconnect = useCallback(() => {
     try {
@@ -182,7 +177,7 @@ function BookLocation({ params }) {
     const checkWalletConnection = async () => {
       const connected = blockchainService.isConnected();
       setIsWalletConnected(connected);
-      
+
       if (connected) {
         try {
           const address = await blockchainService.getConnectedAddress();
@@ -192,7 +187,7 @@ function BookLocation({ params }) {
         }
       }
     };
-    
+
     checkWalletConnection();
   }, []);
 
@@ -239,14 +234,21 @@ function BookLocation({ params }) {
 
   // Find selected transport and hotel objects
   const selectedRoute = useMemo(() => {
-    if (!selectedTransportRoute || !transportRoutes || !Array.isArray(transportRoutes) || !transportRoutes.length) return null;
+    if (
+      !selectedTransportRoute ||
+      !transportRoutes ||
+      !Array.isArray(transportRoutes) ||
+      !transportRoutes.length
+    )
+      return null;
     return transportRoutes.find(
       (r) => r.id.toString() === selectedTransportRoute.toString(),
     );
   }, [selectedTransportRoute, transportRoutes]);
 
   const selectedHotelObj = useMemo(() => {
-    if (!selectedHotel || !hotels || !Array.isArray(hotels) || !hotels.length) return null;
+    if (!selectedHotel || !hotels || !Array.isArray(hotels) || !hotels.length)
+      return null;
     return hotels.find((h) => h.id.toString() === selectedHotel.toString());
   }, [selectedHotel, hotels]);
 
@@ -308,22 +310,7 @@ function BookLocation({ params }) {
     [agreedToTerms, setIsPaymentDialogOpen, setErrors],
   );
 
-  const handleEnhancedPaymentSuccess = useCallback(
-    async (paymentResult) => {
-      try {
-        toast.success(
-          `Booking confirmed! Payment of ${formatTZS(totalPrice)} processed successfully.`,
-        );
-        setIsEnhancedPaymentOpen(false);
-        resetBooking();
-        router.push("/my-bookings");
-      } catch (error) {
-        console.error("Error handling payment success:", error);
-        toast.error("Error processing booking confirmation");
-      }
-    },
-    [totalPrice, resetBooking, router],
-  );
+
 
   const processPayment = useCallback(async () => {
     if (!paymentMethod) {
@@ -346,7 +333,10 @@ function BookLocation({ params }) {
             const address = await blockchainService.getConnectedAddress();
             setWalletAddress(address || "");
           } catch (error) {
-            console.error("Error getting wallet address after connection:", error);
+            console.error(
+              "Error getting wallet address after connection:",
+              error,
+            );
           }
         }
       }
@@ -384,9 +374,9 @@ function BookLocation({ params }) {
           paymentResult = await blockchainService.processCryptoPayment(
             booking.bookingId,
             totalPrice,
-            "vault"
+            "vault",
           );
-          
+
           if (!paymentResult.success) {
             toast.error(paymentResult.error || "Crypto payment failed");
             return;
@@ -834,7 +824,9 @@ function BookLocation({ params }) {
                             {error.transports}. Please try refreshing the page.
                           </AlertDescription>
                         </Alert>
-                      ) : !transportRoutes || !Array.isArray(transportRoutes) || transportRoutes.length === 0 ? (
+                      ) : !transportRoutes ||
+                        !Array.isArray(transportRoutes) ||
+                        transportRoutes.length === 0 ? (
                         <Alert className="mb-4">
                           <AlertCircle className="h-4 w-4" />
                           <AlertDescription>
@@ -910,57 +902,57 @@ function BookLocation({ params }) {
                                             )}
                                           </div>
                                           <div className="space-y-2 max-h-32 overflow-y-auto">
-                                            {(route.route_details.legs || []).map(
-                                              (leg, legIndex) => (
-                                                <div
-                                                  key={legIndex}
-                                                  className="bg-gray-50 p-3 rounded text-sm"
-                                                >
-                                                  <div className="flex items-center justify-between mb-1">
-                                                    <span className="font-medium text-blue-700">
-                                                      Leg {legIndex + 1}:{" "}
-                                                      {leg.departure} →{" "}
-                                                      {leg.arrival}
+                                            {(
+                                              route.route_details.legs || []
+                                            ).map((leg, legIndex) => (
+                                              <div
+                                                key={legIndex}
+                                                className="bg-gray-50 p-3 rounded text-sm"
+                                              >
+                                                <div className="flex items-center justify-between mb-1">
+                                                  <span className="font-medium text-blue-700">
+                                                    Leg {legIndex + 1}:{" "}
+                                                    {leg.departure} →{" "}
+                                                    {leg.arrival}
+                                                  </span>
+                                                  {leg.carrier && (
+                                                    <span className="text-xs text-gray-600">
+                                                      {leg.carrier}
                                                     </span>
-                                                    {leg.carrier && (
-                                                      <span className="text-xs text-gray-600">
-                                                        {leg.carrier}
-                                                      </span>
-                                                    )}
-                                                  </div>
-                                                  {(leg.departure_time ||
-                                                    leg.arrival_time ||
-                                                    leg.flight_number) && (
-                                                    <div className="text-xs text-gray-600 space-y-1">
-                                                      {(leg.departure_time ||
-                                                        leg.arrival_time) && (
-                                                        <p>
-                                                          {leg.departure_time &&
-                                                            `Dep: ${leg.departure_time}`}
-                                                          {leg.departure_time &&
-                                                            leg.arrival_time &&
-                                                            " → "}
-                                                          {leg.arrival_time &&
-                                                            `Arr: ${leg.arrival_time}`}
-                                                        </p>
-                                                      )}
-                                                      {leg.flight_number && (
-                                                        <p>
-                                                          Flight:{" "}
-                                                          {leg.flight_number}
-                                                        </p>
-                                                      )}
-                                                      {leg.duration_hours && (
-                                                        <p>
-                                                          Duration:{" "}
-                                                          {leg.duration_hours}h
-                                                        </p>
-                                                      )}
-                                                    </div>
                                                   )}
                                                 </div>
-                                              ),
-                                            )}
+                                                {(leg.departure_time ||
+                                                  leg.arrival_time ||
+                                                  leg.flight_number) && (
+                                                  <div className="text-xs text-gray-600 space-y-1">
+                                                    {(leg.departure_time ||
+                                                      leg.arrival_time) && (
+                                                      <p>
+                                                        {leg.departure_time &&
+                                                          `Dep: ${leg.departure_time}`}
+                                                        {leg.departure_time &&
+                                                          leg.arrival_time &&
+                                                          " → "}
+                                                        {leg.arrival_time &&
+                                                          `Arr: ${leg.arrival_time}`}
+                                                      </p>
+                                                    )}
+                                                    {leg.flight_number && (
+                                                      <p>
+                                                        Flight:{" "}
+                                                        {leg.flight_number}
+                                                      </p>
+                                                    )}
+                                                    {leg.duration_hours && (
+                                                      <p>
+                                                        Duration:{" "}
+                                                        {leg.duration_hours}h
+                                                      </p>
+                                                    )}
+                                                  </div>
+                                                )}
+                                              </div>
+                                            ))}
                                           </div>
                                           {route.route_details
                                             .booking_instructions && (
@@ -1100,7 +1092,9 @@ function BookLocation({ params }) {
                             {error.hotels}. Please try refreshing the page.
                           </AlertDescription>
                         </Alert>
-                      ) : !hotels || !Array.isArray(hotels) || hotels.length === 0 ? (
+                      ) : !hotels ||
+                        !Array.isArray(hotels) ||
+                        hotels.length === 0 ? (
                         <Alert className="mb-4">
                           <AlertCircle className="h-4 w-4" />
                           <AlertDescription>
@@ -1307,7 +1301,9 @@ function BookLocation({ params }) {
                             {error.activities}. Please try refreshing the page.
                           </AlertDescription>
                         </Alert>
-                      ) : apiActivities && Array.isArray(apiActivities) && apiActivities.length > 0 ? (
+                      ) : apiActivities &&
+                        Array.isArray(apiActivities) &&
+                        apiActivities.length > 0 ? (
                         <>
                           <p className="text-sm text-gray-500 mb-4">
                             Enhance your stay in {destination.name} with these
@@ -1383,13 +1379,20 @@ function BookLocation({ params }) {
                                             max="10"
                                             value={currentSessions}
                                             onChange={(e) => {
-                                              const sessions = parseInt(e.target.value) || 1;
-                                              setActivitySessions(activity.id, sessions);
+                                              const sessions =
+                                                parseInt(e.target.value) || 1;
+                                              setActivitySessions(
+                                                activity.id,
+                                                sessions,
+                                              );
                                             }}
                                             className="w-20"
                                           />
                                           <span className="text-sm text-gray-500">
-                                            × {formatTZS(activity.price)} = {formatTZS(activity.price * currentSessions)}
+                                            × {formatTZS(activity.price)} ={" "}
+                                            {formatTZS(
+                                              activity.price * currentSessions,
+                                            )}
                                           </span>
                                         </div>
 
@@ -1398,7 +1401,12 @@ function BookLocation({ params }) {
                                             Total cost for this activity:
                                           </p>
                                           <p className="text-sm text-amber-700">
-                                            {currentSessions} session{currentSessions > 1 ? 's' : ''} × {formatTZS(activity.price)} = {formatTZS(activity.price * currentSessions)}
+                                            {currentSessions} session
+                                            {currentSessions > 1 ? "s" : ""} ×{" "}
+                                            {formatTZS(activity.price)} ={" "}
+                                            {formatTZS(
+                                              activity.price * currentSessions,
+                                            )}
                                           </p>
                                         </div>
                                       </div>
@@ -1439,7 +1447,8 @@ function BookLocation({ params }) {
                             <Alert className="mt-3">
                               <AlertCircle className="h-4 w-4" />
                               <AlertDescription className="text-sm">
-                                Please specify the number of sessions for all selected activities.
+                                Please specify the number of sessions for all
+                                selected activities.
                               </AlertDescription>
                             </Alert>
                           )}
@@ -1503,9 +1512,7 @@ function BookLocation({ params }) {
                           <h4 className="font-medium text-lg">
                             {destination.name}
                           </h4>
-                          <p className="text-sm text-gray-600">
-                            Tanzania
-                          </p>
+                          <p className="text-sm text-gray-600">Tanzania</p>
                         </div>
                         <Badge className="ml-auto bg-amber-100 text-amber-800 border border-amber-200">
                           {formatTZS(parseFloat(destination.cost || 0))}
@@ -1875,14 +1882,6 @@ function BookLocation({ params }) {
                               <CreditCard className="mr-2 h-4 w-4" />
                               Pay Now
                             </Button>
-                            <Button
-                              type="button"
-                              onClick={() => setIsEnhancedPaymentOpen(true)}
-                              className="w-full text-white bg-green-700 hover:bg-green-800"
-                            >
-                              <Wallet className="mr-2 h-4 w-4" />
-                              Enhanced Payment
-                            </Button>
                           </div>
 
                           <Button
@@ -1967,9 +1966,7 @@ function BookLocation({ params }) {
               <div className="p-4 bg-amber-50 rounded-lg">
                 <div className="flex justify-between items-center mb-2">
                   <span>Available Balance:</span>
-                  <span className="font-semibold">
-                    {formatTZS(balance)}
-                  </span>
+                  <span className="font-semibold">{formatTZS(balance)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span>Required:</span>
@@ -1980,9 +1977,7 @@ function BookLocation({ params }) {
                   <span>Remaining Balance:</span>
                   <span
                     className={
-                      balance >= totalPrice
-                        ? "text-green-600"
-                        : "text-red-600"
+                      balance >= totalPrice ? "text-green-600" : "text-red-600"
                     }
                   >
                     {formatTZS(balance - totalPrice)}
@@ -2010,10 +2005,12 @@ function BookLocation({ params }) {
                   <Button
                     onClick={async () => {
                       try {
-                        const connectResult = await blockchainService.connectWallet();
+                        const connectResult =
+                          await blockchainService.connectWallet();
                         if (connectResult.success) {
                           setIsWalletConnected(true);
-                          const address = await blockchainService.getConnectedAddress();
+                          const address =
+                            await blockchainService.getConnectedAddress();
                           setWalletAddress(address || "");
                           toast.success("Wallet connected successfully");
                         } else {
@@ -2141,14 +2138,7 @@ function BookLocation({ params }) {
         </DialogContent>
       </Dialog>
 
-      {/* Enhanced Payment Dialog */}
-      <EnhancedPaymentDialog
-        isOpen={isEnhancedPaymentOpen}
-        onClose={() => setIsEnhancedPaymentOpen(false)}
-        amount={totalPrice}
-        onPaymentSuccess={handleEnhancedPaymentSuccess}
-        bookingId={null}
-      />
+
     </div>
   );
 }

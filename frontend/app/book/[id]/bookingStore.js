@@ -36,8 +36,7 @@ export const useBookingStore = create((set, get) => ({
   paymentMethod: "",
   isPaymentDialogOpen: false,
   
-  // Enhanced payment state
-  isEnhancedPaymentOpen: false,
+
   
   // API data
   destination: null,
@@ -257,63 +256,7 @@ export const useBookingStore = create((set, get) => ({
   setAgreedToTerms: (agreed) => set({ agreedToTerms: agreed, errors: {} }),
   setPaymentMethod: (method) => set({ paymentMethod: method }),
   setIsPaymentDialogOpen: (isOpen) => set({ isPaymentDialogOpen: isOpen }),
-  setIsEnhancedPaymentOpen: (isOpen) => set({ isEnhancedPaymentOpen: isOpen }),
 
-  // Enhanced payment processing
-  processEnhancedPayment: async (paymentResult) => {
-    try {
-      const { step, startDate, endDate, selectedTransportRoute, selectedHotel, selectedActivities, activitySessions, flexibleOptions } = get();
-      const state = get();
-      
-      // Create booking first
-      const bookingData = {
-        startDate,
-        endDate,
-        selectedOrigin: state.selectedOrigin,
-        selectedTransportRoute: state.selectedTransportRoute,
-        selectedHotel: state.selectedHotel,
-        selectedActivities: state.selectedActivities,
-        activitySessions: state.activitySessions,
-        skipOptions: state.skipOptions
-      };
-
-      const booking = await bookingCreationService.createBooking(
-        state.destination?.id,
-        bookingData
-      );
-
-      if (booking.error) {
-        throw new Error(booking.error);
-      }
-
-      // Process payment with booking ID
-      const endpoint = `/api/bookings/${booking.bookingId}/pay`;
-      const token = localStorage.getItem('token');
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          paymentMethod: paymentResult.method,
-          ...paymentResult.data
-        })
-      });
-
-      const result = await response.json();
-      
-      if (response.ok) {
-        return { success: true, ...result };
-      } else {
-        throw new Error(result.message || 'Payment failed');
-      }
-    } catch (error) {
-      console.error('Enhanced payment error:', error);
-      return { success: false, error: error.message };
-    }
-  },
 
   resetBooking: () => set({
     step: 1,
@@ -333,7 +276,6 @@ export const useBookingStore = create((set, get) => ({
     agreedToTerms: false,
     paymentMethod: "",
     isPaymentDialogOpen: false,
-    isEnhancedPaymentOpen: false,
     // Keep destination and other API data
   }),
 
