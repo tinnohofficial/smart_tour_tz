@@ -26,10 +26,22 @@ import {
 } from "@stripe/react-stripe-js";
 import blockchainService from "../services/blockchainService";
 
-
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "pk_test_placeholder",
-);
+).catch((error) => {
+  console.error("Failed to load Stripe:", error);
+  return null;
+});
+
+// Validate Stripe configuration
+const isStripeConfigured = () => {
+  const key = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  return (
+    key &&
+    key !== "pk_test_placeholder" &&
+    key !== "pk_test_placeholder_replace_with_actual_key"
+  );
+};
 
 const cardElementOptions = {
   style: {
@@ -55,22 +67,35 @@ function StripeCheckoutForm({ amount, onSuccess, onError }) {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    // Check if Stripe is configured properly
+    if (!isStripeConfigured()) {
+      const errorMessage =
+        "Payment system not configured. Please contact support.";
+      setCardError(errorMessage);
+      onError(errorMessage);
+      return;
+    }
+
     if (!stripe || !elements) {
-      setCardError("Payment system not ready. Please refresh and try again.");
+      const errorMessage = "Payment system not ready. Please refresh and try again.";
+      setCardError(errorMessage);
+      onError(errorMessage);
       return;
     }
 
     if (!amount || amount < 1150) {
-      setCardError("Minimum amount for card payments is 1,150 TZS");
+      const errorMessage = "Minimum amount for card payments is 1,150 TZS";
+      setCardError(errorMessage);
+      onError(errorMessage);
       return;
     }
 
     setIsProcessing(true);
     setCardError(null);
 
-    const cardElement = elements.getElement(CardElement);
-
     try {
+      const cardElement = elements.getElement(CardElement);
+
       // Create payment method
       const { error: paymentMethodError, paymentMethod } =
         await stripe.createPaymentMethod({
@@ -79,14 +104,20 @@ function StripeCheckoutForm({ amount, onSuccess, onError }) {
         });
 
       if (paymentMethodError) {
-        throw new Error(paymentMethodError.message);
+        const errorMessage = paymentMethodError.message || "Invalid payment information";
+        setCardError(errorMessage);
+        onError(errorMessage);
+        return;
       }
 
       // Simulate payment processing
       const paymentResult = await simulatePayment(amount, paymentMethod.id);
-      
+
       if (!paymentResult.success) {
-        throw new Error("Payment processing failed");
+        const errorMessage = "Payment processing failed";
+        setCardError(errorMessage);
+        onError(errorMessage);
+        return;
       }
 
       // Update user balance
@@ -99,8 +130,19 @@ function StripeCheckoutForm({ amount, onSuccess, onError }) {
       });
     } catch (error) {
       console.error("Payment failed:", error);
-      setCardError(error.message);
-      onError(error.message);
+      let errorMessage = "Payment failed. Please try again.";
+      
+      // Handle specific error types
+      if (error.message?.includes("Invalid API Key")) {
+        errorMessage = "Payment system configuration error. Please contact support.";
+      } else if (error.message?.includes("network")) {
+        errorMessage = "Network error. Please check your connection and try again.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setCardError(errorMessage);
+      onError(errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -137,53 +179,59 @@ function StripeCheckoutForm({ amount, onSuccess, onError }) {
   const simulatePayment = async (amount, paymentMethodId) => {
     // Simulate payment processing delay
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    
+
     // For demo purposes, we'll simulate a successful payment
     // In a real implementation, this would integrate with a payment processor
     return {
       success: true,
       payment_method_id: paymentMethodId,
       amount: amount,
-      status: "succeeded"
+      status: "succeeded",
     };
   };
 
   const updateUserBalance = async (depositAmount) => {
-    const token = localStorage.getItem("token");
-    
-    // First get current balance
-    const balanceResponse = await fetch("/api/users/balance", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
+    try {
+      const token = localStorage.getItem("token");
 
-    if (!balanceResponse.ok) {
-      throw new Error("Failed to get current balance");
+      // First get current balance
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      const balanceResponse = await fetch(`${API_URL}/users/balance`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!balanceResponse.ok) {
+        throw new Error("Failed to get current balance");
+      }
+
+      const { balance: currentBalance } = await balanceResponse.json();
+      const newBalance = currentBalance + depositAmount;
+
+      // Update balance
+      const updateResponse = await fetch(`${API_URL}/users/balance`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          balance: newBalance,
+        }),
+      });
+
+      if (!updateResponse.ok) {
+        const data = await updateResponse.json();
+        throw new Error(data.message || "Failed to update balance");
+      }
+
+      return updateResponse.json();
+    } catch (error) {
+      console.error("Error updating balance:", error);
+      throw error;
     }
-
-    const { balance: currentBalance } = await balanceResponse.json();
-    const newBalance = currentBalance + depositAmount;
-
-    // Update balance
-    const updateResponse = await fetch("/api/users/balance", {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        balance: newBalance,
-      }),
-    });
-
-    if (!updateResponse.ok) {
-      const data = await updateResponse.json();
-      throw new Error(data.message || "Failed to update balance");
-    }
-
-    return updateResponse.json();
   };
 
   return (
@@ -194,9 +242,6 @@ function StripeCheckoutForm({ amount, onSuccess, onError }) {
           <span className="font-medium">Payment Amount</span>
         </div>
         <p className="text-2xl font-bold text-blue-900">{formatTZS(amount)}</p>
-        <p className="text-sm text-blue-700">
-          Secure payment processing (≈ ${(amount / 2500).toFixed(2)} USD)
-        </p>
       </div>
 
       <div className="space-y-2">
@@ -282,8 +327,6 @@ export default function Savings() {
     }
   }, [fetchBalance]);
 
-
-
   const handleStripeSuccess = async (paymentResult) => {
     toast.success(
       `Successfully saved ${formatTZS(paymentResult.amount)} to your account!`,
@@ -326,44 +369,58 @@ export default function Savings() {
     try {
       // Check if MetaMask is installed
       if (!window.ethereum) {
-        toast.error("MetaMask is not installed. Please install MetaMask to continue.");
+        toast.error(
+          "MetaMask is not installed. Please install MetaMask to continue.",
+        );
         return;
       }
 
       const result = await connectWallet();
-      
+
       if (result && result.success) {
         toast.success("Wallet connected successfully!");
-        
+
         // Check if user is on the correct network (Base Sepolia)
-        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-        if (chainId !== '0x14a34') { // Base Sepolia chain ID
-          toast.warning("Please switch to Base Sepolia network for full functionality");
-          
+        const chainId = await window.ethereum.request({
+          method: "eth_chainId",
+        });
+        if (chainId !== "0x14a34") {
+          // Base Sepolia chain ID
+          toast.warning(
+            "Please switch to Base Sepolia network for full functionality",
+          );
+
           // Optionally try to switch network automatically
           try {
             await blockchainService.switchToBaseSepolia();
             toast.success("Switched to Base Sepolia network");
           } catch (networkError) {
-            console.warn("Could not switch network automatically:", networkError);
+            console.warn(
+              "Could not switch network automatically:",
+              networkError,
+            );
           }
         }
       } else {
         const errorMessage = result?.error || "Failed to connect wallet";
-        
+
         if (errorMessage.includes("User rejected")) {
           toast.error("Connection cancelled by user");
         } else if (errorMessage.includes("no such account")) {
-          toast.error("No accounts found. Please unlock MetaMask and try again.");
+          toast.error(
+            "No accounts found. Please unlock MetaMask and try again.",
+          );
         } else {
           toast.error(errorMessage);
         }
       }
     } catch (error) {
       console.error("Wallet connection error:", error);
-      
+
       if (error.message.includes("no such account")) {
-        toast.error("No MetaMask accounts found. Please unlock MetaMask and ensure you have at least one account.");
+        toast.error(
+          "No MetaMask accounts found. Please unlock MetaMask and ensure you have at least one account.",
+        );
       } else if (error.message.includes("User rejected")) {
         toast.error("Connection cancelled by user");
       } else {
@@ -506,12 +563,7 @@ export default function Savings() {
                     min="1"
                     max="25000000"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Card payments: Min 1,150 TZS | Crypto: Min 1 TZS | Max: 25,000,000 TZS
-                  </p>
                 </div>
-
-
               </div>
 
               <Tabs
@@ -531,9 +583,16 @@ export default function Savings() {
                 </TabsList>
 
                 <TabsContent value="stripe" className="space-y-4">
-                  {depositAmount &&
-                  !isNaN(Number(depositAmount)) &&
-                  Number(depositAmount) >= 1150 ? (
+                  {!isStripeConfigured() ? (
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-yellow-800 text-sm">
+                        💳 Card payments are currently unavailable. Please
+                        contact support or try cryptocurrency payment.
+                      </p>
+                    </div>
+                  ) : depositAmount &&
+                    !isNaN(Number(depositAmount)) &&
+                    Number(depositAmount) >= 1150 ? (
                     <Elements stripe={stripePromise}>
                       <StripeCheckoutForm
                         amount={Number(depositAmount)}
@@ -558,7 +617,8 @@ export default function Savings() {
                     <div className="text-center p-6 bg-gray-50 rounded-lg">
                       <Wallet className="h-12 w-12 mx-auto text-gray-400 mb-3" />
                       <p className="text-gray-600 mb-4">
-                        Connect your MetaMask wallet to deposit with cryptocurrency
+                        Connect your MetaMask wallet to deposit with
+                        cryptocurrency
                       </p>
                       <Button
                         onClick={handleConnectWallet}
@@ -590,22 +650,23 @@ export default function Savings() {
                       </div>
 
                       <div className="p-4 bg-amber-50 rounded-lg">
-                        <p className="text-sm text-amber-800 font-medium">
-                          TZC Deposit Instructions
-                        </p>
-                        <p className="text-sm text-amber-700 mt-1">
-                          Enter the amount of TZC tokens you want to deposit. This will approve the Smart Tour Vault 
-                          to spend your TZC tokens, then deposit them to the vault. Your balance will be updated automatically.
-                        </p>
-                        {depositAmount && !isNaN(Number(depositAmount)) && Number(depositAmount) > 0 && (
-                          <div className="mt-3 p-2 bg-white rounded border border-amber-200">
-                            <p className="text-sm text-amber-800 font-medium">You will deposit:</p>
-                            <p className="text-lg font-bold text-amber-900">{formatTZS(depositAmount)} TZC</p>
-                          </div>
-                        )}
+                        {depositAmount &&
+                          !isNaN(Number(depositAmount)) &&
+                          Number(depositAmount) > 0 && (
+                            <div className="mt-3 p-2 bg-white rounded border border-amber-200">
+                              <p className="text-sm text-amber-800 font-medium">
+                                You will deposit:
+                              </p>
+                              <p className="text-lg font-bold text-amber-900">
+                                {formatTZS(depositAmount)} TZC
+                              </p>
+                            </div>
+                          )}
                       </div>
 
-                      {depositAmount && !isNaN(Number(depositAmount)) && Number(depositAmount) > 0 ? (
+                      {depositAmount &&
+                      !isNaN(Number(depositAmount)) &&
+                      Number(depositAmount) > 0 ? (
                         <Button
                           onClick={handleCryptoDeposit}
                           className="w-full bg-green-600 hover:bg-green-700"
@@ -624,7 +685,8 @@ export default function Savings() {
                         <div className="p-4 bg-gray-50 rounded-lg text-center">
                           <Wallet className="h-8 w-8 mx-auto text-gray-400 mb-2" />
                           <p className="text-gray-600">
-                            Please enter a valid amount greater than 0 TZC to proceed with deposit.
+                            Please enter a valid amount greater than 0 TZC to
+                            proceed with deposit.
                           </p>
                         </div>
                       )}
