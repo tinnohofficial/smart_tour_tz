@@ -5,7 +5,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract TanzaniaShillingCoin is ERC20, Ownable {
-    uint8 private constant DECIMALS = 18;
+    uint8 private constant DECIMALS = 6;
 
     constructor() ERC20("Tanzania Shilling Coin", "TZC") Ownable(msg.sender) {}
 

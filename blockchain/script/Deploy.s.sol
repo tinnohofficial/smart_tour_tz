@@ -11,11 +11,9 @@ contract DeployScript is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        // Deploy TZC token first
         TanzaniaShillingCoin tzcToken = new TanzaniaShillingCoin();
         console.log("TZC Token deployed at:", address(tzcToken));
 
-        // Deploy SmartTourVault with TZC token address
         SmartTourVault vault = new SmartTourVault(address(tzcToken));
         console.log("SmartTourVault deployed at:", address(vault));
 

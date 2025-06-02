@@ -4,10 +4,8 @@ import { ethers } from 'ethers'
 const SMART_TOUR_VAULT_ABI = [
   "function deposit(uint256 amount) external",
   "function getUserBalance(address user) external view returns (uint256)",
-  "function payFromSavings(address user, uint256 amount) external",
   "function adminWithdraw(uint256 amount) external",
   "event Deposit(address indexed user, uint256 amount)",
-  "event PaymentFromSavings(address indexed user, uint256 amount)"
 ]
 
 // ERC20 ABI for token operations
@@ -408,44 +406,6 @@ class BlockchainService {
     }
   }
 
-  // Process payment from user's vault balance
-  async payFromVault(userAddress, tzsAmount) {
-    try {
-      if (!this.connected || !this.signer || !this.contract) {
-        throw new Error('Wallet not connected or contracts not initialized')
-      }
-
-      // Convert TZS to TZC (1:1 ratio)
-      const tzcAmount = await this.convertTzsToTzc(tzsAmount)
-      
-      // Check if user has sufficient vault balance
-      const vaultBalance = await this.getUserVaultBalance(userAddress)
-      if (parseFloat(vaultBalance) < tzcAmount) {
-        throw new Error(`Insufficient vault balance. Required: ${tzcAmount} TZC, Available: ${vaultBalance} TZC`)
-      }
-
-      const amountWei = ethers.parseUnits(tzcAmount.toString(), 18)
-
-      // Execute payment from vault
-      const tx = await this.contract.payFromSavings(userAddress, amountWei)
-      const receipt = await tx.wait()
-
-      return {
-        success: true,
-        transactionHash: receipt.hash,
-        amountTZC: tzcAmount,
-        amountTZS: tzsAmount,
-        gasUsed: receipt.gasUsed.toString()
-      }
-    } catch (error) {
-      console.error('Error processing payment from vault:', error)
-      return {
-        success: false,
-        error: error.message
-      }
-    }
-  }
-
   // Check if user has sufficient balance for a transaction
   async checkSufficientBalance(userAddress, requiredTzsAmount) {
     try {
@@ -473,159 +433,7 @@ class BlockchainService {
       }
     }
   }
-
-  // Process crypto payment for booking
-  async processCryptoPayment(bookingId, tzsAmount, paymentMethod = 'vault') {
-    try {
-      if (!this.connected || !this.signer) {
-        throw new Error('Wallet not connected')
-      }
-
-      const userAddress = await this.signer.getAddress()
-      
-      if (paymentMethod === 'vault') {
-        // Pay from vault balance
-        const result = await this.payFromVault(userAddress, tzsAmount)
-        
-        if (result.success) {
-          // Call backend to confirm payment
-          const response = await fetch(`/api/bookings/${bookingId}/pay`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              paymentMethod: 'crypto',
-              walletAddress: userAddress,
-              transactionHash: result.transactionHash,
-              useVaultBalance: true,
-              amountTZC: result.amountTZC,
-              amountTZS: result.amountTZS
-            })
-          })
-
-          if (!response.ok) {
-            throw new Error('Failed to confirm payment with backend')
-          }
-
-          return {
-            success: true,
-            transactionHash: result.transactionHash,
-            paymentMethod: 'crypto-vault'
-          }
-        } else {
-          throw new Error(result.error)
-        }
-      } else {
-        // Direct wallet payment (simplified)
-        const response = await fetch(`/api/bookings/${bookingId}/pay`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            paymentMethod: 'crypto',
-            walletAddress: userAddress,
-            useVaultBalance: false
-          })
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to process crypto payment')
-        }
-
-        return {
-          success: true,
-          paymentMethod: 'crypto-direct'
-        }
-      }
-    } catch (error) {
-      console.error('Error processing crypto payment:', error)
-      return {
-        success: false,
-        error: error.message
-      }
-    }
-  }
-
-  // Process cart checkout with crypto
-  async processCryptoCartCheckout(cartId, totalTzsAmount, paymentMethod = 'vault') {
-    try {
-      if (!this.connected || !this.signer) {
-        throw new Error('Wallet not connected')
-      }
-
-      const userAddress = await this.signer.getAddress()
-      
-      if (paymentMethod === 'vault') {
-        // Pay from vault balance
-        const result = await this.payFromVault(userAddress, totalTzsAmount)
-        
-        if (result.success) {
-          // Call backend to confirm payment
-          const response = await fetch('/api/cart/checkout', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              paymentMethod: 'crypto',
-              walletAddress: userAddress,
-              transactionHash: result.transactionHash,
-              useVaultBalance: true,
-              amountTZC: result.amountTZC,
-              amountTZS: result.amountTZS
-            })
-          })
-
-          if (!response.ok) {
-            throw new Error('Failed to confirm cart checkout with backend')
-          }
-
-          return {
-            success: true,
-            transactionHash: result.transactionHash,
-            paymentMethod: 'crypto-vault'
-          }
-        } else {
-          throw new Error(result.error)
-        }
-      } else {
-        // Direct wallet payment (simplified)
-        const response = await fetch('/api/cart/checkout', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            paymentMethod: 'crypto',
-            walletAddress: userAddress,
-            useVaultBalance: false
-          })
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to process crypto cart checkout')
-        }
-
-        return {
-          success: true,
-          paymentMethod: 'crypto-direct'
-        }
-      }
-    } catch (error) {
-      console.error('Error processing crypto cart checkout:', error)
-      return {
-        success: false,
-        error: error.message
-      }
-    }
-  }
-
+  
   // Get contract addresses
   getContractAddresses() {
     return {

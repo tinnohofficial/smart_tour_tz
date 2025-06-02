@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -31,8 +30,6 @@ import {
   Clock,
   ArrowRight,
   Bus,
-  Plane,
-  Ship,
   Wallet,
   Loader2,
   ShoppingCart,
@@ -56,7 +53,6 @@ import { useBookingStore, useBookingNights } from "./bookingStore";
 import { useCartStore } from "../../store/cartStore";
 // Import savings store for wallet functionality
 import { useSavingsStore } from "../../savings/savingStore";
-import blockchainService from "../../services/blockchainService";
 // Import RouteProtection component
 import { RouteProtection } from "@/components/route-protection";
 // Import shared utilities
@@ -64,7 +60,6 @@ import { formatBookingDate } from "@/app/utils/dateUtils";
 import { TransportIcon } from "@/app/components/shared/TransportIcon";
 
 import { formatTZS } from "@/app/utils/currency";
-import { debounce } from "@/app/utils/debounce";
 import { toast } from "sonner";
 import { bookingCreationService } from "@/app/services/api";
 
@@ -79,10 +74,6 @@ function BookLocation({ params }) {
 
   // Get savings store (simplified)
   const { balance } = useSavingsStore();
-
-  // Wallet state management
-  const [isWalletConnected, setIsWalletConnected] = useState(false);
-  const [walletAddress, setWalletAddress] = useState("");
 
   // Get state and actions from Zustand store
   const {
@@ -158,38 +149,6 @@ function BookLocation({ params }) {
       });
     }
   }, [prevStep]);
-
-  // Handle wallet disconnection
-  const handleWalletDisconnect = useCallback(() => {
-    try {
-      blockchainService.disconnect();
-      setIsWalletConnected(false);
-      setWalletAddress("");
-      toast.success("Wallet disconnected");
-    } catch (error) {
-      console.error("Error disconnecting wallet:", error);
-      toast.error("Error disconnecting wallet");
-    }
-  }, []);
-
-  // Check wallet connection status on component mount
-  useEffect(() => {
-    const checkWalletConnection = async () => {
-      const connected = blockchainService.isConnected();
-      setIsWalletConnected(connected);
-
-      if (connected) {
-        try {
-          const address = await blockchainService.getConnectedAddress();
-          setWalletAddress(address || "");
-        } catch (error) {
-          console.error("Error getting wallet address:", error);
-        }
-      }
-    };
-
-    checkWalletConnection();
-  }, []);
 
   // Fetch destination data when component mounts
   useEffect(() => {
@@ -310,30 +269,6 @@ function BookLocation({ params }) {
       return;
     }
 
-    // Validation based on payment method
-    if (paymentMethod === "crypto") {
-      // Check wallet connection or try to connect
-      if (!blockchainService.isConnected()) {
-        const connectResult = await blockchainService.connectWallet();
-        if (!connectResult.success) {
-          toast.error("Please connect your wallet for crypto payments");
-          return;
-        } else {
-          // Update wallet state after successful connection
-          setIsWalletConnected(true);
-          try {
-            const address = await blockchainService.getConnectedAddress();
-            setWalletAddress(address || "");
-          } catch (error) {
-            console.error(
-              "Error getting wallet address after connection:",
-              error,
-            );
-          }
-        }
-      }
-    }
-
     if (paymentMethod === "savings" && balance < totalPrice) {
       toast.error("Insufficient funds in savings account");
       return;
@@ -361,20 +296,6 @@ function BookLocation({ params }) {
       let paymentResult;
 
       switch (paymentMethod) {
-        case "crypto":
-          // Process crypto payment using blockchain service
-          paymentResult = await blockchainService.processCryptoPayment(
-            booking.bookingId,
-            totalPrice,
-            "vault",
-          );
-
-          if (!paymentResult.success) {
-            toast.error(paymentResult.error || "Crypto payment failed");
-            return;
-          }
-          break;
-
         case "savings":
           paymentResult = await bookingCreationService.processPayment(
             booking.bookingId,
@@ -537,44 +458,6 @@ function BookLocation({ params }) {
 
           {/* Progress Bar Logic */}
           <div className="relative">
-            {/* <div className="flex justify-between md:gap-12 gap-4 mb-2">
-              <div className="text-center w-full">
-                <span
-                  className={`text-sm ${step >= 1 ? "text-amber-700 font-medium" : "text-gray-500"}`}
-                >
-                  Dates
-                </span>
-              </div>
-              <div className="text-center w-full">
-                <span
-                  className={`text-sm ${step >= 2 ? "text-amber-700 font-medium" : "text-gray-500"}`}
-                >
-                  Transport
-                </span>
-              </div>
-              <div className="text-center w-full">
-                <span
-                  className={`text-sm ${step >= 3 ? "text-amber-700 font-medium" : "text-gray-500"}`}
-                >
-                  Hotels
-                </span>
-              </div>
-              <div className="text-center w-full">
-                <span
-                  className={`text-sm ${step >= 4 ? "text-amber-700 font-medium" : "text-gray-500"}`}
-                >
-                  Activities
-                </span>
-              </div>
-              <div className="text-center w-full">
-                <span
-                  className={`text-sm ${step >= 5 ? "text-amber-700 font-medium" : "text-gray-500"}`}
-                >
-                  Review
-                </span>
-              </div>
-            </div> */}
-
             <div className="flex items-center">
               <div
                 className={`rounded-full h-10 w-10 flex items-center justify-center ${
@@ -1928,70 +1811,12 @@ function BookLocation({ params }) {
             </TabsContent>
 
             <TabsContent value="crypto" className="space-y-4">
-              {!isWalletConnected ? (
-                <div className="text-center p-6 bg-gray-50 rounded-lg">
-                  <Wallet className="h-12 w-12 mx-auto text-gray-400 mb-3" />
-                  <p className="text-gray-600 mb-4">
-                    Connect your MetaMask wallet to pay with cryptocurrency
-                  </p>
-                  <Button
-                    onClick={async () => {
-                      try {
-                        const connectResult =
-                          await blockchainService.connectWallet();
-                        if (connectResult.success) {
-                          setIsWalletConnected(true);
-                          const address =
-                            await blockchainService.getConnectedAddress();
-                          setWalletAddress(address || "");
-                          toast.success("Wallet connected successfully");
-                        } else {
-                          toast.error("Failed to connect wallet");
-                        }
-                      } catch (error) {
-                        console.error("Error connecting wallet:", error);
-                        toast.error("Error connecting wallet");
-                      }
-                    }}
-                    disabled={false}
-                    className="text-white bg-amber-700 hover:bg-amber-800"
-                  >
-                    Connect MetaMask
-                  </Button>
-                </div>
-              ) : (
                 <div className="p-4 bg-amber-50 rounded-lg">
                   <div className="flex justify-between items-center mb-2">
                     <span>Equivalent in ETH:</span>
                     <span className="font-semibold">
                       {(totalPrice / 9100000).toFixed(6)} ETH
                     </span>
-                  </div>
-
-                  <div className="mt-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <Label htmlFor="cryptoWallet">
-                        Connected Wallet Address
-                      </Label>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={handleWalletDisconnect}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        Disconnect
-                      </Button>
-                    </div>
-                    <div className="mt-1">
-                      <Input
-                        id="cryptoWallet"
-                        type="text"
-                        value={walletAddress || ""}
-                        disabled
-                        className="font-mono text-xs bg-gray-50"
-                      />
-                    </div>
                   </div>
 
                   <div className="mt-4">
@@ -2046,7 +1871,7 @@ function BookLocation({ params }) {
                     </AlertDescription>
                   </Alert>
                 </div>
-              )}
+              
             </TabsContent>
           </Tabs>
 
