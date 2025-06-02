@@ -1,57 +1,68 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { useRouter, usePathname } from "next/navigation"
-import { BarChart3, MapPin, Briefcase, LogOut, Menu, X, Lock, Car, Package, User } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { cn } from "@/lib/utils"
-import { useLayoutStore } from "@/app/store/layoutStore"
-import { RouteProtection } from "@/components/route-protection"
-import { publishAuthChange } from "@/components/Navbar"
-import { travelAgentService, apiUtils } from "@/app/services/api"
-import { useEffect, useState } from "react"
+import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
+import {
+  BarChart3,
+  MapPin,
+  Briefcase,
+  LogOut,
+  Menu,
+  X,
+  Lock,
+  Car,
+  Package,
+  User,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
+import { useLayoutStore } from "@/app/store/layoutStore";
+import { RouteProtection } from "@/components/route-protection";
+import { publishAuthChange } from "@/components/Navbar";
+import { travelAgentService, apiUtils } from "@/app/services/api";
+import { useEffect, useState } from "react";
 
 export default function TravelAgentLayout({ children }) {
-  const pathname = usePathname()
-  const router = useRouter()
-  const { isSidebarOpen, setIsSidebarOpen } = useLayoutStore()
-  const [userStatus, setUserStatus] = useState(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [hasProfile, setHasProfile] = useState(false)
+  const pathname = usePathname();
+  const router = useRouter();
+  const { isSidebarOpen, setIsSidebarOpen } = useLayoutStore();
+  const [userStatus, setUserStatus] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasProfile, setHasProfile] = useState(false);
 
   useEffect(() => {
     const checkUserProfile = async () => {
-      setIsLoading(true)
+      setIsLoading(true);
       try {
-        const token = localStorage.getItem('token')
+        const token = localStorage.getItem("token");
         if (!token) {
-          router.push('/login')
-          return
+          router.push("/login");
+          return;
         }
 
         try {
-          const data = await travelAgentService.getProfile()
-          setUserStatus(data.status || 'pending_profile')
-          setHasProfile(true)
+          const data = await travelAgentService.getProfile();
+          setUserStatus(data.status || "pending_profile");
+          setHasProfile(true);
         } catch (error) {
           if (error.response?.status === 404) {
-            setUserStatus('pending_profile')
-            setHasProfile(false)
+            setUserStatus("pending_profile");
+            setHasProfile(false);
           } else {
-            console.error('Error fetching profile:', error)
-            apiUtils.handleAuthError(error, router)
+            console.error("Error fetching profile:", error);
+            apiUtils.handleAuthError(error, router);
           }
         }
       } catch (error) {
-        console.error("Error fetching user profile:", error)
+        console.error("Error fetching user profile:", error);
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    checkUserProfile()
-  }, [pathname, router])
+    checkUserProfile();
+  }, [pathname, router]);
 
   const navItems = [
     {
@@ -59,69 +70,78 @@ export default function TravelAgentLayout({ children }) {
       label: "Dashboard",
       icon: <BarChart3 className="h-5 w-5" />,
       active: pathname === "/travel-agent/dashboard",
-      show: userStatus === 'active'
+      show: userStatus === "active",
     },
     {
       href: "/travel-agent/bookings",
       label: "Manage Bookings",
       icon: <Package className="h-5 w-5" />,
       active: pathname === "/travel-agent/bookings",
-      show: userStatus === 'active'
+      show: userStatus === "active",
     },
     {
       href: "/travel-agent/routes",
       label: "Transport Routes",
       icon: <Car className="h-5 w-5" />,
       active: pathname === "/travel-agent/routes",
-      show: userStatus === 'active'
+      show: userStatus === "active",
     },
     {
       href: "/travel-agent/profile",
       label: "Agency Profile",
       icon: <Briefcase className="h-5 w-5" />,
       active: pathname === "/travel-agent/profile",
-      show: userStatus === 'active'
+      show: userStatus === "active",
     },
     {
       href: "/travel-agent/pending-status",
       label: "Application Status",
       icon: <User className="h-5 w-5" />,
       active: pathname === "/travel-agent/pending-status",
-      show: userStatus === 'pending_approval' || userStatus === 'rejected'
+      show: userStatus === "pending_approval" || userStatus === "rejected",
     },
     {
       href: "/travel-agent/password",
       label: "Change Password",
       icon: <Lock className="h-5 w-5" />,
       active: pathname === "/travel-agent/password",
-      show: true
-    }
-  ]
+      show: true,
+    },
+  ];
 
   const shouldRestrictAccess = () => {
-    if (isLoading) return true
-    
-    if (!hasProfile && userStatus === 'pending_profile') {
-      return !['/travel-agent/complete-profile', '/travel-agent/password'].includes(pathname)
+    if (isLoading) return true;
+
+    if (!hasProfile && userStatus === "pending_profile") {
+      return ![
+        "/travel-agent/complete-profile",
+        "/travel-agent/password",
+      ].includes(pathname);
     }
-    
-    if (hasProfile && (userStatus === 'pending_approval' || userStatus === 'rejected')) {
-      return !['/travel-agent/pending-status', '/travel-agent/password'].includes(pathname)
+
+    if (
+      hasProfile &&
+      (userStatus === "pending_approval" || userStatus === "rejected")
+    ) {
+      return ![
+        "/travel-agent/pending-status",
+        "/travel-agent/password",
+      ].includes(pathname);
     }
-    
-    if (userStatus === 'active') {
-      return ['/travel-agent/complete-profile', '/travel-agent/pending-status'].includes(pathname)
+
+    if (userStatus === "active") {
+      return ["/travel-agent/complete-profile"].includes(pathname);
     }
-    
-    return false
-  }
+
+    return false;
+  };
 
   const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('userData')
-    publishAuthChange()
-    router.push('/login')
-  }
+    localStorage.removeItem("token");
+    localStorage.removeItem("userData");
+    publishAuthChange();
+    router.push("/login");
+  };
 
   if (isLoading) {
     return (
@@ -131,14 +151,17 @@ export default function TravelAgentLayout({ children }) {
           <p className="mt-4 text-gray-600">Smart Tour Tanzania</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
-    <RouteProtection allowedRoles={['travel_agent']}>
+    <RouteProtection allowedRoles={["travel_agent"]}>
       <div className="flex h-screen bg-amber-50">
         {isSidebarOpen && (
-          <div className="fixed inset-0 z-20 bg-black/50 md:hidden" onClick={() => setIsSidebarOpen(false)} />
+          <div
+            className="fixed inset-0 z-20 bg-black/50 md:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          />
         )}
 
         <aside
@@ -151,7 +174,9 @@ export default function TravelAgentLayout({ children }) {
             <div className="flex h-16 items-center justify-between border-b border-amber-800 px-4">
               <div className="flex items-center">
                 <Briefcase className="h-6 w-6 text-white mr-2" />
-                <h1 className="text-xl font-semibold text-white">Travel Agent</h1>
+                <h1 className="text-xl font-semibold text-white">
+                  Travel Agent
+                </h1>
               </div>
               <Button
                 variant="ghost"
@@ -164,23 +189,27 @@ export default function TravelAgentLayout({ children }) {
             </div>
 
             <nav className="flex-1 space-y-4 px-2 py-4">
-              {navItems.filter(item => item.show).map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center px-2 py-2 text-sm font-medium rounded-md",
-                    item.active ? "bg-amber-800 text-white" : "text-amber-200 hover:bg-amber-800/50 hover:text-white",
-                  )}
-                >
-                  <span className="mr-3">{item.icon}</span>
-                  {item.label}
-                </Link>
-              ))}
+              {navItems
+                .filter((item) => item.show)
+                .map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "flex items-center px-2 py-2 text-sm font-medium rounded-md",
+                      item.active
+                        ? "bg-amber-800 text-white"
+                        : "text-amber-200 hover:bg-amber-800/50 hover:text-white",
+                    )}
+                  >
+                    <span className="mr-3">{item.icon}</span>
+                    {item.label}
+                  </Link>
+                ))}
             </nav>
 
             <div className="border-t border-amber-800 p-4">
-              <button 
+              <button
                 className="flex w-full items-center rounded-md px-2 py-2 text-sm font-medium text-amber-200 hover:bg-amber-800/50 hover:text-white"
                 onClick={handleLogout}
               >
@@ -194,7 +223,12 @@ export default function TravelAgentLayout({ children }) {
         <div className="flex flex-1 flex-col bg-white md:pl-64">
           <header className="sticky top-0 left-0 z-10 bg-transparent shadow-sm md:hidden">
             <div className="flex h-16 items-center justify-between px-4">
-              <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSidebarOpen(true)}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden"
+                onClick={() => setIsSidebarOpen(true)}
+              >
                 <Menu className="h-6 w-6" />
               </Button>
 
@@ -210,37 +244,56 @@ export default function TravelAgentLayout({ children }) {
           <main className="flex-1 px-6 py-6">
             {shouldRestrictAccess() ? (
               <div className="text-center py-10">
-                {!hasProfile && userStatus === 'pending_profile' ? (
+                {!hasProfile && userStatus === "pending_profile" ? (
                   <>
                     <Briefcase className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-                    <h2 className="text-xl font-semibold text-gray-700">Complete Your Agency Profile</h2>
-                    <p className="text-gray-500 mb-6">You need to complete your travel agency profile to access this page.</p>
-                    <Button 
-                      onClick={() => router.push('/travel-agent/complete-profile')}
+                    <h2 className="text-xl font-semibold text-gray-700">
+                      Complete Your Agency Profile
+                    </h2>
+                    <p className="text-gray-500 mb-6">
+                      You need to complete your travel agency profile to access
+                      this page.
+                    </p>
+                    <Button
+                      onClick={() =>
+                        router.push("/travel-agent/complete-profile")
+                      }
                       className="bg-amber-700 hover:bg-amber-800"
                     >
                       Complete Profile Now
                     </Button>
                   </>
-                ) : hasProfile && (userStatus === 'pending_approval' || userStatus === 'rejected') ? (
+                ) : hasProfile &&
+                  (userStatus === "pending_approval" ||
+                    userStatus === "rejected") ? (
                   <>
                     <User className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-                    <h2 className="text-xl font-semibold text-gray-700">Check Your Application Status</h2>
-                    <p className="text-gray-500 mb-6">View your application status and submitted details.</p>
-                    <Button 
-                      onClick={() => router.push('/travel-agent/pending-status')}
+                    <h2 className="text-xl font-semibold text-gray-700">
+                      Check Your Application Status
+                    </h2>
+                    <p className="text-gray-500 mb-6">
+                      View your application status and submitted details.
+                    </p>
+                    <Button
+                      onClick={() =>
+                        router.push("/travel-agent/pending-status")
+                      }
                       className="bg-amber-700 hover:bg-amber-800"
                     >
                       View Application Status
                     </Button>
                   </>
-                ) : userStatus === 'active' ? (
+                ) : userStatus === "active" ? (
                   <>
                     <Briefcase className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-                    <h2 className="text-xl font-semibold text-gray-700">Access Restricted</h2>
-                    <p className="text-gray-500 mb-6">This page is not available for approved travel agents.</p>
-                    <Button 
-                      onClick={() => router.push('/travel-agent/dashboard')}
+                    <h2 className="text-xl font-semibold text-gray-700">
+                      Access Restricted
+                    </h2>
+                    <p className="text-gray-500 mb-6">
+                      This page is not available for approved travel agents.
+                    </p>
+                    <Button
+                      onClick={() => router.push("/travel-agent/dashboard")}
                       className="bg-amber-700 hover:bg-amber-800"
                     >
                       Go to Dashboard
@@ -249,8 +302,12 @@ export default function TravelAgentLayout({ children }) {
                 ) : (
                   <>
                     <Briefcase className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-                    <h2 className="text-xl font-semibold text-gray-700">Access Restricted</h2>
-                    <p className="text-gray-500 mb-6">You don't have permission to access this page.</p>
+                    <h2 className="text-xl font-semibold text-gray-700">
+                      Access Restricted
+                    </h2>
+                    <p className="text-gray-500 mb-6">
+                      You don't have permission to access this page.
+                    </p>
                   </>
                 )}
               </div>
@@ -261,5 +318,5 @@ export default function TravelAgentLayout({ children }) {
         </div>
       </div>
     </RouteProtection>
-  )
+  );
 }

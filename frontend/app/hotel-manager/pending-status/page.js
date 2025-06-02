@@ -15,6 +15,7 @@ import {
   Image as ImageIcon,
   ArrowLeft,
   RefreshCw,
+  ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,6 +37,7 @@ export default function PendingStatusPage() {
   const [hotelData, setHotelData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   useEffect(() => {
     const checkStatusAndFetchData = async () => {
@@ -51,10 +53,9 @@ export default function PendingStatusPage() {
           setUserStatus(data.status || "pending_approval");
           setHotelData(data);
 
-          // If user is active, redirect to dashboard
+          // If user is active, show congratulations instead of redirecting
           if (data.status === "active") {
-            router.push("/hotel-manager/dashboard");
-            return;
+            // Don't redirect automatically, let user click button
           }
 
           // If user hasn't completed profile, redirect to complete profile
@@ -90,8 +91,23 @@ export default function PendingStatusPage() {
     window.location.reload();
   };
 
+  const handleGoToDashboard = () => {
+    setIsLoggingIn(true);
+    router.push("/hotel-manager/dashboard");
+  };
+
   const getStatusDisplay = () => {
     switch (userStatus) {
+      case "active":
+        return {
+          icon: <CheckCircle className="h-8 w-8 text-green-500" />,
+          title: "Congratulations! Application Approved",
+          message:
+            "Your hotel profile has been approved! You can now access your dashboard and start managing your hotel bookings.",
+          color: "green",
+          bgColor: "bg-green-50",
+          borderColor: "border-green-200",
+        };
       case "pending_approval":
         return {
           icon: <Clock className="h-8 w-8 text-amber-500" />,
@@ -165,7 +181,27 @@ export default function PendingStatusPage() {
             <h1 className="text-2xl font-bold text-gray-800 mb-2">
               {statusDisplay.title}
             </h1>
-            <p className="text-gray-700 mb-3">{statusDisplay.message}</p>
+            <p className="text-gray-700 mb-4">{statusDisplay.message}</p>
+            
+            {userStatus === "active" && (
+              <Button
+                onClick={handleGoToDashboard}
+                disabled={isLoggingIn}
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2"
+              >
+                {isLoggingIn ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    Go to Dashboard
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -261,19 +297,21 @@ export default function PendingStatusPage() {
       )}
 
       {/* Action Buttons */}
-      <div className="mt-8 text-center space-y-4">
-        <Separator />
-        <div className="flex justify-center space-x-4">
-          <Button
-            variant="outline"
-            onClick={handleRefresh}
-            className="flex items-center"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh Status
-          </Button>
+      {userStatus !== "active" && (
+        <div className="mt-8 text-center space-y-4">
+          <Separator />
+          <div className="flex justify-center space-x-4">
+            <Button
+              variant="outline"
+              onClick={handleRefresh}
+              className="flex items-center"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh Status
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

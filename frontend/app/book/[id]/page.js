@@ -2,14 +2,10 @@
 
 import React, { useMemo, useCallback, useEffect, use, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -1263,8 +1259,6 @@ function BookLocation({ params }) {
                           </AlertDescription>
                         </Alert>
                       )}
-
-
                     </div>
                   </div>
                 )}
@@ -1325,7 +1319,6 @@ function BookLocation({ params }) {
                           </h4>
                           <p className="text-sm text-gray-600">Tanzania</p>
                         </div>
-
                       </div>
 
                       <div className="flex justify-between items-center mb-4 pt-4 border-t">
@@ -1565,8 +1558,6 @@ function BookLocation({ params }) {
                       </CardHeader>
                       <CardContent className="pt-4">
                         <div className="space-y-3">
-
-
                           {selectedHotelObj && (
                             <div className="flex justify-between text-sm">
                               <span className="text-gray-600">
@@ -1630,8 +1621,15 @@ function BookLocation({ params }) {
                               className={`${errors.terms ? "border-red-500" : ""} h-5 w-5`}
                             />
                             <Label htmlFor="terms" className="text-sm">
-                              I agree to the terms and conditions and
-                              cancellation policy
+                              I agree to the{" "}
+                              <Link 
+                                href="/terms" 
+                                className="text-amber-700 hover:text-amber-800 underline"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                terms and conditions
+                              </Link>
                             </Label>
                           </div>
                           {errors.terms && (
@@ -1729,27 +1727,12 @@ function BookLocation({ params }) {
           </DialogHeader>
 
           <Tabs defaultValue="credit" onValueChange={setPaymentMethod}>
-            <TabsList className="w-full mb-4 grid grid-cols-3">
+            <TabsList className="w-full mb-4 grid grid-cols-2">
               <TabsTrigger value="credit" className="flex-1">
                 <CreditCard className="h-4 w-4 mr-2" /> Credit Card
               </TabsTrigger>
               <TabsTrigger value="savings" className="flex-1">
                 <Wallet className="h-4 w-4 mr-2" /> Savings
-              </TabsTrigger>
-              <TabsTrigger value="crypto" className="flex-1">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-4 w-4 mr-2 lucide lucide-bitcoin"
-                >
-                  <path d="M11.767 19.089c4.924.868 6.14-6.025 1.216-6.894m-1.216 6.894L5.86 18.047m5.908 1.042-.347 1.97m1.563-8.864c4.924.869 6.14-6.025 1.215-6.893m-1.215 6.893-3.94-.694m3.94.694-.347 1.97M7.116 5.137l-1.257-.221 1.437 8.148" />
-                </svg>
-                Crypto
               </TabsTrigger>
             </TabsList>
 
@@ -1808,70 +1791,6 @@ function BookLocation({ params }) {
                   </Alert>
                 )}
               </div>
-            </TabsContent>
-
-            <TabsContent value="crypto" className="space-y-4">
-                <div className="p-4 bg-amber-50 rounded-lg">
-                  <div className="flex justify-between items-center mb-2">
-                    <span>Equivalent in ETH:</span>
-                    <span className="font-semibold">
-                      {(totalPrice / 9100000).toFixed(6)} ETH
-                    </span>
-                  </div>
-
-                  <div className="mt-4">
-                    <Label className="mb-2 block">Payment Currency</Label>
-                    <div className="grid grid-cols-1 gap-2">
-                      <div className="flex items-center space-x-3 border rounded-md p-3 bg-white border-amber-300">
-                        <svg
-                          className="h-6 w-6 text-amber-600"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                        >
-                          <path
-                            d="M12 2L5.25 12.05L12 15.85V2ZM12 15.85L18.75 12.05L12 2V15.85Z"
-                            fill="currentColor"
-                            stroke="currentColor"
-                            strokeWidth="0.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <path
-                            d="M12 22L5.25 12.5L12 16.3V22ZM12 16.3L18.75 12.5L12 22V16.3Z"
-                            fill="currentColor"
-                            stroke="currentColor"
-                            strokeWidth="0.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                        <div className="flex-1">
-                          <p className="font-medium">
-                            TZC (via Smart Contract)
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            Recommended - {formatTZS(totalPrice)} TZC
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-medium">
-                            {formatTZS(totalPrice)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Alert className="mt-4 bg-yellow-50 border border-yellow-200 text-yellow-800">
-                    <AlertCircle className="h-4 w-4 text-yellow-600" />
-                    <AlertDescription className="text-sm">
-                      Payment will be processed through Smart Tour TZ blockchain
-                      vault. Send TZC to the contract and confirm your
-                      transaction.
-                    </AlertDescription>
-                  </Alert>
-                </div>
-              
             </TabsContent>
           </Tabs>
 
