@@ -172,20 +172,6 @@ export default function AdminWithdrawPage() {
           </CardContent>
         </Card>
       )}
-
-      {/* Network Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Network Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-xs text-gray-500 space-y-1">
-            <p>Network: Base Sepolia Testnet</p>
-            <p>Token: Tanzania Shilling Coin (TZC)</p>
-            <p>Contract: Smart Tour Vault</p>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
