@@ -9,7 +9,7 @@ import {
   Clock,
   Calendar,
   Loader2,
-  Percent,
+
   User,
   ArrowRight,
   CheckCircle,
@@ -136,7 +136,7 @@ export default function HotelManagerDashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-4 sm:mb-6">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 mb-4 sm:mb-6">
         {/* Pending Bookings Card */}
         <Card className="relative overflow-hidden">
           <CardHeader className="pb-2">
@@ -162,38 +162,7 @@ export default function HotelManagerDashboard() {
           <div className="absolute right-0 top-0 h-full w-1.5 bg-yellow-500" />
         </Card>
 
-        {/* Occupancy Rate Card */}
-        <Card className="relative overflow-hidden">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">
-              Current Occupancy
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <div className="mr-3 sm:mr-4 rounded-full bg-emerald-100 p-2">
-                <Percent className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-600" />
-              </div>
-              <div>
-                <div className="text-xl sm:text-2xl font-bold">
-                  {stats.occupancyRate}%
-                </div>
-                <div className="text-xs text-gray-500">
-                  {stats.currentOccupancy} of{" "}
-                  {stats.currentOccupancy +
-                    (stats.occupancyRate > 0
-                      ? Math.round(
-                          stats.currentOccupancy * (100 / stats.occupancyRate) -
-                            stats.currentOccupancy,
-                        )
-                      : 0)}{" "}
-                  rooms
-                </div>
-              </div>
-            </div>
-          </CardContent>
-          <div className="absolute right-0 top-0 h-full w-1.5 bg-emerald-500" />
-        </Card>
+
 
         {/* Total Bookings Card */}
         <Card className="relative overflow-hidden">
@@ -220,26 +189,6 @@ export default function HotelManagerDashboard() {
           <div className="absolute right-0 top-0 h-full w-1.5 bg-amber-700" />
         </Card>
 
-        {/* Monthly Revenue Card */}
-        <Card className="relative overflow-hidden">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">
-              Monthly Revenue
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <div className="mr-3 sm:mr-4 rounded-full bg-blue-100 p-2"></div>
-              <div>
-                <div className="text-xl sm:text-2xl font-bold">
-                  {formatTZS(stats.revenueThisMonth)}
-                </div>
-                <div className="text-xs text-gray-500">This month</div>
-              </div>
-            </div>
-          </CardContent>
-          <div className="absolute right-0 top-0 h-full w-1.5 bg-blue-500" />
-        </Card>
       </div>
 
       <div className="grid gap-4 md:grid-cols-12">

@@ -4,11 +4,11 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Briefcase, Map, BarChart, Users, Calendar, Car, Building } from "lucide-react"
+import { Briefcase, Map, Users, Calendar, Car, Building } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { useDashboardStore } from "./dashboardStore"
-import { formatTZS } from "@/app/utils/currency"
+
 import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner"
 import { travelAgentService, apiUtils } from "@/app/services/api"
 
@@ -150,7 +150,7 @@ export default function TravelAgentDashboard() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
         {/* Stats Cards */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
@@ -188,19 +188,6 @@ export default function TravelAgentDashboard() {
           <CardContent>
             <div className="text-xl sm:text-2xl font-bold">{isLoading ? "..." : stats.totalRoutes}</div>
             <p className="text-xs text-gray-500 mt-1">Active transport routes</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
-            <div className="bg-purple-100 p-2 rounded-md">
-              <BarChart className="h-3 w-3 sm:h-4 sm:w-4 text-purple-500" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl sm:text-2xl font-bold">{formatTZS(isLoading ? 0 : stats.monthlyRevenue)}</div>
-            <p className="text-xs text-gray-500 mt-1">From confirmed bookings</p>
           </CardContent>
         </Card>
       </div>

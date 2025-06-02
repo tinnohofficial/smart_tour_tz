@@ -5,8 +5,7 @@ export const useDashboardStore = create((set) => ({
   stats: {
     pendingBookings: 0,
     completedBookings: 0,
-    totalRoutes: 0,
-    monthlyRevenue: 0
+    totalRoutes: 0
   },
   isLoading: true,
   userStatus: "pending_profile",
@@ -37,8 +36,7 @@ export const useDashboardStore = create((set) => ({
               stats: {
                 pendingBookings: pendingBookings.status === 'fulfilled' ? (pendingBookings.value?.length || 0) : 0,
                 completedBookings: completedBookings.status === 'fulfilled' ? (completedBookings.value?.length || 0) : 0,
-                totalRoutes: profileData.routes ? profileData.routes.length : 0,
-                monthlyRevenue: Math.floor(Math.random() * 10000) // Keep as random for now
+                totalRoutes: profileData.routes ? profileData.routes.length : 0
               }
             })
           }
