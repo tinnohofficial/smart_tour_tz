@@ -1404,33 +1404,7 @@ function BookLocation({ params }) {
                         </Alert>
                       )}
 
-                      {selectedActivities.length > 0 && (
-                        <div className="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
-                          <div className="flex justify-between items-center">
-                            <p className="font-medium">Selected activities:</p>
-                            <p className="text-lg font-semibold">
-                              {selectedActivities.length}{" "}
-                              {selectedActivities.length === 1
-                                ? "activity"
-                                : "activities"}
-                            </p>
-                          </div>
 
-                          {/* Validate that all selected activities have sessions */}
-                          {selectedActivities.some((actId) => {
-                            const sessions = activitySessions[actId];
-                            return !sessions || sessions < 1;
-                          }) && (
-                            <Alert className="mt-3">
-                              <AlertCircle className="h-4 w-4" />
-                              <AlertDescription className="text-sm">
-                                Please specify the number of sessions for all
-                                selected activities.
-                              </AlertDescription>
-                            </Alert>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}
@@ -1452,8 +1426,8 @@ function BookLocation({ params }) {
                       !skipOptions.skipActivities &&
                       selectedActivities.length > 0 &&
                       selectedActivities.some((actId) => {
-                        const sessions = activitySessions[actId];
-                        return !sessions || sessions < 1;
+                        const sessions = activitySessions[actId] || 1;
+                        return sessions < 1;
                       })
                     }
                   >
