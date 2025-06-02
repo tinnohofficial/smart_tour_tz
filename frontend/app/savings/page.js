@@ -60,43 +60,41 @@ function StripeCheckoutForm({ amount, onSuccess, onError }) {
       return;
     }
 
+    if (!amount || amount < 1150) {
+      setCardError("Minimum amount for card payments is 1,150 TZS");
+      return;
+    }
+
     setIsProcessing(true);
     setCardError(null);
 
     const cardElement = elements.getElement(CardElement);
 
     try {
-      // Convert TZS to USD using fixed rate (1 USD = 2500 TZS)
-      const usdToTzsRate = 2500;
-      const amountInUsd = Math.round((amount / usdToTzsRate) * 100) / 100;
-
-      if (amountInUsd < 0.5) {
-        throw new Error(`Minimum amount for card payments is ${Math.ceil(usdToTzsRate * 0.5)} TZS`);
-      }
-
-      // Create payment intent directly with Stripe
-      const { error: intentError, paymentIntent } =
+      // Create payment method
+      const { error: paymentMethodError, paymentMethod } =
         await stripe.createPaymentMethod({
           type: "card",
           card: cardElement,
         });
 
-      if (intentError) {
-        throw new Error(intentError.message);
+      if (paymentMethodError) {
+        throw new Error(paymentMethodError.message);
       }
 
-      // For this implementation, we'll simulate a successful payment
-      // In a real scenario, you'd create the payment intent on your own server
-
       // Simulate payment processing
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const paymentResult = await simulatePayment(amount, paymentMethod.id);
+      
+      if (!paymentResult.success) {
+        throw new Error("Payment processing failed");
+      }
 
-      // Record the payment in our database
-      await recordFiatDeposit(amount);
+      // Update user balance
+      await updateUserBalance(amount);
 
       onSuccess({
         amount: amount,
-        paymentMethodId: paymentIntent?.id || `pm_${Date.now()}`,
+        paymentMethodId: paymentMethod.id,
         currency: "TZS",
       });
     } catch (error) {
@@ -108,25 +106,84 @@ function StripeCheckoutForm({ amount, onSuccess, onError }) {
     }
   };
 
-  const recordFiatDeposit = async (amount) => {
+  const handleConnectWallet = async () => {
+    if (isConnectingWallet || isWalletConnected) {
+      return;
+    }
+
+    const result = await connectWallet();
+    if (result.success) {
+      toast.success("🎉 MetaMask wallet connected successfully!");
+    } else {
+      if (result.error.includes("MetaMask is not installed")) {
+        toast.error(
+          "❌ MetaMask not found. Please install MetaMask extension first.",
+        );
+      } else if (result.error.includes("No accounts found")) {
+        toast.error("🔒 Please unlock your MetaMask wallet and try again.");
+      } else if (result.error.includes("rejected by user")) {
+        toast.error("❌ Connection request was cancelled.");
+      } else {
+        toast.error(`❌ ${result.error}`);
+      }
+    }
+  };
+
+  const handleDisconnectWallet = () => {
+    disconnectWallet();
+    toast.success("✅ MetaMask wallet disconnected");
+  };
+
+  const simulatePayment = async (amount, paymentMethodId) => {
+    // Simulate payment processing delay
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    
+    // For demo purposes, we'll simulate a successful payment
+    // In a real implementation, this would integrate with a payment processor
+    return {
+      success: true,
+      payment_method_id: paymentMethodId,
+      amount: amount,
+      status: "succeeded"
+    };
+  };
+
+  const updateUserBalance = async (depositAmount) => {
     const token = localStorage.getItem("token");
-    const response = await fetch("/api/users/balance", {
+    
+    // First get current balance
+    const balanceResponse = await fetch("/api/users/balance", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!balanceResponse.ok) {
+      throw new Error("Failed to get current balance");
+    }
+
+    const { balance: currentBalance } = await balanceResponse.json();
+    const newBalance = currentBalance + depositAmount;
+
+    // Update balance
+    const updateResponse = await fetch("/api/users/balance", {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        balance: amount,
+        balance: newBalance,
       }),
     });
 
-    if (!response.ok) {
-      const data = await response.json();
-      throw new Error(data.message || "Failed to record deposit");
+    if (!updateResponse.ok) {
+      const data = await updateResponse.json();
+      throw new Error(data.message || "Failed to update balance");
     }
 
-    return response.json();
+    return updateResponse.json();
   };
 
   return (
@@ -183,7 +240,6 @@ export default function Savings() {
   const [user, setUser] = useState(null);
   const {
     balance,
-    blockchainBalance,
     walletAddress,
     depositAmount,
     isDepositing,
@@ -258,6 +314,7 @@ export default function Savings() {
       toast.success(`Successfully saved ${formatTZS(amount)} to your account!`);
       setDialogOpen(false);
       setDepositAmount("");
+      await fetchBalance(); // Refresh balance after deposit
     } else {
       toast.error(
         result.error || "Failed to process crypto deposit. Please try again.",
@@ -266,34 +323,63 @@ export default function Savings() {
   };
 
   const handleConnectWallet = async () => {
-    if (isConnectingWallet || isWalletConnected) {
-      return;
-    }
+    try {
+      // Check if MetaMask is installed
+      if (!window.ethereum) {
+        toast.error("MetaMask is not installed. Please install MetaMask to continue.");
+        return;
+      }
 
-    const result = await connectWallet();
-    if (result.success) {
-      toast.success("🎉 MetaMask wallet connected successfully!");
-    } else {
-      if (result.error.includes("MetaMask is not installed")) {
-        toast.error(
-          "❌ MetaMask not found. Please install MetaMask extension first.",
-        );
-      } else if (result.error.includes("No accounts found")) {
-        toast.error("🔒 Please unlock your MetaMask wallet and try again.");
-      } else if (result.error.includes("rejected by user")) {
-        toast.error("❌ Connection request was cancelled.");
+      const result = await connectWallet();
+      
+      if (result && result.success) {
+        toast.success("Wallet connected successfully!");
+        
+        // Check if user is on the correct network (Base Sepolia)
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        if (chainId !== '0x14a34') { // Base Sepolia chain ID
+          toast.warning("Please switch to Base Sepolia network for full functionality");
+          
+          // Optionally try to switch network automatically
+          try {
+            await blockchainService.switchToBaseSepolia();
+            toast.success("Switched to Base Sepolia network");
+          } catch (networkError) {
+            console.warn("Could not switch network automatically:", networkError);
+          }
+        }
       } else {
-        toast.error(`❌ ${result.error}`);
+        const errorMessage = result?.error || "Failed to connect wallet";
+        
+        if (errorMessage.includes("User rejected")) {
+          toast.error("Connection cancelled by user");
+        } else if (errorMessage.includes("no such account")) {
+          toast.error("No accounts found. Please unlock MetaMask and try again.");
+        } else {
+          toast.error(errorMessage);
+        }
+      }
+    } catch (error) {
+      console.error("Wallet connection error:", error);
+      
+      if (error.message.includes("no such account")) {
+        toast.error("No MetaMask accounts found. Please unlock MetaMask and ensure you have at least one account.");
+      } else if (error.message.includes("User rejected")) {
+        toast.error("Connection cancelled by user");
+      } else {
+        toast.error(error.message || "Failed to connect wallet");
       }
     }
   };
 
-  const handleDisconnectWallet = () => {
-    disconnectWallet();
-    toast.success("✅ MetaMask wallet disconnected");
+  const handleDisconnectWallet = async () => {
+    try {
+      await disconnectWallet();
+      toast.success("Wallet disconnected successfully");
+    } catch (error) {
+      toast.error(error.message || "Failed to disconnect wallet");
+    }
   };
-
-  const fiatBalance = balance - blockchainBalance;
 
   if (!user || user.role !== "tourist") {
     return (
@@ -336,24 +422,6 @@ export default function Savings() {
               {isBalanceVisible ? formatTZS(balance) : "••••••"}
             </span>
           </div>
-
-          {/* Balance Breakdown */}
-          {isBalanceVisible && (
-            <div className="mt-4 grid grid-cols-2 gap-4">
-              <div className="bg-white/10 rounded-lg p-3">
-                <p className="text-sm text-amber-100">Cash Savings</p>
-                <p className="text-xl font-semibold">
-                  {formatTZS(fiatBalance)}
-                </p>
-              </div>
-              <div className="bg-white/10 rounded-lg p-3">
-                <p className="text-sm text-amber-100">Crypto Savings</p>
-                <p className="text-xl font-semibold">
-                  {formatTZS(blockchainBalance)}
-                </p>
-              </div>
-            </div>
-          )}
 
           {/* Wallet Connection Status & Controls */}
           <div className="mt-4 flex items-center justify-between">
@@ -439,8 +507,7 @@ export default function Savings() {
                     max="25000000"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Card payments: Min 1,150 TZS | Crypto: Min 1 TZS | Max:
-                    25,000,000 TZS
+                    Card payments: Min 1,150 TZS | Crypto: Min 1 TZS | Max: 25,000,000 TZS
                   </p>
                 </div>
 
@@ -476,9 +543,10 @@ export default function Savings() {
                     </Elements>
                   ) : (
                     <div className="p-4 bg-gray-50 rounded-lg text-center">
+                      <CreditCard className="h-8 w-8 mx-auto text-gray-400 mb-2" />
                       <p className="text-gray-600">
                         {!depositAmount || isNaN(Number(depositAmount))
-                          ? "Please enter a valid amount to proceed with payment."
+                          ? "Please enter a valid amount to proceed with card payment."
                           : "Minimum amount for card payments is 1,150 TZS."}
                       </p>
                     </div>
@@ -490,7 +558,7 @@ export default function Savings() {
                     <div className="text-center p-6 bg-gray-50 rounded-lg">
                       <Wallet className="h-12 w-12 mx-auto text-gray-400 mb-3" />
                       <p className="text-gray-600 mb-4">
-                        Connect your MetaMask wallet to save with cryptocurrency
+                        Connect your MetaMask wallet to deposit with cryptocurrency
                       </p>
                       <Button
                         onClick={handleConnectWallet}
@@ -523,11 +591,11 @@ export default function Savings() {
 
                       <div className="p-4 bg-amber-50 rounded-lg">
                         <p className="text-sm text-amber-800 font-medium">
-                          Crypto Deposit Instructions
+                          TZC Deposit Instructions
                         </p>
                         <p className="text-sm text-amber-700 mt-1">
-                          Send TZC to your connected wallet, then click the
-                          button below to process the deposit.
+                          Enter the amount of TZC tokens you want to deposit. This will approve the Smart Tour Vault 
+                          to spend your TZC tokens, then deposit them to the vault. Your balance will be updated automatically.
                         </p>
                         {depositAmount && !isNaN(Number(depositAmount)) && Number(depositAmount) > 0 && (
                           <div className="mt-3 p-2 bg-white rounded border border-amber-200">
@@ -537,17 +605,29 @@ export default function Savings() {
                         )}
                       </div>
 
-                      <Button
-                        onClick={handleCryptoDeposit}
-                        className="w-full bg-green-600 hover:bg-green-700"
-                        disabled={isDepositing || !depositAmount || isNaN(Number(depositAmount)) || Number(depositAmount) <= 0}
-                      >
-                        {isDepositing
-                          ? "Processing..."
-                          : depositAmount && !isNaN(Number(depositAmount)) && Number(depositAmount) > 0
-                            ? `Deposit ${formatTZS(depositAmount)} TZC`
-                            : "Process Crypto Deposit"}
-                      </Button>
+                      {depositAmount && !isNaN(Number(depositAmount)) && Number(depositAmount) > 0 ? (
+                        <Button
+                          onClick={handleCryptoDeposit}
+                          className="w-full bg-green-600 hover:bg-green-700"
+                          disabled={isDepositing}
+                        >
+                          {isDepositing ? (
+                            <div className="flex items-center gap-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              Processing TZC Deposit...
+                            </div>
+                          ) : (
+                            `Deposit ${formatTZS(depositAmount)} TZC`
+                          )}
+                        </Button>
+                      ) : (
+                        <div className="p-4 bg-gray-50 rounded-lg text-center">
+                          <Wallet className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                          <p className="text-gray-600">
+                            Please enter a valid amount greater than 0 TZC to proceed with deposit.
+                          </p>
+                        </div>
+                      )}
                     </>
                   )}
                 </TabsContent>

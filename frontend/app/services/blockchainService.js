@@ -105,7 +105,9 @@ class BlockchainService {
         throw new Error('No accounts found')
       }
 
-      this.signer = await this.provider.getSigner()
+      // Create a Web3Provider using the browser's ethereum provider
+      const browserProvider = new ethers.BrowserProvider(window.ethereum)
+      this.signer = await browserProvider.getSigner()
       const address = await this.signer.getAddress()
       this.connected = true
 
@@ -117,8 +119,8 @@ class BlockchainService {
         this.tzcContract = this.tzcContract.connect(this.signer)
       }
 
-      // Get network info
-      const network = await this.provider.getNetwork()
+      // Get network info from the browser provider
+      const network = await browserProvider.getNetwork()
 
       return {
         success: true,

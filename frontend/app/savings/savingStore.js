@@ -3,7 +3,6 @@ import blockchainService from "../services/blockchainService";
 
 const useSavingsStore = create((set, get) => ({
   balance: 0,
-  blockchainBalance: 0,
   walletAddress: null,
   isBalanceVisible: false,
   isLoading: false,
@@ -13,7 +12,6 @@ const useSavingsStore = create((set, get) => ({
   depositAmount: "",
 
   setBalance: (newBalance) => set({ balance: newBalance }),
-  setBlockchainBalance: (newBalance) => set({ blockchainBalance: newBalance }),
   setWalletAddress: (address) => set({ walletAddress: address }),
   setIsBalanceVisible: (visible) => set({ isBalanceVisible: visible }),
   setIsLoading: (loading) => set({ isLoading: loading }),
@@ -39,9 +37,6 @@ const useSavingsStore = create((set, get) => ({
         // Store wallet address in local storage
         localStorage.setItem("walletAddress", result.address);
 
-        // Fetch blockchain balance
-        await get().fetchBlockchainBalance();
-
         return { success: true };
       } else {
         return { success: false, error: result.error };
@@ -60,30 +55,11 @@ const useSavingsStore = create((set, get) => ({
     localStorage.removeItem("walletAddress");
     set({ 
       isWalletConnected: false, 
-      walletAddress: null,
-      blockchainBalance: 0
+      walletAddress: null
     });
   },
 
-  // Fetch blockchain balance
-  fetchBlockchainBalance: async () => {
-    const address = get().walletAddress || localStorage.getItem("walletAddress");
-    if (!address) return;
-
-    try {
-      const balance = await blockchainService.getUserVaultBalance(address);
-      const numericBalance = parseFloat(balance) || 0;
-
-      // Since 1 TZC = 1 TZS, no conversion needed
-      const balanceInTZS = numericBalance;
-
-      set({ blockchainBalance: balanceInTZS });
-    } catch (error) {
-      console.error("Failed to fetch blockchain balance:", error);
-    }
-  },
-
-  // Fetch balance from user API and blockchain
+  // Fetch balance from user API
   fetchBalance: async () => {
     set({ isLoading: true });
     try {
@@ -93,7 +69,8 @@ const useSavingsStore = create((set, get) => ({
         return;
       }
 
-      const response = await fetch("/api/users/balance", {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      const response = await fetch(`${API_URL}/users/balance`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -117,12 +94,11 @@ const useSavingsStore = create((set, get) => ({
 
       // Check if wallet was previously connected
       const savedWalletAddress = localStorage.getItem("walletAddress");
-      if (savedWalletAddress) {
+      if (savedWalletAddress && !get().isWalletConnected) {
         set({ 
           isWalletConnected: true,
           walletAddress: savedWalletAddress
         });
-        await get().fetchBlockchainBalance();
       }
     } catch (error) {
       console.error("Failed to fetch balance:", error);
@@ -138,7 +114,8 @@ const useSavingsStore = create((set, get) => ({
       const token = localStorage.getItem("token");
       if (!token) throw new Error("No authentication token");
 
-      const response = await fetch("/api/users/balance", {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      const response = await fetch(`${API_URL}/users/balance`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -163,26 +140,31 @@ const useSavingsStore = create((set, get) => ({
     }
   },
 
-  // Deposit funds
+  // Deposit funds (both crypto and fiat update the same unified balance)
   depositFunds: async (amount, method) => {
     if (method === "crypto") {
       set({ isDepositing: true });
       try {
-        // Since 1 TZS = 1 TZC, no conversion needed
         const amountInTZC = parseFloat(amount);
 
-        // Deposit to smart contract
+        // Deposit to smart contract (this will emit an event)
         const result = await blockchainService.depositToVault(amountInTZC);
 
         if (result.success) {
-          // Refresh blockchain balance
-          await get().fetchBlockchainBalance();
-
-          return {
-            success: true,
-            message: `Successfully deposited ${amount} TZS to your account!`,
-            txHash: result.transactionHash
-          };
+          // After successful blockchain deposit, update the database balance
+          const currentBalance = get().balance;
+          const newBalance = currentBalance + amountInTZC;
+          
+          const updateResult = await get().updateBalance(newBalance);
+          if (updateResult.success) {
+            return {
+              success: true,
+              message: `Successfully deposited ${amount} TZS to your account!`,
+              txHash: result.transactionHash
+            };
+          } else {
+            return { success: false, error: "Failed to update balance in database" };
+          }
         } else {
           return { success: false, error: result.error };
         }
@@ -194,17 +176,26 @@ const useSavingsStore = create((set, get) => ({
       }
     } else {
       // Regular fiat deposit
-      const currentBalance = get().balance;
-      const newBalance = currentBalance + parseFloat(amount);
+      set({ isDepositing: true });
+      try {
+        const currentBalance = get().balance;
+        const depositAmount = parseFloat(amount);
+        const newBalance = currentBalance + depositAmount;
 
-      const result = await get().updateBalance(newBalance);
-      if (result.success) {
-        return {
-          success: true,
-          message: `Successfully deposited ${amount} TZS to your account!`,
-        };
+        const result = await get().updateBalance(newBalance);
+        if (result.success) {
+          return {
+            success: true,
+            message: `Successfully deposited ${amount} TZS to your account!`,
+          };
+        }
+        return result;
+      } catch (error) {
+        console.error("Deposit failed:", error);
+        return { success: false, error: error.message };
+      } finally {
+        set({ isDepositing: false });
       }
-      return result;
     }
   },
 
@@ -212,7 +203,6 @@ const useSavingsStore = create((set, get) => ({
   reset: () => {
     set({
       balance: 0,
-      blockchainBalance: 0,
       walletAddress: null,
       isBalanceVisible: false,
       isLoading: false,
