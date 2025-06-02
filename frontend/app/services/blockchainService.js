@@ -181,7 +181,7 @@ class BlockchainService {
       }
 
       const balance = await this.contract.getUserBalance(userAddress)
-      return ethers.formatUnits(balance, 18) // TZC has 18 decimals
+      return ethers.formatUnits(balance, 6) // TZC has 6 decimals
     } catch (error) {
       console.error('Error getting vault balance:', error)
       return '0'
@@ -229,7 +229,7 @@ class BlockchainService {
       }
 
       const userAddress = await this.signer.getAddress()
-      const amountWei = ethers.parseUnits(tzcAmount.toString(), 18)
+      const amountWei = ethers.parseUnits(tzcAmount.toString(), 6)
 
       // Check TZC balance
       const tzcBalance = await this.tzcContract.balanceOf(userAddress)
@@ -480,8 +480,8 @@ class BlockchainService {
         }
       }
 
-      // Convert amount to TZC (assuming 18 decimals)
-      const amountInWei = ethers.parseUnits(amount.toString(), 18)
+      // Convert amount to TZC (using 6 decimals)
+      const amountInWei = ethers.parseUnits(amount.toString(), 6)
       
       // Call the adminWithdraw function
       const tx = await this.adminContract.adminWithdraw(amountInWei)
@@ -534,7 +534,7 @@ class BlockchainService {
         const balance = await this.tzcContract.balanceOf(this.contractAddress)
         
         // Convert from wei to TZC
-        return ethers.formatUnits(balance, 18)
+        return ethers.formatUnits(balance, 6)
       } catch (contractError) {
         console.warn('Contract call failed, returning 0 balance:', contractError.message)
         return '0'

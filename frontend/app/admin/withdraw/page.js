@@ -13,13 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Wallet,
-  AlertTriangle,
-  CheckCircle,
-  Info,
-  History,
-} from "lucide-react";
+import { Wallet, AlertTriangle, CheckCircle } from "lucide-react";
 import { useWithdrawStore } from "./withdrawStore";
 
 export default function AdminWithdrawPage() {
@@ -31,7 +25,6 @@ export default function AdminWithdrawPage() {
     error,
     success,
     isAdminInitialized,
-    transactionHistory,
     setWithdrawAmount,
     initializeAndFetchBalance,
     performWithdraw,
@@ -176,46 +169,6 @@ export default function AdminWithdrawPage() {
                 <>Withdraw Funds</>
               )}
             </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Transaction History */}
-      {transactionHistory.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <History className="h-5 w-5" />
-              Recent Withdrawals
-            </CardTitle>
-            <CardDescription>
-              Your recent withdrawal transactions
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {transactionHistory.slice(0, 5).map((tx) => (
-                <div
-                  key={tx.id}
-                  className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
-                >
-                  <div>
-                    <p className="font-medium">{tx.amount} TZC</p>
-                    <p className="text-xs text-gray-500">
-                      {new Date(tx.timestamp).toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-green-600 font-medium">
-                      {tx.status}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {tx.transactionHash.slice(0, 10)}...
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
           </CardContent>
         </Card>
       )}
