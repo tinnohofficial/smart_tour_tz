@@ -3,7 +3,7 @@ const db = require("../config/db");
 exports.getDestinations = async (req, res) => {
   try {
     const [rows] = await db.query(
-      "SELECT id, name, description, image_url, cost FROM destinations",
+      "SELECT id, name, description, image_url FROM destinations",
     );
 
     res.status(200).json(rows);
@@ -41,7 +41,7 @@ exports.getDestinationById = async (req, res) => {
 
 exports.createDestination = async (req, res) => {
   try {
-    const { name, description, image_url, cost } = req.body;
+    const { name, description, image_url } = req.body;
 
     // Validate required fields
     if (!name) {
@@ -62,17 +62,11 @@ exports.createDestination = async (req, res) => {
         .json({ message: "A destination with this name already exists." });
     }
 
-    // Validate cost if provided
-    const destinationCost = cost !== undefined ? cost : 0;
-    if (destinationCost < 0) {
-      return res.status(400).json({ message: "Cost cannot be negative." });
-    }
-
     // Insert new destination
     const [result] = await db.query(
-      `INSERT INTO destinations (name, description, image_url, cost)
-       VALUES (?, ?, ?, ?)`,
-      [name, description || "", image_url || null, destinationCost],
+      `INSERT INTO destinations (name, description, image_url)
+       VALUES (?, ?, ?)`,
+      [name, description || "", image_url || null],
     );
 
     // Fetch the newly created destination to return
@@ -96,10 +90,10 @@ exports.createDestination = async (req, res) => {
 exports.updateDestination = async (req, res) => {
   try {
     const { destinationId } = req.params;
-    const { name, description, image_url, cost } = req.body;
+    const { name, description, image_url } = req.body;
 
     // Validate at least one field to update
-    if (!name && description === undefined && image_url === undefined && cost === undefined) {
+    if (!name && description === undefined && image_url === undefined) {
       return res.status(400).json({ message: "No update data provided." });
     }
 
@@ -127,11 +121,6 @@ exports.updateDestination = async (req, res) => {
       }
     }
 
-    // Validate cost if provided
-    if (cost !== undefined && cost < 0) {
-      return res.status(400).json({ message: "Cost cannot be negative." });
-    }
-
     // Build dynamic update query
     const updates = [];
     const values = [];
@@ -151,11 +140,6 @@ exports.updateDestination = async (req, res) => {
     if (image_url !== undefined) {
       updates.push("image_url = ?");
       values.push(image_url);
-    }
-
-    if (cost !== undefined) {
-      updates.push("cost = ?");
-      values.push(cost);
     }
 
     // Add destination ID to values array

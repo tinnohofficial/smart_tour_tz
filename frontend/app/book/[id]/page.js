@@ -259,14 +259,6 @@ function BookLocation({ params }) {
   const totalPrice = useMemo(() => {
     let total = 0;
 
-    // Add destination cost per day if available
-    if (destination && destination.cost && nights > 0) {
-      const destinationCostPerDay = parseFloat(destination.cost);
-      if (!isNaN(destinationCostPerDay)) {
-        total += destinationCostPerDay * nights;
-      }
-    }
-
     // Add transport cost only if not skipped
     if (!skipOptions.skipTransport && selectedRoute) {
       total += selectedRoute.cost ? parseFloat(selectedRoute.cost) : 0;
@@ -290,7 +282,6 @@ function BookLocation({ params }) {
 
     return total;
   }, [
-    destination,
     nights,
     selectedRoute,
     selectedHotelObj,
@@ -733,20 +724,6 @@ function BookLocation({ params }) {
                           <p className="font-medium">Duration of stay:</p>
                           <p className="text-lg font-semibold">
                             {nights} {nights === 1 ? "night" : "nights"}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium">Base cost per day:</p>
-                          <p className="text-lg font-semibold">
-                            {formatTZS(
-                              (() => {
-                                if (destination.cost) {
-                                  const cost = parseFloat(destination.cost);
-                                  return !isNaN(cost) ? cost : 0;
-                                }
-                                return 0;
-                              })(),
-                            )}
                           </p>
                         </div>
                       </div>
@@ -1465,9 +1442,7 @@ function BookLocation({ params }) {
                           </h4>
                           <p className="text-sm text-gray-600">Tanzania</p>
                         </div>
-                        <Badge className="ml-auto bg-amber-100 text-amber-800 border border-amber-200">
-                          {formatTZS(parseFloat(destination.cost || 0))}
-                        </Badge>
+
                       </div>
 
                       <div className="flex justify-between items-center mb-4 pt-4 border-t">
@@ -1707,14 +1682,7 @@ function BookLocation({ params }) {
                       </CardHeader>
                       <CardContent className="pt-4">
                         <div className="space-y-3">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">
-                              Destination Fee
-                            </span>
-                            <span className="font-medium">
-                              {formatTZS(parseFloat(destination.cost || 0))}
-                            </span>
-                          </div>
+
 
                           {selectedHotelObj && (
                             <div className="flex justify-between text-sm">

@@ -236,7 +236,7 @@ exports.addToCart = async (req, res) => {
         
         const [activityRows] = await connection.query(
           `SELECT a.id, a.price, a.destination_id,
-                  d.cost as destination_cost, d.name as destination_name 
+                  d.name as destination_name 
            FROM activities a
            JOIN destinations d ON a.destination_id = d.id
            WHERE a.id IN (${placeholders})`,
@@ -263,12 +263,11 @@ exports.addToCart = async (req, res) => {
           }
         }
 
-        const includedDestinations = new Set();
-        
         for (const activity of activityRows) {
           const sessions = activitySessions[activity.id] || 1;
           const activityCost = parseFloat(activity.price) * sessions;
           
+          // Add activity cost (price * sessions)
           totalCost += activityCost;
           
           selectedItems.push({
@@ -277,30 +276,6 @@ exports.addToCart = async (req, res) => {
             cost: activityCost,
             sessions: sessions
           });
-          
-          if (activity.destination_id && !includedDestinations.has(activity.destination_id)) {
-            const destinationCostPerDay = parseFloat(activity.destination_cost) || 0;
-            if (destinationCostPerDay > 0) {
-              const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-              const totalDestinationCost = destinationCostPerDay * Math.max(1, days);
-              
-              totalCost += totalDestinationCost;
-              selectedItems.push({
-                type: "placeholder",
-                id: activity.destination_id,
-                cost: totalDestinationCost,
-                details: {
-                  type: "destination_fee",
-                  destination_id: activity.destination_id,
-                  destination_name: activity.destination_name,
-                  cost_per_day: destinationCostPerDay,
-                  days: Math.max(1, days),
-                  message: `Fee for access to ${activity.destination_name} (${destinationCostPerDay}/day × ${Math.max(1, days)} days)`
-                }
-              });
-            }
-            includedDestinations.add(activity.destination_id);
-          }
         }
       }
 

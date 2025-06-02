@@ -197,9 +197,7 @@ export default function Home() {
                   className="object-cover"
                 />
                 <div className="absolute top-4 right-4">
-                  <Badge className="bg-amber-700 text-white">
-                    TZS {destination.cost} /=
-                  </Badge>
+
                 </div>
               </div>
               <CardContent className="p-4">

@@ -19,7 +19,6 @@ export const useDestinationsStore = create((set, get) => ({
     name: "",
     description: "",
     image_url: "", // Store the final URL here
-    cost: "", // Added cost field
   },
 
   // --- Actions ---
@@ -37,7 +36,7 @@ export const useDestinationsStore = create((set, get) => ({
 
   // Reset Form State
   resetFormAndFile: () => set({
-    formData: { name: "", description: "", image_url: "", cost: "" },
+    formData: { name: "", description: "", image_url: "" },
     error: null // Also clear errors on reset
   }),
 
@@ -76,8 +75,7 @@ export const useDestinationsStore = create((set, get) => ({
     return apiUtils.withLoadingAndError(
       async () => {
         const destinationData = { 
-          ...formData, 
-          cost: formData.cost === "" ? 0 : parseFloat(formData.cost) || 0
+          ...formData
         };
         const newDestination = await destinationsService.createDestination(destinationData)
 
@@ -118,7 +116,6 @@ export const useDestinationsStore = create((set, get) => ({
         name: destination.name,
         description: destination.description,
         image_url: destination.image_url || "", // Ensure empty string if null/undefined
-        cost: destination.cost || "0", // Added cost field with default 0
       },
       isEditDialogOpen: true,
       error: null
@@ -143,8 +140,7 @@ export const useDestinationsStore = create((set, get) => ({
     return apiUtils.withLoadingAndError(
       async () => {
         const destinationData = { 
-          ...formData, 
-          cost: formData.cost === "" ? 0 : parseFloat(formData.cost) || 0
+          ...formData
         };
         const response = await destinationsService.updateDestination(selectedDestination.id, destinationData);
         

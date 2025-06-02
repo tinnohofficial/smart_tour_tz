@@ -188,24 +188,7 @@ export default function DestinationsPage() {
                   />
                 </div>
 
-                {/* Cost Input */}
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="cost" className="text-right">
-                    {" "}
-                    Cost (TZS){" "}
-                  </Label>
-                  <Input
-                    id="cost"
-                    name="cost"
-                    type="number"
-                    min="0"
-                    step="1"
-                    placeholder="0"
-                    value={formData.cost}
-                    onChange={onInputChange}
-                    className="col-span-3"
-                  />
-                </div>
+
 
                 {/* Image Upload */}
                 <div className="grid grid-cols-4 items-start gap-4">
@@ -277,7 +260,6 @@ export default function DestinationsPage() {
                   <TableHead>Image</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Description</TableHead>
-                  <TableHead>Cost (TZS)</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -307,11 +289,6 @@ export default function DestinationsPage() {
                       <TableCell>{destination.name}</TableCell>
                       <TableCell className="max-w-xs truncate">
                         {destination.description}
-                      </TableCell>
-                      <TableCell>
-                        {formatTZS(
-                          destination.cost ? parseFloat(destination.cost) : 0,
-                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
@@ -380,24 +357,7 @@ export default function DestinationsPage() {
                 />
               </div>
 
-              {/* Cost Input */}
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-cost" className="text-right">
-                  {" "}
-                  Cost (TZS){" "}
-                </Label>
-                <Input
-                  id="edit-cost"
-                  name="cost"
-                  type="number"
-                  min="0"
-                  step="1"
-                  placeholder="0"
-                  value={formData.cost}
-                  onChange={onInputChange}
-                  className="col-span-3"
-                />
-              </div>
+
               {/* Description Textarea */}
               <div className="grid grid-cols-4 items-start gap-4">
                 <Label htmlFor="edit-description" className="text-right pt-2">

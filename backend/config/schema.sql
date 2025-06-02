@@ -64,8 +64,7 @@ CREATE TABLE destinations (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL UNIQUE,
     description TEXT,
-    image_url VARCHAR(512),
-    cost DECIMAL(10, 2) DEFAULT 0 CHECK (cost >= 0)
+    image_url VARCHAR(512)
 );
 
 CREATE TABLE activities (

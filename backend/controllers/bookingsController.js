@@ -163,7 +163,7 @@ exports.createBooking = async (req, res) => {
         // Verify activities exist and check time slots availability
         const [activityRows] = await connection.query(
           `SELECT a.id, a.price, a.destination_id,
-                  d.cost as destination_cost, d.name as destination_name 
+                  d.name as destination_name 
            FROM activities a
            JOIN destinations d ON a.destination_id = d.id
            WHERE a.id IN (${placeholders})`,
@@ -193,9 +193,6 @@ exports.createBooking = async (req, res) => {
           }
         }
 
-        // Track destinations already included to avoid charging twice
-        const includedDestinations = new Set();
-        
         for (const activity of activityRows) {
           const sessions = activitySessions[activity.id] || 1;
           const activityCost = parseFloat(activity.price) * sessions;
@@ -209,34 +206,6 @@ exports.createBooking = async (req, res) => {
             cost: activityCost,
             sessions: sessions
           });
-          
-          // Add destination cost per day if not already included
-          if (activity.destination_id && !includedDestinations.has(activity.destination_id)) {
-            const destinationCostPerDay = parseFloat(activity.destination_cost) || 0;
-            if (destinationCostPerDay > 0) {
-              // Calculate number of days for destination cost
-              const startDateObj = new Date(startDate);
-              const endDateObj = new Date(endDate);
-              const days = Math.ceil((endDateObj - startDateObj) / (1000 * 60 * 60 * 24));
-              const totalDestinationCost = destinationCostPerDay * Math.max(1, days);
-              
-              totalCost += totalDestinationCost;
-              selectedItems.push({
-                type: "placeholder",
-                id: activity.destination_id,
-                cost: totalDestinationCost,
-                details: {
-                  type: "destination_fee",
-                  destination_id: activity.destination_id,
-                  destination_name: activity.destination_name,
-                  cost_per_day: destinationCostPerDay,
-                  days: Math.max(1, days),
-                  message: `Fee for access to ${activity.destination_name} (${destinationCostPerDay}/day × ${Math.max(1, days)} days)`
-                }
-              });
-            }
-            includedDestinations.add(activity.destination_id);
-          }
         }
       }
 
@@ -1290,8 +1259,7 @@ exports.getGuideBookingDetails = async (req, res) => {
       `SELECT b.id, b.total_cost, b.status, b.start_date, b.end_date,
               u.id as tourist_id, u.email as tourist_email, u.phone_number as tourist_phone,
               d.id as destination_id, d.name as destination_name,
-              d.description as destination_description,
-              d.cost as destination_cost
+              d.description as destination_description
        FROM bookings b
        JOIN users u ON b.tourist_user_id = u.id
        JOIN destinations d ON b.destination_id = d.id
