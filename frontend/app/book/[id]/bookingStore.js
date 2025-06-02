@@ -223,11 +223,28 @@ export const useBookingStore = create((set, get) => ({
   setSelectedOrigin: (originId) => set({ selectedOrigin: originId, errors: {} }),
   setSelectedTransportRoute: (routeId) => set({ selectedTransportRoute: routeId, errors: {} }),
   setSelectedHotel: (hotelId) => set({ selectedHotel: hotelId, errors: {} }),
-  toggleActivity: (activityId) => set((state) => ({
-    selectedActivities: state.selectedActivities.includes(activityId)
-      ? state.selectedActivities.filter((id) => id !== activityId)
-      : [...state.selectedActivities, activityId],
-  })),
+  toggleActivity: (activityId) => set((state) => {
+    const isCurrentlySelected = state.selectedActivities.includes(activityId);
+    
+    if (isCurrentlySelected) {
+      // Remove activity and its sessions
+      const newSessions = { ...state.activitySessions };
+      delete newSessions[activityId];
+      return {
+        selectedActivities: state.selectedActivities.filter((id) => id !== activityId),
+        activitySessions: newSessions
+      };
+    } else {
+      // Add activity and set default session count
+      return {
+        selectedActivities: [...state.selectedActivities, activityId],
+        activitySessions: {
+          ...state.activitySessions,
+          [activityId]: 1 // Set default session count
+        }
+      };
+    }
+  }),
   
   // Skip service actions
   setSkipOption: (option, value) => set((state) => ({
