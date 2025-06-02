@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { travelAgentService, apiUtils } from "@/app/services/api";
+import { travelAgentService, apiUtils, authService } from "@/app/services/api";
 import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner";
 import { formatTZS } from "@/app/utils/currency";
 
@@ -93,9 +93,25 @@ export default function TravelAgentPendingStatusPage() {
     window.location.reload();
   };
 
-  const handleGoToDashboard = () => {
+  const handleGoToDashboard = async () => {
     setIsLoggingIn(true);
-    router.push("/travel-agent/dashboard");
+    try {
+      // Refresh the token to get updated user status
+      const refreshResponse = await authService.refreshToken();
+      
+      // Update local storage with new token and user data
+      localStorage.setItem("token", refreshResponse.token);
+      localStorage.setItem("userData", JSON.stringify(refreshResponse.user));
+      
+      // Navigate to dashboard
+      router.push("/travel-agent/dashboard");
+    } catch (error) {
+      console.error("Error refreshing token:", error);
+      // If refresh fails, try to go to dashboard anyway
+      router.push("/travel-agent/dashboard");
+    } finally {
+      setIsLoggingIn(false);
+    }
   };
 
   const getStatusDisplay = () => {

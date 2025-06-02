@@ -402,3 +402,53 @@ exports.updateBalance = async (req, res) => {
   }
 };
 
+// Refresh JWT token with latest user data from database
+exports.refreshToken = async (req, res) => {
+  try {
+    const userId = req.user.id; // From authenticateToken middleware
+
+    // Get fresh user data from database
+    const [users] = await db.query(
+      "SELECT id, email, role, status FROM users WHERE id = ?",
+      [userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const user = users[0];
+
+    // Create new JWT token with updated user data
+    const newToken = jwt.sign(
+      {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: process.env.JWT_EXPIRES_IN || "30d",
+      }
+    );
+
+    res.json({
+      message: "Token refreshed successfully",
+      token: newToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+      },
+    });
+  } catch (error) {
+    console.error("Error refreshing token:", error);
+    res.status(500).json({ 
+      message: "Failed to refresh token", 
+      error: error.message 
+    });
+  }
+};
+

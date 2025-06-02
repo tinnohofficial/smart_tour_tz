@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { hotelManagerService, apiUtils } from "@/app/services/api";
+import { hotelManagerService, apiUtils, authService } from "@/app/services/api";
 import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner";
 import { formatTZS } from "@/app/utils/currency";
 
@@ -91,9 +91,25 @@ export default function PendingStatusPage() {
     window.location.reload();
   };
 
-  const handleGoToDashboard = () => {
+  const handleGoToDashboard = async () => {
     setIsLoggingIn(true);
-    router.push("/hotel-manager/dashboard");
+    try {
+      // Refresh the token to get updated user status
+      const refreshResponse = await authService.refreshToken();
+      
+      // Update local storage with new token and user data
+      localStorage.setItem("token", refreshResponse.token);
+      localStorage.setItem("userData", JSON.stringify(refreshResponse.user));
+      
+      // Navigate to dashboard
+      router.push("/hotel-manager/dashboard");
+    } catch (error) {
+      console.error("Error refreshing token:", error);
+      // If refresh fails, try to go to dashboard anyway
+      router.push("/hotel-manager/dashboard");
+    } finally {
+      setIsLoggingIn(false);
+    }
   };
 
   const getStatusDisplay = () => {

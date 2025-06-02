@@ -109,6 +109,12 @@ export const authService = {
     });
   },
 
+  async refreshToken() {
+    return apiRequest("/users/refresh-token", {
+      method: "POST",
+    });
+  },
+
   // getUserStatus removed - endpoint doesn't exist in backend
 
   async changePassword(passwordData) {

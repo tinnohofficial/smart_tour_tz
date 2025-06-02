@@ -34,6 +34,7 @@ validateRegistration = [
 
 router.post("/register", validateRegistration, usersController.register);
 router.post("/login", usersController.login);
+router.post("/refresh-token", authenticateToken, usersController.refreshToken);
 
 // F4.1: Update password - migrated from users controller
 router.put("/password", authenticateToken, usersController.updatePassword);
