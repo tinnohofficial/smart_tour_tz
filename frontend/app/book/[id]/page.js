@@ -279,10 +279,12 @@ function BookLocation({ params }) {
       total += parseFloat(hotelPrice) * nights;
     }
 
-    // Add selected activities cost only if not skipped
+    // Add selected activities cost only if not skipped, multiplied by sessions
     if (!skipOptions.skipActivities && selectedActivitiesObj.length > 0) {
       selectedActivitiesObj.forEach((activity) => {
-        total += activity.price ? parseFloat(activity.price) : 0;
+        const activityPrice = activity.price ? parseFloat(activity.price) : 0;
+        const sessions = activitySessions[activity.id] || 1;
+        total += activityPrice * sessions;
       });
     }
 
@@ -293,6 +295,7 @@ function BookLocation({ params }) {
     selectedRoute,
     selectedHotelObj,
     selectedActivitiesObj,
+    activitySessions,
     skipOptions,
   ]);
 
@@ -309,8 +312,6 @@ function BookLocation({ params }) {
     },
     [agreedToTerms, setIsPaymentDialogOpen, setErrors],
   );
-
-
 
   const processPayment = useCallback(async () => {
     if (!paymentMethod) {
@@ -1343,12 +1344,6 @@ function BookLocation({ params }) {
                                           <CardTitle className="text-lg">
                                             {activity.name}
                                           </CardTitle>
-                                          {activity.duration && (
-                                            <div className="flex items-center text-gray-500 text-sm mt-1">
-                                              <Clock className="h-3 w-3 mr-1" />{" "}
-                                              {activity.duration}
-                                            </div>
-                                          )}
                                         </div>
                                       </div>
                                       <Badge className="bg-amber-100 text-amber-700 border border-amber-200">
@@ -1365,10 +1360,6 @@ function BookLocation({ params }) {
                                     {/* Sessions Selection - Only shown when activity is selected */}
                                     {isSelected && (
                                       <div className="space-y-4 p-4 bg-white rounded-lg border border-amber-200">
-                                        <h5 className="font-medium text-amber-800">
-                                          Number of Sessions
-                                        </h5>
-
                                         <div className="flex items-center gap-4">
                                           <Label className="text-sm font-medium">
                                             Sessions:
@@ -1394,20 +1385,6 @@ function BookLocation({ params }) {
                                               activity.price * currentSessions,
                                             )}
                                           </span>
-                                        </div>
-
-                                        <div className="p-3 bg-amber-50 rounded border border-amber-200">
-                                          <p className="text-sm font-medium text-amber-800">
-                                            Total cost for this activity:
-                                          </p>
-                                          <p className="text-sm text-amber-700">
-                                            {currentSessions} session
-                                            {currentSessions > 1 ? "s" : ""} ×{" "}
-                                            {formatTZS(activity.price)} ={" "}
-                                            {formatTZS(
-                                              activity.price * currentSessions,
-                                            )}
-                                          </p>
                                         </div>
                                       </div>
                                     )}
@@ -1711,20 +1688,30 @@ function BookLocation({ params }) {
                                     <h4 className="font-medium">
                                       {activity.name}
                                     </h4>
-                                    {activity.duration && (
-                                      <p className="text-xs text-gray-500">
-                                        Duration: {activity.duration}
-                                      </p>
-                                    )}
+
                                     {activity.description && (
                                       <p className="text-sm text-gray-600 mt-1 line-clamp-2">
                                         {activity.description}
                                       </p>
                                     )}
+                                    <div className="mt-2">
+                                      <span className="text-xs text-gray-500">
+                                        Sessions:{" "}
+                                        {activitySessions[activity.id] || 1} ×{" "}
+                                        {formatTZS(activity.price)} ={" "}
+                                        {formatTZS(
+                                          (activitySessions[activity.id] || 1) *
+                                            parseFloat(activity.price || 0),
+                                        )}
+                                      </span>
+                                    </div>
                                   </div>
                                   <div className="text-right">
                                     <Badge className="bg-green-50 text-green-700 border border-green-200">
-                                      {formatTZS(activity.price)}
+                                      {formatTZS(
+                                        (activitySessions[activity.id] || 1) *
+                                          parseFloat(activity.price || 0),
+                                      )}
                                     </Badge>
                                   </div>
                                 </div>
@@ -1786,11 +1773,14 @@ function BookLocation({ params }) {
                               </span>
                               <span className="font-medium">
                                 {formatTZS(
-                                  selectedActivitiesObj.reduce(
-                                    (sum, act) =>
-                                      sum + parseFloat(act.price || 0),
-                                    0,
-                                  ),
+                                  selectedActivitiesObj.reduce((sum, act) => {
+                                    const activityPrice = parseFloat(
+                                      act.price || 0,
+                                    );
+                                    const sessions =
+                                      activitySessions[act.id] || 1;
+                                    return sum + activityPrice * sessions;
+                                  }, 0),
                                 )}
                               </span>
                             </div>
@@ -2137,8 +2127,6 @@ function BookLocation({ params }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-
     </div>
   );
 }

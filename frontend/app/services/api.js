@@ -253,29 +253,34 @@ export const destinationsService = {
 // Activities Service
 export const activitiesService = {
   async getAllActivities() {
-    return apiRequest("/activities");
+    const response = await apiRequest("/activities");
+    return response.activities || [];
   },
 
   async getActivitiesByDestination(destinationId) {
-    return apiRequest(`/activities?destinationId=${destinationId}`);
+    const response = await apiRequest(`/activities/destination/${destinationId}`);
+    return response.activities || [];
   },
 
   async getActivityById(id) {
-    return apiRequest(`/activities/${id}`);
+    const response = await apiRequest(`/activities/${id}`);
+    return response.activity || null;
   },
 
   async createActivity(activityData) {
-    return apiRequest("/activities", {
+    const response = await apiRequest("/activities", {
       method: "POST",
       body: JSON.stringify(activityData),
     });
+    return response.activity || null;
   },
 
   async updateActivity(id, activityData) {
-    return apiRequest(`/activities/${id}`, {
+    const response = await apiRequest(`/activities/${id}`, {
       method: "PUT",
       body: JSON.stringify(activityData),
     });
+    return response.activity || null;
   },
 
   async deleteActivity(id) {
