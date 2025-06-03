@@ -1,8 +1,7 @@
 // src/stores/assignmentsStore.js (or your preferred location)
 import { create } from 'zustand';
 import { toast } from 'sonner';
-import { bookingsService, apiUtils } from "@/app/services/api";
-import { SUCCESS_MESSAGES, ERROR_MESSAGES } from '@/app/constants';
+import { bookingsService } from "@/app/services/api";
 
 export const useAssignmentsStore = create((set, get) => ({
   // --- State ---
@@ -28,70 +27,79 @@ export const useAssignmentsStore = create((set, get) => ({
 
   // Fetching Action
   fetchUnassignedBookings: async () => {
-    return apiUtils.withLoadingAndError(
-      async () => {
-        const data = await bookingsService.getUnassignedBookings();
-        set({ bookings: data });
-        return data;
-      },
-      {
-        setLoading: (loading) => set({ isLoading: loading }),
-        setError: (error) => set({ error }),
-        onError: (error) => {
-          console.error("Error fetching unassigned bookings:", error);
-          toast.error(ERROR_MESSAGES.BOOKINGS_LOAD_ERROR);
-        }
-      }
-    );
+    try {
+      set({ isLoading: true, error: null });
+      const data = await bookingsService.getUnassignedBookings();
+      set({ bookings: data, isLoading: false });
+      return data;
+    } catch (error) {
+      console.error("Error fetching unassigned bookings:", error);
+      set({ error: error.message, isLoading: false });
+      toast.error("Failed to load unassigned bookings");
+      throw error;
+    }
   },
 
   // Action to handle clicking the "Assign Guide" button
   prepareAssignDialog: async (booking) => {
-    set({ selectedBooking: booking, selectedGuideId: "", eligibleGuides: [] });
-    
-    return apiUtils.withLoadingAndError(
-      async () => {
-        const guides = await bookingsService.getEligibleGuides(booking.id);
-        set({ eligibleGuides: guides, isAssignDialogOpen: true });
-        return guides;
-      },
-      {
-        setLoading: (loading) => set({ isSubmitting: loading }),
-        setError: (error) => set({ error }),
-        onError: (error) => {
-          console.error("Error fetching eligible guides:", error);
-          set({ selectedBooking: null });
-          toast.error("Failed to fetch eligible tour guides. Please try again.");
-        }
-      }
-    );
+    try {
+      set({ 
+        selectedBooking: booking, 
+        selectedGuideId: "", 
+        eligibleGuides: [], 
+        isSubmitting: true, 
+        error: null 
+      });
+      
+      const guides = await bookingsService.getEligibleGuides(booking.id);
+      
+      set({ 
+        eligibleGuides: guides, 
+        isAssignDialogOpen: true, 
+        isSubmitting: false 
+      });
+      return guides;
+    } catch (error) {
+      console.error("Error fetching eligible guides:", error);
+      set({ 
+        selectedBooking: null, 
+        isSubmitting: false, 
+        error: error.message 
+      });
+      toast.error("Failed to fetch eligible tour guides");
+      throw error;
+    }
   },
 
   // Action to perform the guide assignment
   assignGuide: async () => {
     const { selectedBooking, selectedGuideId } = get();
-    if (!selectedBooking || !selectedGuideId) return;
+    if (!selectedBooking || !selectedGuideId) {
+      toast.error("Please select a tour guide");
+      return;
+    }
 
-    return apiUtils.withLoadingAndError(
-      async () => {
-        await bookingsService.assignGuide(selectedBooking.id, Number.parseInt(selectedGuideId));
+    try {
+      set({ isSubmitting: true, error: null });
+      
+      await bookingsService.assignGuide(selectedBooking.id, parseInt(selectedGuideId));
 
-        // Update state: remove the assigned booking
-        set((state) => ({
-          bookings: state.bookings.filter((b) => b.id !== selectedBooking.id),
-        }));
+      // Update state: remove the assigned booking
+      set((state) => ({
+        bookings: state.bookings.filter((b) => b.id !== selectedBooking.id),
+        isSubmitting: false,
+        isAssignDialogOpen: false,
+        selectedBooking: null,
+        selectedGuideId: "",
+        eligibleGuides: []
+      }));
 
-        toast.success(SUCCESS_MESSAGES.BOOKING_ASSIGNED);
-        set({ isAssignDialogOpen: false, selectedBooking: null, selectedGuideId: "", eligibleGuides: [] });
-      },
-      {
-        setLoading: (loading) => set({ isSubmitting: loading }),
-        setError: (error) => set({ error }),
-        onError: (error) => {
-          console.error("Error assigning guide:", error);
-          toast.error("There was an error assigning the tour guide. Please try again.");
-        }
-      }
-    );
+      toast.success("Tour guide assigned successfully");
+    } catch (error) {
+      console.error("Error assigning guide:", error);
+      set({ isSubmitting: false, error: error.message });
+      toast.error("Failed to assign tour guide");
+      throw error;
+    }
   },
 }));

@@ -39,11 +39,17 @@ exports.createBooking = async (req, res) => {
     startDate, 
     endDate, 
     destinationId,
+    touristFullName,
     includeTransport = true,
     includeHotel = true,
     includeActivities = true
   } = req.body;
   const userId = req.user.id;
+
+  // Validate tourist full name
+  if (!touristFullName || typeof touristFullName !== 'string' || touristFullName.trim().length < 2) {
+    return res.status(400).json({ message: "Tourist full name is required and must be at least 2 characters long" });
+  }
 
   // Validate date inputs
   if (!startDate || !endDate) {
@@ -213,6 +219,7 @@ exports.createBooking = async (req, res) => {
       const [bookingResult] = await connection.query(
         `INSERT INTO bookings (
           tourist_user_id, 
+          tourist_full_name,
           start_date, 
           end_date, 
           destination_id, 
@@ -221,9 +228,10 @@ exports.createBooking = async (req, res) => {
           include_hotel, 
           include_activities, 
           status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending_payment')`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_payment')`,
         [
           userId, 
+          touristFullName.trim(),
           startDate, 
           endDate, 
           destinationId, 
@@ -323,16 +331,17 @@ exports.getUserBookings = async (req, res) => {
            ELSE NULL
          END as provider_email,
          CASE
-           WHEN bi.item_type = 'hotel' THEN hm_user.phone
-           WHEN bi.item_type = 'transport' THEN ta_user.phone
-           WHEN bi.item_type = 'tour_guide' THEN tg_user.phone
+           WHEN bi.item_type = 'hotel' THEN hm_user.phone_number
+           WHEN bi.item_type = 'transport' THEN ta_user.phone_number
+           WHEN bi.item_type = 'tour_guide' THEN tg_user.phone_number
            ELSE NULL
          END as provider_phone
          FROM booking_items bi
          LEFT JOIN hotels h ON bi.item_type = 'hotel' AND bi.id = h.id
-         LEFT JOIN users hm_user ON bi.item_type = 'hotel' AND h.manager_user_id = hm_user.id
+         LEFT JOIN users hm_user ON bi.item_type = 'hotel' AND h.id = hm_user.id
          LEFT JOIN transports tr ON bi.item_type = 'transport' AND bi.id = tr.id
-         LEFT JOIN users ta_user ON bi.item_type = 'transport' AND tr.travel_agent_user_id = ta_user.id
+         LEFT JOIN travel_agencies ta ON bi.item_type = 'transport' AND tr.agency_id = ta.id
+         LEFT JOIN users ta_user ON bi.item_type = 'transport' AND ta.id = ta_user.id
          LEFT JOIN transport_origins to_orig ON bi.item_type = 'transport' AND tr.origin_id = to_orig.id
          LEFT JOIN destinations dest ON bi.item_type = 'transport' AND tr.destination_id = dest.id
          LEFT JOIN tour_guides tg ON bi.item_type = 'tour_guide' AND bi.id = tg.user_id
@@ -385,7 +394,7 @@ exports.getTourGuideBookings = async (req, res) => {
     // Get the booking items
     const [bookingItemsResult] = await db.query(
       `SELECT bi.*, b.tourist_user_id, b.status,
-         u.email as tourist_email, u.phone as tourist_phone, u.full_name as tourist_name
+         u.email as tourist_email, u.phone_number as tourist_phone, b.tourist_full_name as tourist_name
        FROM booking_items bi
        JOIN bookings b ON bi.booking_id = b.id
        JOIN users u ON b.tourist_user_id = u.id
@@ -530,7 +539,7 @@ exports.getHotelBookingsNeedingAction = async (req, res) => {
 
     // Get bookings that need action
     const [bookingItems] = await db.query(
-      `SELECT bi.*, b.tourist_user_id, u.email as tourist_email, u.phone as tourist_phone, u.full_name as tourist_name
+      `SELECT bi.*, b.tourist_user_id, u.email as tourist_email, u.phone_number as tourist_phone, b.tourist_full_name as tourist_name
        FROM booking_items bi
        JOIN bookings b ON bi.booking_id = b.id
        JOIN users u ON b.tourist_user_id = u.id
@@ -619,7 +628,7 @@ exports.getTransportBookingsNeedingAction = async (req, res) => {
     // Get bookings that need action
     const [bookingItems] = await db.query(
       `SELECT bi.*, to_orig.name as origin_name, d.name as destination_name, tr.transportation_type, 
-              b.tourist_user_id, u.email as tourist_email, u.phone as tourist_phone, u.full_name as tourist_name
+              b.tourist_user_id, u.email as tourist_email, u.phone_number as tourist_phone, b.tourist_full_name as tourist_name
        FROM booking_items bi
        JOIN transports tr ON bi.item_type = 'transport' AND bi.id = tr.id
        JOIN transport_origins to_orig ON tr.origin_id = to_orig.id
@@ -760,7 +769,7 @@ exports.assignTourGuide = async (req, res) => {
       
       // Verify the guide exists, is active, and is available
       const [guideRows] = await connection.query(
-        `SELECT u.id, tg.expertise, tg.full_name, tg.available, 
+        `SELECT u.id, tg.activities, tg.full_name, tg.available, 
                 d.name as destination_name
          FROM users u
          JOIN tour_guides tg ON u.id = tg.user_id
@@ -858,6 +867,7 @@ exports.getUnassignedBookings = async (req, res) => {
     const [rows] = await db.query(
       `SELECT b.id, b.total_cost, b.status, b.start_date, b.end_date,
               u.id as tourist_id, u.email as tourist_email, u.phone_number as tourist_phone,
+              b.tourist_full_name as tourist_name,
               d.id as destination_id, d.name as destination_name,
               d.description as destination_description
        FROM bookings b
@@ -914,7 +924,7 @@ exports.getUnassignedBookings = async (req, res) => {
       rows[i].hotel_details = parseJsonFields(hotels, ['item_details']);
       rows[i].transport_details = parseJsonFields(transports, ['item_details']);
       rows[i].duration_days = durationDays;
-      rows[i].tourist_name = rows[i].tourist_email.split('@')[0]; // Simple name extraction
+      // Tourist name now comes from the booking record, no need to extract from email
     }
     
     res.status(200).json(rows);
@@ -949,17 +959,15 @@ exports.getEligibleGuidesForBooking = async (req, res) => {
     
     // Get activities for this booking
     const [bookingItems] = await db.query(
-      "SELECT id, item_type FROM booking_items WHERE booking_id = ?",
+      "SELECT id FROM booking_items WHERE booking_id = ? AND item_type = 'activity'",
       [bookingId]
     );
     
-    const activityIds = bookingItems
-      .filter(item => item.item_type === 'activity')
-      .map(item => item.id);
+    const activityIds = bookingItems.map(item => item.id);
     
-    // Find tour guides based on destination match, expertise, and availability
+    // Find tour guides based on destination match and availability
     const [guides] = await db.query(
-      `SELECT u.id, u.email, tg.full_name, tg.destination_id, tg.expertise, tg.user_id, tg.available,
+      `SELECT u.id, u.email, tg.full_name, tg.destination_id, tg.activities, tg.user_id, tg.available,
               d.name as destination_name
        FROM tour_guides tg
        JOIN users u ON tg.user_id = u.id
@@ -971,39 +979,10 @@ exports.getEligibleGuidesForBooking = async (req, res) => {
       [destination_id]
     );
     
-    // Process expertise to find those that match the activities
-    const parsedGuides = parseJsonFields(guides, ['expertise']);
+    // Sort guides by name for consistent ordering
+    guides.sort((a, b) => a.full_name.localeCompare(b.full_name));
     
-    // Process expertise for each guide
-    parsedGuides.forEach(guide => {
-      try {
-        // Process expertise if it's in the correct format
-        if (guide.expertise && typeof guide.expertise === 'object') {
-          if (guide.expertise.activities && Array.isArray(guide.expertise.activities)) {
-            // Check if guide has expertise in any of the booking's activities
-            guide.matching_activities = guide.expertise.activities.filter(
-              activity => activityIds.includes(activity.id)
-            );
-            
-            // Calculate expertise match percentage
-            guide.expertise_match = activityIds.length > 0 
-              ? (guide.matching_activities.length / activityIds.length) * 100 
-              : 0;
-          } else {
-            guide.expertise_match = 0;
-          }
-        } else {
-          guide.expertise_match = 0;
-        }
-      } catch (e) {
-        guide.expertise_match = 0;
-      }
-    });
-    
-    // Sort guides by expertise match and then by location match
-    parsedGuides.sort((a, b) => b.expertise_match - a.expertise_match);
-    
-    res.status(200).json(parsedGuides);
+    res.status(200).json(guides);
   } catch (error) {
     console.error("Error finding eligible guides:", error);
     res.status(500).json({ message: "Failed to find eligible guides", error: error.message });
@@ -1208,7 +1187,7 @@ exports.getHotelBookingsCompleted = async (req, res) => {
       `SELECT 
         bi.id, bi.booking_id, bi.item_type, bi.id as hotel_id, bi.cost, bi.item_details,
         b.start_date, b.end_date, b.status, b.total_cost,
-        u.email as tourist_email, u.phone as tourist_phone, u.full_name as tourist_name
+        u.email as tourist_email, u.phone_number as tourist_phone, b.tourist_full_name as tourist_name
        FROM booking_items bi
        JOIN bookings b ON bi.booking_id = b.id
        JOIN users u ON b.tourist_user_id = u.id
@@ -1255,7 +1234,7 @@ exports.getTransportBookingsCompleted = async (req, res) => {
       `SELECT 
         bi.id, bi.booking_id, bi.item_type, bi.id as route_id, bi.cost, bi.item_details,
         b.start_date, b.end_date, b.status, b.total_cost,
-        u.email as tourist_email, u.phone as tourist_phone, u.full_name as tourist_name,
+        u.email as tourist_email, u.phone_number as tourist_phone, b.tourist_full_name as tourist_name,
         to_orig.name as origin_name, d.name as destination_name, t.transportation_type
        FROM booking_items bi
        JOIN bookings b ON bi.booking_id = b.id

@@ -108,11 +108,17 @@ exports.addToCart = async (req, res) => {
     startDate, 
     endDate, 
     destinationId,
+    touristFullName,
     includeTransport = true,
     includeHotel = true,
     includeActivities = true
   } = req.body;
   const userId = req.user.id;
+
+  // Validate tourist full name
+  if (!touristFullName || typeof touristFullName !== 'string' || touristFullName.trim().length < 2) {
+    return res.status(400).json({ message: "Tourist full name is required and must be at least 2 characters long" });
+  }
 
   // Validate date inputs
   if (!startDate || !endDate) {
@@ -284,6 +290,7 @@ exports.addToCart = async (req, res) => {
         `INSERT INTO bookings (
           cart_id,
           tourist_user_id, 
+          tourist_full_name,
           start_date, 
           end_date, 
           destination_id, 
@@ -292,10 +299,11 @@ exports.addToCart = async (req, res) => {
           include_hotel, 
           include_activities, 
           status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'in_cart')`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'in_cart')`,
         [
           cartId,
           userId, 
+          touristFullName.trim(),
           startDate, 
           endDate, 
           destinationId, 

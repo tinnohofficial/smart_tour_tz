@@ -19,6 +19,7 @@ const calculateNights = (startDate, endDate) => {
 export const useBookingStore = create((set, get) => ({
   // State
   step: 1,
+  touristFullName: "",
   startDate: "",
   endDate: "",
   selectedOrigin: "", // User's selected origin location
@@ -184,6 +185,7 @@ export const useBookingStore = create((set, get) => ({
   createBooking: async () => {
     const state = get();
     const {
+      touristFullName,
       startDate,
       endDate,
       selectedTransportRoute,
@@ -196,6 +198,7 @@ export const useBookingStore = create((set, get) => ({
 
     const bookingData = {
       destinationId: destination?.id,
+      touristFullName,
       startDate,
       endDate,
       includeTransport: !skipOptions.skipTransport,
@@ -218,6 +221,7 @@ export const useBookingStore = create((set, get) => ({
 
   // Actions
   setStep: (step) => set({ step }),
+  setTouristFullName: (name) => set({ touristFullName: name, errors: {} }),
   setStartDate: (date) => set({ startDate: date, errors: {} }),
   setEndDate: (date) => set({ endDate: date, errors: {} }),
   setSelectedOrigin: (originId) => set({ selectedOrigin: originId, errors: {} }),
@@ -277,6 +281,7 @@ export const useBookingStore = create((set, get) => ({
 
   resetBooking: () => set({
     step: 1,
+    touristFullName: "",
     startDate: "",
     endDate: "",
     selectedOrigin: "",
@@ -299,11 +304,14 @@ export const useBookingStore = create((set, get) => ({
   // Action incorporating validation before proceeding with 5-step flow
   nextStep: () => {
     try {
-      const { step, startDate, endDate, selectedOrigin, selectedTransportRoute, selectedHotel, selectedActivities, activitySessions, skipOptions, setErrors } = get();
+      const { step, touristFullName, startDate, endDate, selectedOrigin, selectedTransportRoute, selectedHotel, selectedActivities, activitySessions, skipOptions, setErrors } = get();
       const newErrors = {};
 
     if (step === 1) {
-      // Step 1: Validate dates and origin (if transport is not skipped)
+      // Step 1: Validate tourist name, dates and origin (if transport is not skipped)
+      if (!touristFullName || touristFullName.trim().length < 2) {
+        newErrors.touristFullName = "Please enter your full name (at least 2 characters)";
+      }
       if (!startDate) newErrors.startDate = "Start date is required";
       if (!endDate) newErrors.endDate = "End date is required";
       if (startDate && endDate && new Date(startDate) >= new Date(endDate)) {

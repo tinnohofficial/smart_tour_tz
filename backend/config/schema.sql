@@ -3,6 +3,7 @@ CREATE TABLE users (
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     phone_number VARCHAR(20) UNIQUE,
+    full_name VARCHAR(255),
     balance DECIMAL(12, 2) DEFAULT 0.00,
     role ENUM (
         'tourist',
@@ -120,6 +121,7 @@ CREATE TABLE bookings (
     id INT AUTO_INCREMENT PRIMARY KEY,
     cart_id INT NULL, -- Link to cart for multi-destination bookings
     tourist_user_id INT NOT NULL,
+    tourist_full_name VARCHAR(255) NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     destination_id INT,

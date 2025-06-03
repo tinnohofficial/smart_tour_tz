@@ -59,6 +59,13 @@ import { TransportIcon } from "@/app/components/shared/TransportIcon";
 import { formatTZS } from "@/app/utils/currency";
 import { toast } from "sonner";
 import { bookingCreationService } from "@/app/services/api";
+import { loadStripe } from "@stripe/stripe-js";
+import {
+  Elements,
+  CardElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
 
 function BookLocation({ params }) {
   const { id } = use(params);
@@ -75,6 +82,7 @@ function BookLocation({ params }) {
   // Get state and actions from Zustand store
   const {
     step,
+    touristFullName,
     startDate,
     endDate,
     selectedOrigin,
@@ -87,6 +95,7 @@ function BookLocation({ params }) {
     agreedToTerms,
     paymentMethod,
     isPaymentDialogOpen,
+    setTouristFullName,
     setStartDate,
     setEndDate,
     setSelectedOrigin,
@@ -119,8 +128,190 @@ function BookLocation({ params }) {
     fetchActivities,
   } = useBookingStore();
 
+  // Stripe configuration
+  const stripePromise = loadStripe(
+    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "pk_test_placeholder",
+  ).catch((error) => {
+    console.error("Failed to load Stripe:", error);
+    return null;
+  });
+
+  // Validate Stripe configuration
+  const isStripeConfigured = () => {
+    const key = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+    return (
+      key &&
+      key !== "pk_test_placeholder" &&
+      key !== "pk_test_placeholder_replace_with_actual_key"
+    );
+  };
+
+  const cardElementOptions = {
+    style: {
+      base: {
+        fontSize: "16px",
+        color: "#424770",
+        "::placeholder": {
+          color: "#aab7c4",
+        },
+      },
+      invalid: {
+        color: "#9e2146",
+      },
+    },
+  };
+
+  // Stripe Checkout Form Component
+  function StripeCheckoutForm({ amount, onSuccess, onError }) {
+    const stripe = useStripe();
+    const elements = useElements();
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [cardError, setCardError] = useState(null);
+
+    const handleSubmit = async (event) => {
+      event.preventDefault();
+
+      // Check if Stripe is configured properly
+      if (!isStripeConfigured()) {
+        const errorMessage =
+          "Payment system not configured. Please contact support.";
+        setCardError(errorMessage);
+        onError(errorMessage);
+        return;
+      }
+
+      if (!stripe || !elements) {
+        const errorMessage =
+          "Payment system not ready. Please refresh and try again.";
+        setCardError(errorMessage);
+        onError(errorMessage);
+        return;
+      }
+
+      if (!amount || amount <= 0) {
+        const errorMessage = "Please enter a valid amount greater than zero";
+        setCardError(errorMessage);
+        onError(errorMessage);
+        return;
+      }
+
+      setIsProcessing(true);
+      setCardError(null);
+
+      try {
+        const cardElement = elements.getElement(CardElement);
+
+        // Create payment method
+        const { error: paymentMethodError, paymentMethod } =
+          await stripe.createPaymentMethod({
+            type: "card",
+            card: cardElement,
+          });
+
+        if (paymentMethodError) {
+          const errorMessage =
+            paymentMethodError.message || "Invalid payment information";
+          setCardError(errorMessage);
+          onError(errorMessage);
+          return;
+        }
+
+        // Simulate payment processing for booking
+        const paymentResult = await simulateBookingPayment(amount, paymentMethod.id);
+
+        if (!paymentResult.success) {
+          const errorMessage = "Payment processing failed";
+          setCardError(errorMessage);
+          onError(errorMessage);
+          return;
+        }
+
+        onSuccess({
+          amount: amount,
+          paymentMethodId: paymentMethod.id,
+          currency: "TZS",
+        });
+      } catch (error) {
+        console.error("Payment failed:", error);
+        let errorMessage = "Payment failed. Please try again.";
+
+        // Handle specific error types
+        if (error.message?.includes("Invalid API Key")) {
+          errorMessage =
+            "Payment system configuration error. Please contact support.";
+        } else if (error.message?.includes("network")) {
+          errorMessage =
+            "Network error. Please check your connection and try again.";
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+
+        setCardError(errorMessage);
+        onError(errorMessage);
+      } finally {
+        setIsProcessing(false);
+      }
+    };
+
+    const simulateBookingPayment = async (amount, paymentMethodId) => {
+      // Simulate payment processing delay
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // For demo purposes, we'll simulate a successful payment
+      // In a real implementation, this would integrate with a payment processor
+      return {
+        success: true,
+        payment_method_id: paymentMethodId,
+        amount: amount,
+        status: "succeeded",
+      };
+    };
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+          <div className="flex items-center gap-2 mb-2">
+            <CreditCard className="h-5 w-5 text-amber-600" />
+            <span className="font-medium">Payment Amount</span>
+          </div>
+          <p className="text-2xl font-bold text-amber-700">
+            {formatTZS(amount)}
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Card Information</Label>
+          <div className="p-3 border rounded-md bg-white">
+            <CardElement
+              options={cardElementOptions}
+              onChange={(event) => {
+                setCardError(event.error ? event.error.message : null);
+              }}
+            />
+          </div>
+          {cardError && <p className="text-sm text-red-600">{cardError}</p>}
+        </div>
+
+        <Button
+          type="submit"
+          className="w-full bg-amber-700 hover:bg-amber-800 text-white"
+          disabled={!stripe || isProcessing || !amount || amount <= 0}
+        >
+          {isProcessing ? (
+            <div className="flex items-center gap-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              Processing Payment...
+            </div>
+          ) : (
+            `Pay ${formatTZS(amount)}`
+          )}
+        </Button>
+      </form>
+    );
+  }
+
   // Error-wrapped navigation functions with toast notifications
-  const handleNextStep = useCallback(async () => {
+    const handleNextStep = useCallback(async () => {
     try {
       const success = nextStep();
       if (!success) {
@@ -326,8 +517,10 @@ function BookLocation({ params }) {
       }
 
       if (paymentResult && !paymentResult.error) {
-        const finalAmount = paymentMethod === "savings" ? discountedPrice : totalPrice;
-        const discountMessage = paymentMethod === "savings" ? ` (5% savings discount applied!)` : "";
+        const finalAmount =
+          paymentMethod === "savings" ? discountedPrice : totalPrice;
+        const discountMessage =
+          paymentMethod === "savings" ? ` (5% savings discount applied!)` : "";
         toast.success(
           `Booking confirmed! Payment of ${formatTZS(finalAmount)} processed successfully.${discountMessage}`,
         );
@@ -360,6 +553,70 @@ function BookLocation({ params }) {
     resetBooking,
     router,
   ]);
+
+  const handleStripePaymentSuccess = useCallback(async (paymentResult) => {
+    try {
+      // Create booking first
+      const booking = await createBooking(id, {
+        startDate,
+        endDate,
+        selectedOrigin,
+        selectedTransportRoute,
+        selectedHotel,
+        selectedActivities,
+        activitySessions,
+        skipOptions,
+      });
+
+      if (booking.error) {
+        toast.error(booking.error);
+        return;
+      }
+
+      // Process payment with Stripe details
+      const result = await bookingCreationService.processPayment(
+        booking.bookingId,
+        {
+          paymentMethod: "stripe",
+          amount: totalPrice,
+          paymentMethodId: paymentResult.paymentMethodId,
+        },
+      );
+
+      if (result && !result.error) {
+        toast.success(
+          `Booking confirmed! Payment of ${formatTZS(totalPrice)} processed successfully.`,
+        );
+        setIsPaymentDialogOpen(false);
+        resetBooking();
+        router.push("/my-bookings");
+      } else {
+        toast.error(result?.error || "Payment processing failed");
+      }
+    } catch (error) {
+      console.error("Error processing Stripe payment:", error);
+      toast.error("Failed to process payment. Please try again.");
+    }
+  }, [
+    id,
+    startDate,
+    endDate,
+    selectedOrigin,
+    selectedTransportRoute,
+    selectedHotel,
+    selectedActivities,
+    activitySessions,
+    skipOptions,
+    totalPrice,
+    createBooking,
+    setIsPaymentDialogOpen,
+    resetBooking,
+    router,
+  ]);
+
+  const handleStripePaymentError = useCallback((error) => {
+    toast.error(error);
+  }, []);
 
   const formatDate = formatBookingDate;
 
@@ -542,6 +799,29 @@ function BookLocation({ params }) {
                   <Calendar className="h-5 w-5 text-amber-600" /> Select Your
                   Travel Details
                 </h3>
+
+                {/* Tourist Full Name Input */}
+                <div className="mb-8">
+                  <Label
+                    htmlFor="touristFullName"
+                    className="text-base mb-2 block"
+                  >
+                    Your Full Name <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="touristFullName"
+                    type="text"
+                    value={touristFullName}
+                    onChange={(e) => setTouristFullName(e.target.value)}
+                    placeholder="Enter your full name"
+                    className={`h-12 text-base ${errors.touristFullName ? "border-red-500" : ""}`}
+                  />
+                  {errors.touristFullName && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.touristFullName}
+                    </p>
+                  )}
+                </div>
 
                 {/* Origin Selection - only show if transport is not skipped */}
                 {!skipOptions.skipTransport && (
@@ -1639,8 +1919,8 @@ function BookLocation({ params }) {
                             />
                             <Label htmlFor="terms" className="text-sm">
                               I agree to the{" "}
-                              <Link 
-                                href="/terms" 
+                              <Link
+                                href="/terms"
                                 className="text-amber-700 hover:text-amber-800 underline"
                                 target="_blank"
                                 rel="noopener noreferrer"
@@ -1672,6 +1952,7 @@ function BookLocation({ params }) {
                                   // Prepare cart booking data
                                   const cartBookingData = {
                                     destinationId,
+                                    touristFullName,
                                     startDate,
                                     endDate,
                                     includeTransport:
@@ -1754,34 +2035,23 @@ function BookLocation({ params }) {
             </TabsList>
 
             <TabsContent value="credit" className="space-y-4">
-              {/* Credit Card Form */}
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="cardNumber">Card Number</Label>
-                  <Input id="cardNumber" type="text" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="expiry">Expiry Date</Label>
-                    <Input id="expiry" type="text" placeholder="MM/YY" />
-                  </div>
-                  <div>
-                    <Label htmlFor="cvv">CVV</Label>
-                    <Input id="cvv" type="text" placeholder="123" />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="nameOnCard">Name on Card</Label>
-                  <Input id="nameOnCard" type="text" />
-                </div>
-              </div>
+              {/* Stripe Card Form */}
+              <Elements stripe={stripePromise}>
+                <StripeCheckoutForm
+                  amount={totalPrice}
+                  onSuccess={handleStripePaymentSuccess}
+                  onError={handleStripePaymentError}
+                />
+              </Elements>
             </TabsContent>
 
             <TabsContent value="savings" className="space-y-4">
               <div className="p-4 bg-green-50 rounded-lg border border-green-200">
                 <div className="flex items-center gap-2 mb-3">
                   <PiggyBank className="h-4 w-4 text-green-600" />
-                  <span className="text-green-800 font-medium text-sm">5% Savings Discount Applied!</span>
+                  <span className="text-green-800 font-medium text-sm">
+                    5% Savings Discount Applied!
+                  </span>
                 </div>
                 <div className="flex justify-between items-center mb-2">
                   <span>Available Balance:</span>
@@ -1789,22 +2059,30 @@ function BookLocation({ params }) {
                 </div>
                 <div className="flex justify-between items-center mb-1">
                   <span>Original Price:</span>
-                  <span className="line-through text-gray-500">{formatTZS(totalPrice)}</span>
+                  <span className="line-through text-gray-500">
+                    {formatTZS(totalPrice)}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center mb-1">
                   <span>Discount (5%):</span>
-                  <span className="text-green-600">-{formatTZS(savingsDiscount)}</span>
+                  <span className="text-green-600">
+                    -{formatTZS(savingsDiscount)}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center font-semibold">
                   <span>You Pay:</span>
-                  <span className="text-green-600">{formatTZS(discountedPrice)}</span>
+                  <span className="text-green-600">
+                    {formatTZS(discountedPrice)}
+                  </span>
                 </div>
                 <Separator className="my-2" />
                 <div className="flex justify-between items-center font-medium">
                   <span>Remaining Balance:</span>
                   <span
                     className={
-                      balance >= discountedPrice ? "text-green-600" : "text-red-600"
+                      balance >= discountedPrice
+                        ? "text-green-600"
+                        : "text-red-600"
                     }
                   >
                     {formatTZS(balance - discountedPrice)}
@@ -1830,15 +2108,17 @@ function BookLocation({ params }) {
             >
               Cancel
             </Button>
-            <Button
-              onClick={processPayment}
-              disabled={
-                (paymentMethod === "savings" && balance < discountedPrice) ||
-                !paymentMethod
-              }
-            >
-              Pay {paymentMethod === "savings" ? formatTZS(discountedPrice) : formatTZS(totalPrice)}
-            </Button>
+            {paymentMethod === "savings" && (
+              <Button
+                onClick={processPayment}
+                disabled={
+                  (paymentMethod === "savings" && balance < discountedPrice) ||
+                  !paymentMethod
+                }
+              >
+                Pay {formatTZS(discountedPrice)}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

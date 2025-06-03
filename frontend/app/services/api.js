@@ -34,25 +34,32 @@ const apiRequest = async (endpoint, options = {}) => {
     },
   };
 
-  const response = await fetch(url, config);
+  try {
+    const response = await fetch(url, config);
 
-  if (!response.ok) {
-    let errorData;
-    const contentType = response.headers.get("content-type");
-    if (contentType && contentType.includes("application/json")) {
-      errorData = await response
-        .json()
-        .catch(() => ({ message: "Network error" }));
-    } else {
-      const text = await response.text().catch(() => "");
-      errorData = { message: text || "Network error" };
+    if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}`;
+      
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch {
+        const text = await response.text().catch(() => "");
+        errorMessage = text || errorMessage;
+      }
+      
+      const error = new Error(errorMessage);
+      error.response = { status: response.status };
+      throw error;
     }
-    const error = new Error(errorData.message || `HTTP ${response.status}`);
-    error.response = { status: response.status, data: errorData };
-    throw error;
-  }
 
-  return response.json();
+    return response.json();
+  } catch (error) {
+    if (error.response) {
+      throw error; // Re-throw HTTP errors
+    }
+    throw new Error("Network error occurred");
+  }
 };
 
 // API Utils for common patterns
@@ -303,13 +310,15 @@ export const bookingsService = {
   },
 
   async getEligibleGuides(bookingId) {
+    if (!bookingId) throw new Error("Booking ID is required");
     return apiRequest(`/bookings/${bookingId}/eligible-guides`);
   },
 
   async assignGuide(bookingId, guideId) {
+    if (!bookingId || !guideId) throw new Error("Booking ID and Guide ID are required");
     return apiRequest(`/bookings/${bookingId}/assign-guide`, {
       method: "POST",
-      body: JSON.stringify({ guideId: guideId }),
+      body: JSON.stringify({ guideId }),
     });
   },
 
@@ -318,6 +327,7 @@ export const bookingsService = {
   },
 
   async getTourGuideBookingDetails(bookingId) {
+    if (!bookingId) throw new Error("Booking ID is required");
     return apiRequest(`/bookings/tour-guide-booking/${bookingId}`);
   },
 };

@@ -201,15 +201,19 @@ export default function AssignmentsPage() {
                       <SelectValue placeholder="Select a tour guide" />
                     </SelectTrigger>
                     <SelectContent>
-                      {eligibleGuides.length === 0 ? (
+                      {isSubmitting ? (
+                        <SelectItem value="loading" disabled>
+                          Loading eligible guides...
+                        </SelectItem>
+                      ) : eligibleGuides.length === 0 ? (
                         <SelectItem value="none" disabled>
-                          {isSubmitting ? "Loading guides..." : "No eligible guides available"}
+                          No eligible guides available
                         </SelectItem>
                       ) : (
                         // Read eligibleGuides from store
                         (eligibleGuides || []).map((guide) => (
                           <SelectItem key={guide.id} value={guide.id.toString()}>
-                            {guide.name} - {guide.destination_name}
+                            {guide.full_name} - {guide.destination_name}
                           </SelectItem>
                         ))
                       )}
@@ -224,23 +228,29 @@ export default function AssignmentsPage() {
                      {/* Find and display selected guide details */}
                      {(() => {
                        const guide = (eligibleGuides || []).find(g => g.id.toString() === selectedGuideId);
-                       if (!guide) return null;
+                       if (!guide) {
+                         return (
+                           <div className="text-sm text-muted-foreground">
+                             Guide details not found.
+                           </div>
+                         );
+                       }
                        return (
-                          <div key={guide.id} className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm">
-                            <div><span className="text-muted-foreground">Name:</span> <span className="break-words">{guide.name}</span></div>
-                            <div><span className="text-muted-foreground">Location:</span> <span className="break-words">{guide.destination_name}</span></div>
-                            <div className="col-span-full"><span className="text-muted-foreground">Expertise:</span> <span className="break-words">{guide.expertise}</span></div>
-                            <div className="col-span-full">
-                                <span className="text-muted-foreground">Availability:</span>{' '}
-                                <Badge variant={guide.available ? "default" : "secondary"} className={guide.available ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}> {/* Adjusted badge colors */}
-                                    {guide.available ? "Available" : "Limited Availability"}
-                                </Badge>
+                          <div key={guide.id} className="space-y-2 text-sm">
+                            <div><span className="text-muted-foreground">Guide:</span> {guide.full_name}</div>
+                            <div><span className="text-muted-foreground">Location:</span> {guide.destination_name}</div>
+                            <div>
+                              <Badge variant="default" className="bg-green-100 text-green-800">
+                                Available
+                              </Badge>
                             </div>
                           </div>
                        );
                      })()}
                    </div>
                  )}
+
+
               </div>
             </div>
           )}
@@ -248,11 +258,15 @@ export default function AssignmentsPage() {
           <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setIsAssignDialogOpen(false)} className="w-full sm:w-auto order-2 sm:order-1"> Cancel </Button>
             {/* Use store action for assigning */}
-            <Button onClick={assignGuide} disabled={isSubmitting || !selectedGuideId || eligibleGuides.length === 0} className="w-full sm:w-auto order-1 sm:order-2">
+            <Button 
+              onClick={assignGuide} 
+              disabled={isSubmitting || !selectedGuideId} 
+              className="w-full sm:w-auto order-1 sm:order-2"
+            >
               {isSubmitting ? (
                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Assigning...</>
               ) : (
-                 <><CheckCircle className="mr-2 h-4 w-4" /> Assign Guide</>
+                 <>Assign Guide</>
               )}
             </Button>
           </DialogFooter>
