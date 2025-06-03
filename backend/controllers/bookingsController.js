@@ -294,40 +294,62 @@ exports.getUserBookings = async (req, res) => {
   const userId = req.user.id;
 
   try {
-    // Get all bookings for this user
+    // Get all bookings for this user with destination information
     const [bookings] = await db.query(
-      `SELECT * FROM bookings
-       WHERE tourist_user_id = ?
-       ORDER BY id DESC`,
+      `SELECT b.*, d.name as destination_name, d.description as destination_description, d.image_url as destination_image
+       FROM bookings b
+       LEFT JOIN destinations d ON b.destination_id = d.id
+       WHERE b.tourist_user_id = ?
+       ORDER BY b.id DESC`,
       [userId],
     );
 
-      // Use our helper function for JSON parsing
+    // For each booking, get its items
+    for (let i = 0; i < bookings.length; i++) {
+      const [items] = await db.query(
+        `SELECT bi.*,
+         CASE
+           WHEN bi.item_type = 'hotel' THEN h.name
+           WHEN bi.item_type = 'transport' THEN CONCAT(to_orig.name, ' to ', dest.name)
+           WHEN bi.item_type = 'tour_guide' THEN tg.full_name
+           WHEN bi.item_type = 'activity' THEN a.name
+           WHEN bi.item_type = 'placeholder' THEN 'Tour Guide Assignment Pending'
+           ELSE 'Unknown Service'
+         END as item_name
+         FROM booking_items bi
+         LEFT JOIN hotels h ON bi.item_type = 'hotel' AND bi.id = h.id
+         LEFT JOIN transports tr ON bi.item_type = 'transport' AND bi.id = tr.id
+         LEFT JOIN transport_origins to_orig ON bi.item_type = 'transport' AND tr.origin_id = to_orig.id
+         LEFT JOIN destinations dest ON bi.item_type = 'transport' AND tr.destination_id = dest.id
+         LEFT JOIN tour_guides tg ON bi.item_type = 'tour_guide' AND bi.id = tg.user_id
+         LEFT JOIN activities a ON bi.item_type = 'activity' AND bi.id = a.id
+         WHERE bi.booking_id = ?
+         ORDER BY 
+           CASE bi.item_type 
+             WHEN 'transport' THEN 1
+             WHEN 'hotel' THEN 2
+             WHEN 'activity' THEN 3
+             WHEN 'tour_guide' THEN 4
+             WHEN 'placeholder' THEN 5
+             ELSE 6
+           END`,
+        [bookings[i].id],
+      );
 
-  // For each booking, get its items
-  for (let i = 0; i < bookings.length; i++) {
-    const [items] = await db.query(
-      `SELECT bi.*,
-       CASE
-         WHEN bi.item_type = 'hotel' THEN h.name
-         WHEN bi.item_type = 'transport' THEN CONCAT(to_orig.name, ' to ', d.name)
-         WHEN bi.item_type = 'tour_guide' THEN tg.full_name
-         WHEN bi.item_type = 'activity' THEN a.name
-       END as item_name
-       FROM booking_items bi
-       LEFT JOIN hotels h ON bi.item_type = 'hotel' AND bi.id = h.id
-       LEFT JOIN transports tr ON bi.item_type = 'transport' AND bi.id = tr.id
-       LEFT JOIN transport_origins to_orig ON bi.item_type = 'transport' AND tr.origin_id = to_orig.id
-       LEFT JOIN destinations d ON bi.item_type = 'transport' AND tr.destination_id = d.id
-       LEFT JOIN tour_guides tg ON bi.item_type = 'tour_guide' AND bi.id = tg.user_id
-       LEFT JOIN activities a ON bi.item_type = 'activity' AND bi.id = a.id
-       WHERE bi.booking_id = ?`,
-      [bookings[i].id],
-    );
-
-    // Parse item_details JSON if it exists
-    bookings[i].items = parseJsonFields(items, ['item_details']);
-  }
+      // Parse item_details JSON if it exists and add destination info
+      bookings[i].items = parseJsonFields(items, ['item_details']);
+      bookings[i].destination = {
+        id: bookings[i].destination_id,
+        name: bookings[i].destination_name,
+        description: bookings[i].destination_description,
+        image_url: bookings[i].destination_image
+      };
+      
+      // Clean up duplicate fields
+      delete bookings[i].destination_name;
+      delete bookings[i].destination_description;
+      delete bookings[i].destination_image;
+    }
 
     res.status(200).json(bookings);
   } catch (error) {
@@ -522,10 +544,12 @@ exports.confirmHotelRoom = async (req, res) => {
   try {
     // Check if the booking item belongs to this hotel and is pending
     const [bookingItemRows] = await db.query(
-      `SELECT * FROM booking_items 
-       WHERE id = ? 
-       AND item_type = 'hotel' 
-       AND provider_status = 'pending'`,
+      `SELECT bi.*, b.id as booking_id FROM booking_items bi
+       JOIN bookings b ON bi.booking_id = b.id
+       WHERE bi.id = ? 
+       AND bi.item_type = 'hotel' 
+       AND bi.provider_status = 'pending'
+       AND b.status = 'confirmed'`,
       [itemId]
     );
 
@@ -560,14 +584,25 @@ exports.confirmHotelRoom = async (req, res) => {
       }
     }
 
+    // Prepare enhanced room details with confirmation flag
+    const enhancedRoomDetails = {
+      ...roomDetails,
+      room_confirmed: true,
+      confirmed_at: new Date().toISOString(),
+      confirmed_by: "hotel_manager"
+    };
+
     // Update the booking item with room details
     await db.query(
       `UPDATE booking_items 
        SET provider_status = 'confirmed', 
        item_details = ? 
        WHERE id = ?`,
-      [JSON.stringify(roomDetails), itemId]
+      [JSON.stringify(enhancedRoomDetails), itemId]
     );
+
+    // Check if all booking items are now confirmed
+    await checkAndUpdateBookingCompletion(bookingItemRows[0].booking_id);
 
     res.status(200).json({ message: "Room confirmed successfully" });
   } catch (error) {
@@ -624,13 +659,15 @@ exports.assignTransportTicket = async (req, res) => {
     
     // Check if the booking item belongs to a route owned by this agency
     const [bookingItemRows] = await db.query(
-      `SELECT bi.* 
+      `SELECT bi.*, b.id as booking_id 
        FROM booking_items bi
        JOIN transports tr ON bi.item_type = 'transport' AND bi.id = tr.id
+       JOIN bookings b ON bi.booking_id = b.id
        WHERE bi.id = ?
        AND bi.item_type = 'transport'
        AND tr.agency_id = ?
-       AND bi.provider_status = 'pending'`,
+       AND bi.provider_status = 'pending'
+       AND b.status = 'confirmed'`,
       [itemId, agencyId]
     );
     
@@ -672,14 +709,25 @@ exports.assignTransportTicket = async (req, res) => {
       }
     }
     
+    // Prepare enhanced ticket details with assignment flag
+    const enhancedTicketDetails = {
+      ...ticketDetails,
+      ticket_assigned: true,
+      assigned_at: new Date().toISOString(),
+      assigned_by: "travel_agent"
+    };
+    
     // Update the booking item with ticket details
     await db.query(
       `UPDATE booking_items 
        SET provider_status = 'confirmed', 
            item_details = ? 
        WHERE id = ?`,
-      [JSON.stringify(ticketDetails), itemId]
+      [JSON.stringify(enhancedTicketDetails), itemId]
     );
+    
+    // Check if all booking items are now confirmed
+    await checkAndUpdateBookingCompletion(bookingItemRows[0].booking_id);
     
     res.status(200).json({ message: "Ticket assigned successfully" });
   } catch (error) {
@@ -783,6 +831,10 @@ exports.assignTourGuide = async (req, res) => {
       );
       
       await connection.commit();
+      
+      // Check if all booking items are now confirmed (outside transaction)
+      await checkAndUpdateBookingCompletion(bookingId);
+      
       res.status(200).json({ 
         message: "Tour guide assigned successfully", 
         guide: {
@@ -1231,6 +1283,37 @@ exports.getTransportBookingsCompleted = async (req, res) => {
   } catch (error) {
     console.error("Error fetching completed transport bookings:", error);
     res.status(500).json({ message: "Failed to fetch completed bookings", error: error.message });
+  }
+};
+
+/**
+ * Helper function to check if all booking items are confirmed and update booking status
+ */
+const checkAndUpdateBookingCompletion = async (bookingId) => {
+  try {
+    // Get all booking items for this booking
+    const [items] = await db.query(
+      `SELECT provider_status, item_type FROM booking_items 
+       WHERE booking_id = ?`,
+      [bookingId]
+    );
+
+    if (items.length === 0) return;
+
+    // Check if all items are confirmed
+    const allConfirmed = items.every(item => item.provider_status === 'confirmed');
+    
+    if (allConfirmed) {
+      // Update booking status to completed if all services are confirmed
+      await db.query(
+        `UPDATE bookings SET status = 'completed' 
+         WHERE id = ? AND status = 'confirmed'`,
+        [bookingId]
+      );
+    }
+  } catch (error) {
+    console.error("Error checking booking completion:", error);
+    // Don't throw error as this is a helper function
   }
 };
 

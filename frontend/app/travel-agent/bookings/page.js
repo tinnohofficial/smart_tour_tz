@@ -97,7 +97,7 @@ export default function TravelAgentBookings() {
   const formatDate = formatPrettyDate;
 
   const renderBookingCard = (booking, isCompleted = false) => (
-    <Card key={booking.id} className="shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-lg overflow-hidden">
+    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-lg overflow-hidden">
       <CardHeader className={cn("pb-3", isCompleted ? "bg-green-50" : "bg-amber-50")}>
         <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
           <div className="flex-1 min-w-0">
@@ -207,7 +207,11 @@ export default function TravelAgentBookings() {
             <CompactLoader message="Loading pending bookings..." />
           ) : pendingBookings.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {pendingBookings.map(booking => renderBookingCard(booking, false))}
+              {pendingBookings.map((booking, index) => (
+                <div key={`pending-${booking.id}-${booking.booking_id || index}`}>
+                  {renderBookingCard(booking, false)}
+                </div>
+              ))}
             </div>
           ) : (
             renderEmptyState("pending")
@@ -219,7 +223,11 @@ export default function TravelAgentBookings() {
             <CompactLoader message="Loading completed bookings..." />
           ) : completedBookings.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {completedBookings.map(booking => renderBookingCard(booking, true))}
+              {completedBookings.map((booking, index) => (
+                <div key={`completed-${booking.id}-${booking.booking_id || index}`}>
+                  {renderBookingCard(booking, true)}
+                </div>
+              ))}
             </div>
           ) : (
             renderEmptyState("completed")

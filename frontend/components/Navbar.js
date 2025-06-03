@@ -145,6 +145,12 @@ export function Navbar() {
                 </Link>
                 
                 {user.role === 'tourist' && (
+                  <Link href="/my-bookings">
+                    <Button variant="ghost">My Bookings</Button>
+                  </Link>
+                )}
+                
+                {user.role === 'tourist' && (
                   <Link href="/cart" className="relative">
                     <Button variant="ghost" className="relative">
                       <ShoppingCart className="h-4 w-4" />
@@ -232,6 +238,14 @@ export function Navbar() {
                         Savings
                       </Button>
                     </Link>
+                    
+                    {user.role === 'tourist' && (
+                      <Link href="/my-bookings">
+                        <Button variant="ghost" className="w-full justify-start">
+                          My Bookings
+                        </Button>
+                      </Link>
+                    )}
                     
                     {user.role === 'tourist' && (
                       <Link href="/cart" className="relative">
