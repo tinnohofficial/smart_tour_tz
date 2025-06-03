@@ -77,14 +77,15 @@ function StripeCheckoutForm({ amount, onSuccess, onError }) {
     }
 
     if (!stripe || !elements) {
-      const errorMessage = "Payment system not ready. Please refresh and try again.";
+      const errorMessage =
+        "Payment system not ready. Please refresh and try again.";
       setCardError(errorMessage);
       onError(errorMessage);
       return;
     }
 
-    if (!amount || amount < 1150) {
-      const errorMessage = "Minimum amount for card payments is 1,150 TZS";
+    if (!amount || amount <= 0) {
+      const errorMessage = "Please enter a valid amount greater than zero";
       setCardError(errorMessage);
       onError(errorMessage);
       return;
@@ -104,7 +105,8 @@ function StripeCheckoutForm({ amount, onSuccess, onError }) {
         });
 
       if (paymentMethodError) {
-        const errorMessage = paymentMethodError.message || "Invalid payment information";
+        const errorMessage =
+          paymentMethodError.message || "Invalid payment information";
         setCardError(errorMessage);
         onError(errorMessage);
         return;
@@ -131,16 +133,18 @@ function StripeCheckoutForm({ amount, onSuccess, onError }) {
     } catch (error) {
       console.error("Payment failed:", error);
       let errorMessage = "Payment failed. Please try again.";
-      
+
       // Handle specific error types
       if (error.message?.includes("Invalid API Key")) {
-        errorMessage = "Payment system configuration error. Please contact support.";
+        errorMessage =
+          "Payment system configuration error. Please contact support.";
       } else if (error.message?.includes("network")) {
-        errorMessage = "Network error. Please check your connection and try again.";
+        errorMessage =
+          "Network error. Please check your connection and try again.";
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       setCardError(errorMessage);
       onError(errorMessage);
     } finally {
@@ -236,12 +240,14 @@ function StripeCheckoutForm({ amount, onSuccess, onError }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="p-4 bg-blue-50 rounded-lg">
+      <div className="p-4 bg-tanzania-amber-light rounded-lg">
         <div className="flex items-center gap-2 mb-2">
-          <CreditCard className="h-5 w-5 text-blue-600" />
+          <CreditCard className="h-5 w-5 text-tanzania-amber-dark" />
           <span className="font-medium">Payment Amount</span>
         </div>
-        <p className="text-2xl font-bold text-blue-900">{formatTZS(amount)}</p>
+        <p className="text-2xl font-bold text-tanzania-brown">
+          {formatTZS(amount)}
+        </p>
       </div>
 
       <div className="space-y-2">
@@ -259,8 +265,8 @@ function StripeCheckoutForm({ amount, onSuccess, onError }) {
 
       <Button
         type="submit"
-        className="w-full bg-blue-600 hover:bg-blue-700"
-        disabled={!stripe || isProcessing || amount < 1150}
+        className="w-full bg-tanzania-amber hover:bg-tanzania-amber-dark text-white"
+        disabled={!stripe || isProcessing || !amount || amount <= 0}
       >
         {isProcessing ? (
           <div className="flex items-center gap-2">
@@ -272,11 +278,7 @@ function StripeCheckoutForm({ amount, onSuccess, onError }) {
         )}
       </Button>
 
-      {amount < 1150 && (
-        <p className="text-sm text-amber-600 text-center">
-          Minimum amount for card payments is 1,150 TZS
-        </p>
-      )}
+
     </form>
   );
 }
@@ -571,12 +573,12 @@ export default function Savings() {
                 onValueChange={setActivePaymentMethod}
                 className="w-full"
               >
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="stripe">
+                <TabsList className="grid w-full grid-cols-2 bg-gray-100">
+                  <TabsTrigger value="stripe" className="data-[state=active]:bg-amber-600 data-[state=active]:text-white text-gray-700">
                     <CreditCard className="h-4 w-4 mr-2" />
                     Credit/Debit Card
                   </TabsTrigger>
-                  <TabsTrigger value="crypto" disabled={!isWalletConnected}>
+                  <TabsTrigger value="crypto" disabled={!isWalletConnected} className="data-[state=active]:bg-amber-600 data-[state=active]:text-white text-gray-700">
                     <Wallet className="h-4 w-4 mr-2" />
                     Cryptocurrency
                   </TabsTrigger>
@@ -592,7 +594,7 @@ export default function Savings() {
                     </div>
                   ) : depositAmount &&
                     !isNaN(Number(depositAmount)) &&
-                    Number(depositAmount) >= 1150 ? (
+                    Number(depositAmount) > 0 ? (
                     <Elements stripe={stripePromise}>
                       <StripeCheckoutForm
                         amount={Number(depositAmount)}
@@ -604,9 +606,7 @@ export default function Savings() {
                     <div className="p-4 bg-gray-50 rounded-lg text-center">
                       <CreditCard className="h-8 w-8 mx-auto text-gray-400 mb-2" />
                       <p className="text-gray-600">
-                        {!depositAmount || isNaN(Number(depositAmount))
-                          ? "Please enter a valid amount to proceed with card payment."
-                          : "Minimum amount for card payments is 1,150 TZS."}
+                        Please enter a valid amount greater than zero to proceed with card payment.
                       </p>
                     </div>
                   )}
@@ -623,7 +623,7 @@ export default function Savings() {
                       <Button
                         onClick={handleConnectWallet}
                         disabled={isConnectingWallet || isWalletConnected}
-                        className="bg-orange-600 hover:bg-orange-700"
+                        className="bg-tanzania-amber hover:bg-tanzania-amber-dark text-white"
                       >
                         {isConnectingWallet
                           ? "Connecting..."
@@ -669,7 +669,7 @@ export default function Savings() {
                       Number(depositAmount) > 0 ? (
                         <Button
                           onClick={handleCryptoDeposit}
-                          className="w-full bg-green-600 hover:bg-green-700"
+                          className="w-full bg-tanzania-amber hover:bg-tanzania-amber-dark text-white"
                           disabled={isDepositing}
                         >
                           {isDepositing ? (
