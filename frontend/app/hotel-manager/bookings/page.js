@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { useBookingsStore } from "./store";
@@ -33,7 +33,7 @@ export default function HotelManagerBookings() {
     setSelectedBooking,
     setIsRoomDialogOpen,
     updateRoomDetails,
-    toggleAmenity,
+
     confirmRoom,
   } = useBookingsStore();
 
@@ -45,16 +45,6 @@ export default function HotelManagerBookings() {
     setSelectedBooking(booking);
     setIsRoomDialogOpen(true);
   };
-
-  const amenities = [
-    { id: "wifi", label: "Free WiFi" },
-    { id: "breakfast", label: "Breakfast Included" },
-    { id: "ac", label: "Air Conditioning" },
-    { id: "tv", label: "Flat-screen TV" },
-    { id: "minibar", label: "Mini Bar" },
-    { id: "safe", label: "Safe" },
-    { id: "balcony", label: "Balcony/Terrace" },
-  ];
 
   const formatDate = (dateString) =>
     formatDateWithFormat(dateString, "MMM dd, yyyy", dateString);
@@ -188,71 +178,24 @@ export default function HotelManagerBookings() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="checkIn">Check-In Date</Label>
-                <Input
-                  id="checkIn"
-                  type="date"
-                  value={roomDetails.checkIn}
-                  onChange={(e) => updateRoomDetails("checkIn", e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="checkOut">Check-Out Date</Label>
-                <Input
-                  id="checkOut"
-                  type="date"
-                  value={roomDetails.checkOut}
-                  onChange={(e) =>
-                    updateRoomDetails("checkOut", e.target.value)
-                  }
-                />
-              </div>
-            </div>
-
             <div className="space-y-2">
-              <Label htmlFor="specialRequests">Special Requests/Notes</Label>
+              <Label htmlFor="description">Description</Label>
               <Input
-                id="specialRequests"
+                id="description"
                 type="text"
-                placeholder="Any special requests from the guest"
-                value={roomDetails.specialRequests}
+                placeholder="Any additional notes or description"
+                value={roomDetails.description}
                 onChange={(e) =>
-                  updateRoomDetails("specialRequests", e.target.value)
+                  updateRoomDetails("description", e.target.value)
                 }
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Room Amenities</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {amenities.map((amenity) => (
-                  <div key={amenity.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={amenity.id}
-                      checked={(roomDetails.amenities || []).includes(
-                        amenity.id,
-                      )}
-                      onCheckedChange={() => toggleAmenity(amenity.id)}
-                    />
-                    <label
-                      htmlFor={amenity.id}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      {amenity.label}
-                    </label>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
 
           <Alert className="bg-yellow-50 text-yellow-800 border-yellow-200">
             <AlertTitle className="text-yellow-800">Important</AlertTitle>
             <AlertDescription className="text-yellow-700">
-              Make sure the room is actually available for the specified dates
-              before confirming.
+              Make sure the room is actually available before confirming.
             </AlertDescription>
           </Alert>
 

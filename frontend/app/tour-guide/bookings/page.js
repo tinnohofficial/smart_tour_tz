@@ -355,11 +355,14 @@ function TourDetailsDialog({ tour }) {
                   <p className="text-sm font-medium mt-2">TZS {(hotel.cost * 2835).toLocaleString()}</p>
                   {hotel.item_details && typeof hotel.item_details === 'object' && (
                     <div className="mt-2 text-xs text-muted-foreground">
-                      {hotel.item_details.check_in && (
-                        <p>Check-in: {hotel.item_details.check_in}</p>
+                      {hotel.item_details.roomNumber && (
+                        <p>Room Number: {hotel.item_details.roomNumber}</p>
                       )}
-                      {hotel.item_details.check_out && (
-                        <p>Check-out: {hotel.item_details.check_out}</p>
+                      {hotel.item_details.roomType && (
+                        <p>Room Type: {hotel.item_details.roomType}</p>
+                      )}
+                      {hotel.item_details.description && (
+                        <p>Description: {hotel.item_details.description}</p>
                       )}
                     </div>
                   )}

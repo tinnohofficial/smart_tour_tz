@@ -15,10 +15,7 @@ export const useBookingsStore = create((set, get) => ({
   roomDetails: {
     roomNumber: "",
     roomType: "",
-    checkIn: "",
-    checkOut: "",
-    specialRequests: "",
-    amenities: []
+    description: ""
   },
 
   fetchBookings: async () => {
@@ -69,10 +66,7 @@ export const useBookingsStore = create((set, get) => ({
         roomDetails: {
           roomNumber: "",
           roomType: "",
-          checkIn: "",
-          checkOut: "",
-          specialRequests: "",
-          amenities: []
+          description: ""
         }
       })
     }
@@ -87,21 +81,7 @@ export const useBookingsStore = create((set, get) => ({
     }))
   },
 
-  toggleAmenity: (amenity) => {
-    set(state => {
-      const currentAmenities = state.roomDetails.amenities || []
-      const amenityExists = currentAmenities.includes(amenity)
-      
-      return {
-        roomDetails: {
-          ...state.roomDetails,
-          amenities: amenityExists 
-            ? currentAmenities.filter(a => a !== amenity)
-            : [...currentAmenities, amenity]
-        }
-      }
-    })
-  },
+
 
   confirmRoom: async (itemId) => {
     const { roomDetails } = get()

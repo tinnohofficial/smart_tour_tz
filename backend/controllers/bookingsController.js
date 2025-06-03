@@ -559,29 +559,9 @@ exports.confirmHotelRoom = async (req, res) => {
       });
     }
 
-    // Validate dates if provided in roomDetails
-    if (roomDetails.check_in && roomDetails.check_out) {
-      const checkIn = new Date(roomDetails.check_in);
-      const checkOut = new Date(roomDetails.check_out);
-      const currentDate = new Date();
-      
-      // Remove time component from current date for fair comparison
-      currentDate.setHours(0, 0, 0, 0);
-
-      // Validate date formats
-      if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) {
-        return res.status(400).json({ message: "Invalid date format for check-in or check-out" });
-      }
-
-      // Check if check-in date is in the past
-      if (checkIn < currentDate) {
-        return res.status(400).json({ message: "Check-in date cannot be in the past" });
-      }
-
-      // Check if check-out is before check-in
-      if (checkOut <= checkIn) {
-        return res.status(400).json({ message: "Check-out date must be after check-in date" });
-      }
+    // Basic validation for required fields
+    if (!roomDetails.roomNumber || !roomDetails.roomType) {
+      return res.status(400).json({ message: "Room number and room type are required" });
     }
 
     // Prepare enhanced room details with confirmation flag

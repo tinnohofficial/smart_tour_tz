@@ -77,8 +77,6 @@ export default function MyBookings() {
     loadBookings();
   }, [router, loadBookings]);
 
-
-
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -130,16 +128,12 @@ export default function MyBookings() {
               ? JSON.parse(item.item_details)
               : item.item_details;
 
-          if (item.item_type === "hotel" && details.room_type) {
+          if (item.item_type === "hotel" && (details.roomType || details.roomNumber)) {
             return (
               <div className="text-xs text-gray-600 mt-1">
-                <p>Room: {details.room_type}</p>
-                {details.check_in && (
-                  <p>Check-in: {formatDate(details.check_in)}</p>
-                )}
-                {details.check_out && (
-                  <p>Check-out: {formatDate(details.check_out)}</p>
-                )}
+                {details.roomNumber && <p>Room Number: {details.roomNumber}</p>}
+                {details.roomType && <p>Room Type: {details.roomType}</p>}
+                {details.description && <p>Description: {details.description}</p>}
               </div>
             );
           }
@@ -241,8 +235,8 @@ export default function MyBookings() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
+        <div className="grid grid-cols-1 gap-6">
+          <div>
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-start">
@@ -305,37 +299,8 @@ export default function MyBookings() {
                     )}
                   </div>
                 </div>
-
-
               </CardContent>
             </Card>
-          </div>
-
-          <div className="lg:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button
-                  variant="outline"
-                  onClick={() => router.push("/contact")}
-                  className="w-full border-amber-200 hover:bg-amber-50"
-                >
-                  Contact Support
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => router.push("/")}
-                  className="w-full border-amber-200 hover:bg-amber-50"
-                >
-                  <MapPin className="w-4 h-4 mr-2" />
-                  Browse More Destinations
-                </Button>
-              </CardContent>
-            </Card>
-
-
           </div>
         </div>
       </div>
@@ -420,15 +385,6 @@ export default function MyBookings() {
                       <p className="text-xs text-gray-500">Total Cost</p>
                       <p className="text-sm font-medium">
                         {formatTZS(booking.total_cost)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Package className="h-4 w-4 text-gray-400" />
-                    <div>
-                      <p className="text-xs text-gray-500">Services</p>
-                      <p className="text-sm font-medium">
-                        {booking.items ? booking.items.length : 0} items
                       </p>
                     </div>
                   </div>

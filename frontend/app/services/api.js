@@ -353,7 +353,7 @@ export const hotelBookingsService = {
   async confirmRoom(itemId, roomDetails) {
     return apiRequest(`/bookings/items/${itemId}/confirm-room`, {
       method: "PATCH",
-      body: JSON.stringify(roomDetails),
+      body: JSON.stringify({ roomDetails }),
     });
   },
 };
