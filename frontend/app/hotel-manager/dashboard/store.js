@@ -66,7 +66,7 @@ export const useDashboardStore = create((set) => ({
             email: booking.tourist_email,
             checkIn: booking.start_date,
             checkOut: booking.end_date,
-            roomType: booking.item_details?.roomType || 'Standard',
+            roomType: booking.item_details?.roomType,
             amount: parseFloat(booking.cost) || 0
           }))
         

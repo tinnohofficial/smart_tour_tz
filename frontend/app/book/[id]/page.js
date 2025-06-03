@@ -29,6 +29,7 @@ import {
   Wallet,
   Loader2,
   ShoppingCart,
+  PiggyBank,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -69,7 +70,7 @@ function BookLocation({ params }) {
   const { addToCart } = useCartStore();
 
   // Get savings store (simplified)
-  const { balance } = useSavingsStore();
+  const { balance, fetchBalance } = useSavingsStore();
 
   // Get state and actions from Zustand store
   const {
@@ -153,6 +154,8 @@ function BookLocation({ params }) {
     }
     // Fetch transport origins for origin selection
     fetchTransportOrigins();
+    // Fetch user's savings balance
+    fetchBalance();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [destinationId]);
 
@@ -245,6 +248,15 @@ function BookLocation({ params }) {
     skipOptions,
   ]);
 
+  // Calculate discounted price for savings payments (5% discount)
+  const discountedPrice = useMemo(() => {
+    return totalPrice * 0.95; // 5% discount
+  }, [totalPrice]);
+
+  const savingsDiscount = useMemo(() => {
+    return totalPrice * 0.05; // 5% discount amount
+  }, [totalPrice]);
+
   // Use useCallback for handlers that don't directly map to simple store actions
   const handleBooking = useCallback(
     (e) => {
@@ -265,7 +277,7 @@ function BookLocation({ params }) {
       return;
     }
 
-    if (paymentMethod === "savings" && balance < totalPrice) {
+    if (paymentMethod === "savings" && balance < discountedPrice) {
       toast.error("Insufficient funds in savings account");
       return;
     }
@@ -297,6 +309,7 @@ function BookLocation({ params }) {
             booking.bookingId,
             {
               paymentMethod: "savings",
+              amount: discountedPrice,
             },
           );
           break;
@@ -306,14 +319,17 @@ function BookLocation({ params }) {
             booking.bookingId,
             {
               paymentMethod: "external",
+              amount: totalPrice,
             },
           );
           break;
       }
 
       if (paymentResult && !paymentResult.error) {
+        const finalAmount = paymentMethod === "savings" ? discountedPrice : totalPrice;
+        const discountMessage = paymentMethod === "savings" ? ` (5% savings discount applied!)` : "";
         toast.success(
-          `Booking confirmed! Payment of ${formatTZS(totalPrice)} processed successfully.`,
+          `Booking confirmed! Payment of ${formatTZS(finalAmount)} processed successfully.${discountMessage}`,
         );
         setIsPaymentDialogOpen(false);
         resetBooking();
@@ -329,6 +345,7 @@ function BookLocation({ params }) {
     paymentMethod,
     balance,
     totalPrice,
+    discountedPrice,
     id,
     startDate,
     endDate,
@@ -1761,27 +1778,39 @@ function BookLocation({ params }) {
             </TabsContent>
 
             <TabsContent value="savings" className="space-y-4">
-              <div className="p-4 bg-amber-50 rounded-lg">
+              <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                <div className="flex items-center gap-2 mb-3">
+                  <PiggyBank className="h-4 w-4 text-green-600" />
+                  <span className="text-green-800 font-medium text-sm">5% Savings Discount Applied!</span>
+                </div>
                 <div className="flex justify-between items-center mb-2">
                   <span>Available Balance:</span>
                   <span className="font-semibold">{formatTZS(balance)}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span>Required:</span>
-                  <span className="font-semibold">{formatTZS(totalPrice)}</span>
+                <div className="flex justify-between items-center mb-1">
+                  <span>Original Price:</span>
+                  <span className="line-through text-gray-500">{formatTZS(totalPrice)}</span>
+                </div>
+                <div className="flex justify-between items-center mb-1">
+                  <span>Discount (5%):</span>
+                  <span className="text-green-600">-{formatTZS(savingsDiscount)}</span>
+                </div>
+                <div className="flex justify-between items-center font-semibold">
+                  <span>You Pay:</span>
+                  <span className="text-green-600">{formatTZS(discountedPrice)}</span>
                 </div>
                 <Separator className="my-2" />
                 <div className="flex justify-between items-center font-medium">
                   <span>Remaining Balance:</span>
                   <span
                     className={
-                      balance >= totalPrice ? "text-green-600" : "text-red-600"
+                      balance >= discountedPrice ? "text-green-600" : "text-red-600"
                     }
                   >
-                    {formatTZS(balance - totalPrice)}
+                    {formatTZS(balance - discountedPrice)}
                   </span>
                 </div>
-                {balance < totalPrice && (
+                {balance < discountedPrice && (
                   <Alert variant="destructive" className="mt-2">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
@@ -1804,11 +1833,11 @@ function BookLocation({ params }) {
             <Button
               onClick={processPayment}
               disabled={
-                (paymentMethod === "savings" && balance < totalPrice) ||
+                (paymentMethod === "savings" && balance < discountedPrice) ||
                 !paymentMethod
               }
             >
-              Pay {formatTZS(totalPrice)}
+              Pay {paymentMethod === "savings" ? formatTZS(discountedPrice) : formatTZS(totalPrice)}
             </Button>
           </DialogFooter>
         </DialogContent>

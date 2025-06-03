@@ -15,9 +15,7 @@ import {
 } from "@/components/ui/dialog";
 
 import { Label } from "@/components/ui/label";
-import { format } from "date-fns";
 import { useBookingsStore } from "./store";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { formatDateWithFormat } from "@/app/utils/dateUtils";
 import { formatTZS } from "@/app/utils/currency";
 import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner";
@@ -78,14 +76,29 @@ export default function HotelManagerBookings() {
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {(bookings || []).map((booking, index) => (
-            <Card key={`booking-${booking.id}-${booking.booking_id}-${index}`} className="overflow-hidden">
+            <Card
+              key={`booking-${booking.id}-${booking.booking_id}-${index}`}
+              className="overflow-hidden"
+            >
               <CardHeader className="pb-3 bg-gray-50">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                   <div>
                     <Badge className="mb-1">#{booking.booking_id}</Badge>
                     <CardTitle className="text-base font-medium">
-                      {booking.tourist_email}
+                      {booking.tourist_name || "Guest"}
                     </CardTitle>
+                    <div className="text-sm text-gray-600 space-y-1 mt-1">
+                      <div className="flex items-center gap-1">
+                        <span>📧</span>
+                        <span>{booking.tourist_email}</span>
+                      </div>
+                      {booking.tourist_phone && (
+                        <div className="flex items-center gap-1">
+                          <span>📞</span>
+                          <span>{booking.tourist_phone}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <Button
                     onClick={() => handleOpenRoomDialog(booking)}
@@ -192,13 +205,6 @@ export default function HotelManagerBookings() {
             </div>
           </div>
 
-          <Alert className="bg-yellow-50 text-yellow-800 border-yellow-200">
-            <AlertTitle className="text-yellow-800">Important</AlertTitle>
-            <AlertDescription className="text-yellow-700">
-              Make sure the room is actually available before confirming.
-            </AlertDescription>
-          </Alert>
-
           <DialogFooter>
             <Button
               type="button"
@@ -208,7 +214,7 @@ export default function HotelManagerBookings() {
               Cancel
             </Button>
             <Button
-              className="bg-amber-700 hover:bg-amber-800"
+              className="bg-amber-700 hover:bg-amber-800 text-white"
               onClick={() => selectedBooking && confirmRoom(selectedBooking.id)}
             >
               Confirm Room

@@ -186,10 +186,16 @@ export default function TourGuideBookings() {
                             <div className="flex items-center gap-2 bg-muted/50 px-3 py-2 rounded-md">
                               <Avatar className="h-6 w-6">
                                 <AvatarFallback className="text-xs">
-                                  {tour.tourist_email ? tour.tourist_email.charAt(0).toUpperCase() : 'T'}
+                                  {tour.tourist_name ? tour.tourist_name.charAt(0).toUpperCase() : (tour.tourist_email ? tour.tourist_email.charAt(0).toUpperCase() : 'T')}
                                 </AvatarFallback>
                               </Avatar>
                               <div className="flex flex-col min-w-0">
+                                {tour.tourist_name && (
+                                  <div className="flex items-center gap-1">
+                                    <Users className="h-3 w-3 text-muted-foreground" />
+                                    <span className="text-xs font-medium text-gray-700">{tour.tourist_name}</span>
+                                  </div>
+                                )}
                                 <div className="flex items-center gap-1">
                                   <Mail className="h-3 w-3 text-muted-foreground" />
                                   <span className="text-xs text-muted-foreground truncate">{tour.tourist_email || 'No email provided'}</span>
@@ -355,12 +361,8 @@ function TourDetailsDialog({ tour }) {
                   <p className="text-sm font-medium mt-2">TZS {(hotel.cost * 2835).toLocaleString()}</p>
                   {hotel.item_details && typeof hotel.item_details === 'object' && (
                     <div className="mt-2 text-xs text-muted-foreground">
-                      {hotel.item_details.roomNumber && (
-                        <p>Room Number: {hotel.item_details.roomNumber}</p>
-                      )}
-                      {hotel.item_details.roomType && (
-                        <p>Room Type: {hotel.item_details.roomType}</p>
-                      )}
+                      <p>Room Number: {hotel.item_details.roomNumber}</p>
+                      <p>Room Type: {hotel.item_details.roomType}</p>
                       {hotel.item_details.description && (
                         <p>Description: {hotel.item_details.description}</p>
                       )}

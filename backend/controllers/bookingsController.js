@@ -145,17 +145,6 @@ exports.createBooking = async (req, res) => {
         });
       }
 
-      // Add a placeholder item for the tour guide (without cost calculation)
-      selectedItems.push({
-        type: "placeholder",
-        id: 0, // This will be replaced when admin assigns a real guide
-        cost: 0, // No cost associated with tour guide now
-        details: {
-          type: "tour_guide_placeholder",
-          message: "Tour guide will be assigned by admin"
-        }
-      });
-      
       // Check and calculate cost for activities (only if included)
       if (includeActivities && activityIds && Array.isArray(activityIds) && activityIds.length > 0) {
         const placeholders = activityIds.map(() => "?").join(",");
@@ -207,6 +196,17 @@ exports.createBooking = async (req, res) => {
             sessions: sessions
           });
         }
+
+        // Add a placeholder item for the tour guide (only when activities are selected)
+        selectedItems.push({
+          type: "placeholder",
+          id: 0, // This will be replaced when admin assigns a real guide
+          cost: 0, // No cost associated with tour guide now
+          details: {
+            type: "tour_guide_placeholder",
+            message: "Tour guide will be assigned by admin"
+          }
+        });
       }
 
       // Create booking record with flexible options
@@ -315,13 +315,28 @@ exports.getUserBookings = async (req, res) => {
            WHEN bi.item_type = 'activity' THEN a.name
            WHEN bi.item_type = 'placeholder' THEN 'Tour Guide Assignment Pending'
            ELSE 'Unknown Service'
-         END as item_name
+         END as item_name,
+         CASE
+           WHEN bi.item_type = 'hotel' THEN hm_user.email
+           WHEN bi.item_type = 'transport' THEN ta_user.email
+           WHEN bi.item_type = 'tour_guide' THEN tg_user.email
+           ELSE NULL
+         END as provider_email,
+         CASE
+           WHEN bi.item_type = 'hotel' THEN hm_user.phone
+           WHEN bi.item_type = 'transport' THEN ta_user.phone
+           WHEN bi.item_type = 'tour_guide' THEN tg_user.phone
+           ELSE NULL
+         END as provider_phone
          FROM booking_items bi
          LEFT JOIN hotels h ON bi.item_type = 'hotel' AND bi.id = h.id
+         LEFT JOIN users hm_user ON bi.item_type = 'hotel' AND h.manager_user_id = hm_user.id
          LEFT JOIN transports tr ON bi.item_type = 'transport' AND bi.id = tr.id
+         LEFT JOIN users ta_user ON bi.item_type = 'transport' AND tr.travel_agent_user_id = ta_user.id
          LEFT JOIN transport_origins to_orig ON bi.item_type = 'transport' AND tr.origin_id = to_orig.id
          LEFT JOIN destinations dest ON bi.item_type = 'transport' AND tr.destination_id = dest.id
          LEFT JOIN tour_guides tg ON bi.item_type = 'tour_guide' AND bi.id = tg.user_id
+         LEFT JOIN users tg_user ON bi.item_type = 'tour_guide' AND tg.user_id = tg_user.id
          LEFT JOIN activities a ON bi.item_type = 'activity' AND bi.id = a.id
          WHERE bi.booking_id = ?
          ORDER BY 
@@ -370,7 +385,7 @@ exports.getTourGuideBookings = async (req, res) => {
     // Get the booking items
     const [bookingItemsResult] = await db.query(
       `SELECT bi.*, b.tourist_user_id, b.status,
-         u.email as tourist_email
+         u.email as tourist_email, u.phone as tourist_phone, u.full_name as tourist_name
        FROM booking_items bi
        JOIN bookings b ON bi.booking_id = b.id
        JOIN users u ON b.tourist_user_id = u.id
@@ -515,7 +530,7 @@ exports.getHotelBookingsNeedingAction = async (req, res) => {
 
     // Get bookings that need action
     const [bookingItems] = await db.query(
-      `SELECT bi.*, b.tourist_user_id, u.email as tourist_email
+      `SELECT bi.*, b.tourist_user_id, u.email as tourist_email, u.phone as tourist_phone, u.full_name as tourist_name
        FROM booking_items bi
        JOIN bookings b ON bi.booking_id = b.id
        JOIN users u ON b.tourist_user_id = u.id
@@ -604,7 +619,7 @@ exports.getTransportBookingsNeedingAction = async (req, res) => {
     // Get bookings that need action
     const [bookingItems] = await db.query(
       `SELECT bi.*, to_orig.name as origin_name, d.name as destination_name, tr.transportation_type, 
-              b.tourist_user_id, u.email as tourist_email
+              b.tourist_user_id, u.email as tourist_email, u.phone as tourist_phone, u.full_name as tourist_name
        FROM booking_items bi
        JOIN transports tr ON bi.item_type = 'transport' AND bi.id = tr.id
        JOIN transport_origins to_orig ON tr.origin_id = to_orig.id
@@ -1193,7 +1208,7 @@ exports.getHotelBookingsCompleted = async (req, res) => {
       `SELECT 
         bi.id, bi.booking_id, bi.item_type, bi.id as hotel_id, bi.cost, bi.item_details,
         b.start_date, b.end_date, b.status, b.total_cost,
-        u.email as tourist_email
+        u.email as tourist_email, u.phone as tourist_phone, u.full_name as tourist_name
        FROM booking_items bi
        JOIN bookings b ON bi.booking_id = b.id
        JOIN users u ON b.tourist_user_id = u.id
@@ -1240,7 +1255,7 @@ exports.getTransportBookingsCompleted = async (req, res) => {
       `SELECT 
         bi.id, bi.booking_id, bi.item_type, bi.id as route_id, bi.cost, bi.item_details,
         b.start_date, b.end_date, b.status, b.total_cost,
-        u.email as tourist_email,
+        u.email as tourist_email, u.phone as tourist_phone, u.full_name as tourist_name,
         to_orig.name as origin_name, d.name as destination_name, t.transportation_type
        FROM booking_items bi
        JOIN bookings b ON bi.booking_id = b.id

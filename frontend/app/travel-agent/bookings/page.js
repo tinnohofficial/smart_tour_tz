@@ -128,8 +128,19 @@ export default function TravelAgentBookings() {
         <div className="flex items-center">
           <Users className="h-5 w-5 text-gray-500 mr-3 flex-shrink-0" />
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-gray-700 truncate">{booking.tourist_email || "Customer"}</p>
-            <p className="text-xs text-gray-500">Tourist Email</p>
+            <p className="text-sm font-medium text-gray-700 truncate">{booking.tourist_name || "Customer"}</p>
+            <div className="text-xs text-gray-500 space-y-1">
+              <div className="flex items-center gap-1">
+                <span>📧</span>
+                <span className="truncate">{booking.tourist_email}</span>
+              </div>
+              {booking.tourist_phone && (
+                <div className="flex items-center gap-1">
+                  <span>📞</span>
+                  <span>{booking.tourist_phone}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         
