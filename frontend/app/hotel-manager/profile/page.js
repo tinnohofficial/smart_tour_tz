@@ -1,349 +1,395 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { MapPin, Hotel, Loader2, Save, Camera, CheckCircle, AlertCircle, Building } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { FileUploader } from "../../components/file-uploader"
-import { useProfileStore } from "./store"
-import { formatTZS } from "@/app/utils/currency"
-import { hotelManagerService, destinationsService, apiUtils } from "@/app/services/api"
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Hotel,
+  MapPin,
+  Users,
+  Save,
+  Loader2,
+  CheckCircle,
+  AlertCircle,
+  DollarSign,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import {
+  hotelManagerService,
+  destinationsService,
+  apiUtils,
+} from "@/app/services/api";
+import { toast } from "sonner";
 
 export default function HotelManagerProfile() {
-  const router = useRouter()
-  const [userStatus, setUserStatus] = useState(null)
-  const [isCheckingAccess, setIsCheckingAccess] = useState(true)
-  const [destinations, setDestinations] = useState([])
-  const [isLoadingDestinations, setIsLoadingDestinations] = useState(true)
-  
-  const {
-    profileData,
-    isLoading,
-    isSubmitting,
-    isUploading,
-    hotelName,
-    hotelDestinationId,
-    hotelDescription,
-    hotelCapacity,
-    accommodationCosts,
-    hotelImages,
-    isApproved,
-    fetchProfile,
-    updateProfile,
-    setHotelImages,
-    isAvailable,
-    toggleAvailability
-  } = useProfileStore()
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [profileData, setProfileData] = useState(null);
+  const [destinations, setDestinations] = useState([]);
+  const [error, setError] = useState(null);
+
+  const fetchProfile = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
+      const [data, destinationsData] = await Promise.all([
+        hotelManagerService.getProfile(),
+        destinationsService.getAllDestinations(),
+      ]);
+
+      setProfileData(data);
+      setDestinations(destinationsData);
+
+      // Check if user is approved to access profile
+      if (data.status !== "active") {
+        if (data.status === "pending_profile" || !data.status) {
+          router.push("/hotel-manager/complete-profile");
+        } else {
+          router.push("/hotel-manager/pending-status");
+        }
+        return;
+      }
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      if (error.response?.status === 404) {
+        router.push("/hotel-manager/complete-profile");
+      } else if (error.response?.status === 401) {
+        localStorage.removeItem("token");
+        router.push("/login");
+      } else {
+        setError(error.message);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const checkAccess = async () => {
-      try {
-        const token = localStorage.getItem('token')
-        if (!token) {
-          router.push('/login')
-          return
-        }
-
-        try {
-          const data = await hotelManagerService.getProfile()
-          setUserStatus(data.status || 'pending_profile')
-            
-          // Only allow access if user is active
-          if (data.status !== 'active') {
-            if (data.status === 'pending_profile' || !data.status) {
-              router.push('/hotel-manager/complete-profile')
-            } else {
-              router.push('/hotel-manager/pending-status')
-            }
-            return
-          }
-            
-          // User is active, fetch profile data
-          fetchProfile()
-        } catch (error) {
-          if (error.response?.status === 404) {
-            router.push('/hotel-manager/complete-profile')
-            return
-          } else {
-            console.error('Error fetching profile:', error)
-            apiUtils.handleAuthError(error, router)
-            return
-          }
-        }
-      } catch (error) {
-        console.error("Error checking access:", error)
-        router.push('/login')
-      } finally {
-        setIsCheckingAccess(false)
-      }
-    }
-
-    checkAccess()
-  }, [fetchProfile, router])
-
-  // Fetch destinations for the dropdown
-  useEffect(() => {
-    const fetchDestinations = async () => {
-      try {
-        setIsLoadingDestinations(true)
-        const destinationsData = await destinationsService.getAllDestinations()
-        setDestinations(destinationsData)
-      } catch (error) {
-        console.error('Error fetching destinations:', error)
-        // Non-blocking error - just log it
-      } finally {
-        setIsLoadingDestinations(false)
-      }
-    }
-
-    fetchDestinations()
-  }, [])
-
-  // Show loading while checking access
-  if (isCheckingAccess) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Checking access...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Don't render profile if user is not active
-  if (userStatus !== 'active') {
-    return null
-  }
+    fetchProfile();
+  }, []);
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    const formData = {
-      hotelName: e.target.hotelName.value,
-      hotelDestinationId: e.target.hotelDestinationId.value,
-      hotelDescription: e.target.hotelDescription.value,
-      hotelCapacity: e.target.hotelCapacity.value,
-      accommodationCosts: e.target.accommodationCosts.value,
-    }
-    await updateProfile(formData)
-  }
+    e.preventDefault();
 
-  const handleFileChange = (files) => {
-    setHotelImages(files)
-  }
+    try {
+      setIsSubmitting(true);
+
+      const formData = new FormData(e.target);
+      const updateData = {
+        name: formData.get("name"),
+        location: formData.get("location"),
+        description: formData.get("description"),
+        capacity: parseInt(formData.get("capacity")),
+        base_price_per_night: parseFloat(formData.get("base_price_per_night")),
+      };
+
+      await hotelManagerService.updateProfile(updateData);
+      toast.success("Profile updated successfully!");
+
+      // Refresh profile data
+      await fetchProfile();
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast.error(error.message || "Failed to update profile");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleAvailabilityToggle = async () => {
+    try {
+      setIsSubmitting(true);
+      const newAvailability = !profileData.available;
+
+      await hotelManagerService.updateProfile({
+        available: newAvailability,
+      });
+
+      setProfileData((prev) => ({ ...prev, available: newAvailability }));
+      toast.success(
+        `Hotel marked as ${newAvailability ? "available" : "unavailable"}`,
+      );
+    } catch (error) {
+      console.error("Error updating availability:", error);
+      toast.error("Failed to update availability");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (isLoading) {
     return (
-      <div className="flex h-[80vh] items-center justify-center">
+      <div className="flex h-screen items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-700 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading hotel profile data...</p>
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading profile...</p>
         </div>
       </div>
-    )
+    );
   }
 
+  if (error) {
+    return (
+      <div className="container mx-auto max-w-2xl py-8">
+        <Alert className="border-red-200 bg-red-50">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  if (!profileData) {
+    return null;
+  }
+
+  const isApproved = profileData.status === "active";
+  const getDestinationName = (destinationId) => {
+    const destination = destinations.find((d) => d.id === destinationId);
+    return destination ? destination.name : "Unknown Location";
+  };
+
   return (
-    <div className="container px-4 max-w-4xl mx-auto">
-      {/* Page Header */}
-      <div className="bg-amber-700 p-6 rounded-lg mb-6">
+    <div className="container mx-auto max-w-4xl py-6 px-4">
+      {/* Header */}
+      <div className="bg-amber-600 text-white p-6 rounded-lg mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">Hotel Profile</h1>
+            <h1 className="text-2xl font-bold">Hotel Profile</h1>
             <p className="text-amber-100">Manage your hotel information</p>
           </div>
-          {isApproved && (
-            <div className="flex items-center gap-3">
-              <span className="text-amber-100 text-sm">Status:</span>
-              <Badge 
-                className={`${
-                  isAvailable 
-                    ? 'bg-green-100 text-green-700' 
-                    : 'bg-red-100 text-red-700'
-                } border-0`}
-              >
-                {isAvailable ? 'Available' : 'Unavailable'}
+          <div className="flex items-center gap-4">
+            {isApproved && (
+              <Badge className="bg-green-100 text-green-800 border-0">
+                <CheckCircle className="h-4 w-4 mr-1" />
+                Verified
               </Badge>
-              <Button
-                onClick={toggleAvailability}
-                disabled={isSubmitting}
-                variant="outline"
-                size="sm"
-                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-              >
-                {isSubmitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  isAvailable ? 'Make Unavailable' : 'Make Available'
-                )}
-              </Button>
-            </div>
-          )}
+            )}
+            {isApproved && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm">Available:</span>
+                <Switch
+                  checked={profileData.available || false}
+                  onCheckedChange={handleAvailabilityToggle}
+                  disabled={isSubmitting}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Availability Alert */}
-      {!isAvailable && isApproved && (
+      {isApproved && !profileData.available && (
         <Alert className="border-amber-200 bg-amber-50 mb-6">
           <AlertCircle className="h-4 w-4 text-amber-600" />
-          <AlertTitle className="text-amber-800">Hotel Currently Unavailable</AlertTitle>
+          <AlertTitle className="text-amber-800">Hotel Unavailable</AlertTitle>
           <AlertDescription className="text-amber-700">
-            Your hotel is currently marked as unavailable for new bookings. Tourists cannot book rooms until you mark it as available again.
+            Your hotel is currently marked as unavailable. Tourists cannot book
+            rooms until you mark it as available.
           </AlertDescription>
         </Alert>
       )}
 
       {/* Profile Form */}
-      <form onSubmit={handleSubmit}>
-        <Card className="shadow-md">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <Hotel className="h-6 w-6 text-amber-700" />
-              <div>
-                <CardTitle className="text-xl">Hotel Information</CardTitle>
-                <CardDescription>Update your hotel details and amenities</CardDescription>
-              </div>
-              {isApproved && (
-                <Badge className="bg-green-100 text-green-700 border-0 ml-auto">
-                  <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                  Verified
-                </Badge>
-              )}
-            </div>
-          </CardHeader>
-          
-          <CardContent className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Hotel className="h-5 w-5 mr-2" />
+            Hotel Information
+          </CardTitle>
+          <CardDescription>
+            Update your hotel details and pricing
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label htmlFor="hotelName" className="text-sm font-medium text-gray-700">Hotel Name *</label>
+                <label htmlFor="name" className="text-sm font-medium">
+                  Hotel Name *
+                </label>
                 <Input
-                  id="hotelName"
-                  name="hotelName"
-                  defaultValue={hotelName}
-                  placeholder="The Grand Hotel"
-                  className="border-gray-300 focus:border-amber-600"
+                  id="name"
+                  name="name"
+                  defaultValue={profileData.name || ""}
+                  placeholder="Enter hotel name"
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="hotelDestinationId" className="text-sm font-medium text-gray-700">Destination *</label>
+                <label htmlFor="location" className="text-sm font-medium">
+                  Location *
+                </label>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 z-10" />
-                  <Select
-                    value={hotelDestinationId}
-                    onValueChange={(value) => {
-                      // Update the form input value
-                      const form = document.querySelector('form');
-                      if (form) {
-                        const input = form.querySelector('input[name="hotelDestinationId"]');
-                        if (input) input.value = value;
-                      }
-                    }}
-                    disabled={isLoadingDestinations}
-                  >
-                    <SelectTrigger className="pl-10 border-gray-300 focus:border-amber-600">
-                      <SelectValue placeholder={isLoadingDestinations ? "Loading destinations..." : "Select destination"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {destinations.map((destination) => (
-                        <SelectItem key={destination.id} value={destination.id.toString()}>
-                          {destination.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <input
-                    type="hidden"
-                    name="hotelDestinationId"
-                    defaultValue={hotelDestinationId}
+                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="location"
+                    name="location"
+                    defaultValue={
+                      profileData.location ||
+                      getDestinationName(profileData.destination_id)
+                    }
+                    placeholder="Hotel location"
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="capacity" className="text-sm font-medium">
+                  Room Capacity *
+                </label>
+                <div className="relative">
+                  <Users className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="capacity"
+                    name="capacity"
+                    type="number"
+                    min="1"
+                    defaultValue={profileData.capacity || ""}
+                    placeholder="Number of rooms"
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor="base_price_per_night"
+                  className="text-sm font-medium"
+                >
+                  Price per Night (TZS) *
+                </label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="base_price_per_night"
+                    name="base_price_per_night"
+                    type="number"
+                    min="0"
+                    step="1000"
+                    defaultValue={profileData.base_price_per_night || ""}
+                    placeholder="240000"
+                    className="pl-10"
+                    required
                   />
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label htmlFor="hotelCapacity" className="text-sm font-medium text-gray-700">Room Capacity *</label>
-                <Input
-                  id="hotelCapacity"
-                  name="hotelCapacity"
-                  type="number"
-                  min="1"
-                  defaultValue={hotelCapacity}
-                  placeholder="Number of rooms"
-                  className="border-gray-300 focus:border-amber-600"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="accommodationCosts" className="text-sm font-medium text-gray-700">Price Per Night (TZS) *</label>
-                <Input
-                  id="accommodationCosts"
-                  name="accommodationCosts"
-                  type="number"
-                  min="0"
-                  step="1000"
-                  defaultValue={accommodationCosts}
-                  placeholder="240000"
-                  className="border-gray-300 focus:border-amber-600"
-                  required
-                />
-              </div>
-            </div>
-
             <div className="space-y-2">
-              <label htmlFor="hotelDescription" className="text-sm font-medium text-gray-700">Hotel Description *</label>
-              <Textarea
-                id="hotelDescription"
-                name="hotelDescription"
-                defaultValue={hotelDescription}
-                placeholder="Describe your hotel, its amenities and unique features..."
-                className="min-h-[120px] border-gray-300 focus:border-amber-600"
+              <label htmlFor="description" className="text-sm font-medium">
+                Hotel Description *
+              </label>
+              <textarea
+                id="description"
+                name="description"
+                defaultValue={profileData.description || ""}
+                placeholder="Describe your hotel, amenities, and unique features..."
+                className="w-full min-h-[120px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                 required
               />
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="hotelImages" className="text-sm font-medium text-gray-700">Hotel Images</label>
-              <FileUploader
-                onChange={handleFileChange}
-                maxFiles={5}
-                acceptedFileTypes="image/*"
-                value={hotelImages || []}
-              />
-              <p className="text-sm text-gray-500">Upload high-quality images of your hotel. Maximum 5 images.</p>
+            {profileData.images && profileData.images.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Hotel Images</label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {profileData.images.map((image, index) => (
+                    <div key={index} className="relative">
+                      <img
+                        src={image}
+                        alt={`Hotel image ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-lg border"
+                        onError={(e) => {
+                          e.target.src = "/placeholder-image.png";
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end pt-4 border-t">
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="bg-amber-600 hover:bg-amber-700"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Changes
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Hotel Stats */}
+      {isApproved && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Hotel Statistics</CardTitle>
+            <CardDescription>Overview of your hotel status</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="text-center p-4 bg-amber-50 rounded-lg">
+                <div className="text-2xl font-bold text-amber-600">
+                  {profileData.capacity || 0}
+                </div>
+                <div className="text-sm text-amber-600">Total Rooms</div>
+              </div>
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">
+                  {profileData.base_price_per_night
+                    ? `TZS ${parseInt(profileData.base_price_per_night).toLocaleString()}`
+                    : "Not set"}
+                </div>
+                <div className="text-sm text-green-600">Price per Night</div>
+              </div>
+              <div className="text-center p-4 bg-purple-50 rounded-lg">
+                <div className="text-2xl font-bold text-purple-600">
+                  {profileData.available ? "Available" : "Unavailable"}
+                </div>
+                <div className="text-sm text-purple-600">Current Status</div>
+              </div>
             </div>
           </CardContent>
-          
-          <CardFooter className="bg-gray-50 border-t">
-            <Button 
-              type="submit" 
-              className="bg-amber-700 hover:bg-amber-800 text-white ml-auto" 
-              disabled={isSubmitting || isUploading}
-            >
-              {(isSubmitting || isUploading) ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {isUploading ? "Uploading..." : "Saving..."}
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Changes
-                </>
-              )}
-            </Button>
-          </CardFooter>
         </Card>
-      </form>
+      )}
     </div>
-  )
+  );
 }
