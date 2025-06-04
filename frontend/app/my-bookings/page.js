@@ -140,8 +140,9 @@ export default function MyBookings() {
       // Handle activity sessions first (doesn't need assignment)
       if (item.sessions && item.sessions > 1) {
         return (
-          <div className="text-xs text-gray-500 mt-1">
-            {item.sessions} sessions
+          <div className="text-sm text-gray-600 flex items-center gap-2">
+            <span className="font-medium text-gray-700">Sessions:</span>
+            <span>{item.sessions}</span>
           </div>
         );
       }
@@ -156,25 +157,40 @@ export default function MyBookings() {
           if (item.item_type === "hotel") {
             if (details.roomNumber && details.roomType) {
               return (
-                <div className="text-xs text-gray-500 mt-1 space-y-0.5">
-                  <div>Room: {details.roomNumber}</div>
-                  <div>Type: {details.roomType}</div>
-                  {item.provider_email && (
-                    <div className="text-blue-600 font-medium">
-                      📧 {item.provider_email}
+                <div className="text-sm text-gray-600 space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-gray-700">Room:</span>
+                      <span>{details.roomNumber}</span>
                     </div>
-                  )}
-                  {item.provider_phone && (
-                    <div className="text-blue-600 font-medium">
-                      📞 {item.provider_phone}
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-gray-700">Type:</span>
+                      <span>{details.roomType}</span>
+                    </div>
+                  </div>
+                  {(item.provider_email || item.provider_phone) && (
+                    <div className="flex flex-wrap gap-4 pt-1">
+                      {item.provider_email && (
+                        <div className="flex items-center gap-2 text-blue-600 font-medium">
+                          <span>📧</span>
+                          <span>{item.provider_email}</span>
+                        </div>
+                      )}
+                      {item.provider_phone && (
+                        <div className="flex items-center gap-2 text-blue-600 font-medium">
+                          <span>📞</span>
+                          <span>{item.provider_phone}</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               );
             } else {
               return (
-                <div className="text-xs text-amber-600 mt-1 italic">
-                  ⏳ Waiting for room assignment
+                <div className="text-sm text-amber-600 italic flex items-center gap-2">
+                  <span>⏳</span>
+                  <span>Waiting for room assignment</span>
                 </div>
               );
             }
@@ -183,8 +199,8 @@ export default function MyBookings() {
           if (item.item_type === "transport") {
             if (details.ticket_pdf_url) {
               return (
-                <div className="text-xs text-gray-500 mt-1 space-y-0.5">
-                  <div className="flex items-center gap-2">
+                <div className="text-sm text-gray-600 space-y-3">
+                  <div className="flex items-center gap-3">
                     <span>🎫</span>
                     <a 
                       href={details.ticket_pdf_url} 
@@ -194,26 +210,35 @@ export default function MyBookings() {
                     >
                       Download Ticket PDF
                     </a>
+                    {details.assigned_at && (
+                      <span className="text-gray-500 text-sm">
+                        • Assigned: {formatDate(details.assigned_at)}
+                      </span>
+                    )}
                   </div>
-                  {details.assigned_at && (
-                    <div>Assigned: {formatDate(details.assigned_at)}</div>
-                  )}
-                  {item.provider_email && (
-                    <div className="text-green-600 font-medium">
-                      📧 {item.provider_email}
-                    </div>
-                  )}
-                  {item.provider_phone && (
-                    <div className="text-green-600 font-medium">
-                      📞 {item.provider_phone}
+                  {(item.provider_email || item.provider_phone) && (
+                    <div className="flex flex-wrap gap-4">
+                      {item.provider_email && (
+                        <div className="flex items-center gap-2 text-green-600 font-medium">
+                          <span>📧</span>
+                          <span>{item.provider_email}</span>
+                        </div>
+                      )}
+                      {item.provider_phone && (
+                        <div className="flex items-center gap-2 text-green-600 font-medium">
+                          <span>📞</span>
+                          <span>{item.provider_phone}</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               );
             } else {
               return (
-                <div className="text-xs text-amber-600 mt-1 italic">
-                  ⏳ Waiting for transport assignment
+                <div className="text-sm text-amber-600 italic flex items-center gap-2">
+                  <span>⏳</span>
+                  <span>Waiting for transport assignment</span>
                 </div>
               );
             }
@@ -222,27 +247,39 @@ export default function MyBookings() {
           if (item.item_type === "tour_guide") {
             if (details.guide_name) {
               return (
-                <div className="text-xs text-gray-500 mt-1 space-y-0.5">
-                  <div>Guide: {details.guide_name}</div>
-                  {details.assigned_at && (
-                    <div>Assigned: {formatDate(details.assigned_at)}</div>
-                  )}
-                  {item.provider_email && (
-                    <div className="text-purple-600 font-medium">
-                      📧 {item.provider_email}
-                    </div>
-                  )}
-                  {item.provider_phone && (
-                    <div className="text-purple-600 font-medium">
-                      📞 {item.provider_phone}
+                <div className="text-sm text-gray-600 space-y-2">
+                  <div className="flex items-center gap-3">
+                    <span className="font-medium text-gray-700">Guide:</span>
+                    <span className="font-medium">{details.guide_name}</span>
+                    {details.assigned_at && (
+                      <span className="text-gray-500 text-sm">
+                        • Assigned: {formatDate(details.assigned_at)}
+                      </span>
+                    )}
+                  </div>
+                  {(item.provider_email || item.provider_phone) && (
+                    <div className="flex flex-wrap gap-4">
+                      {item.provider_email && (
+                        <div className="flex items-center gap-2 text-purple-600 font-medium">
+                          <span>📧</span>
+                          <span>{item.provider_email}</span>
+                        </div>
+                      )}
+                      {item.provider_phone && (
+                        <div className="flex items-center gap-2 text-purple-600 font-medium">
+                          <span>📞</span>
+                          <span>{item.provider_phone}</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               );
             } else {
               return (
-                <div className="text-xs text-amber-600 mt-1 italic">
-                  ⏳ Waiting for guide assignment
+                <div className="text-sm text-amber-600 italic flex items-center gap-2">
+                  <span>⏳</span>
+                  <span>Waiting for guide assignment</span>
                 </div>
               );
             }
@@ -250,7 +287,7 @@ export default function MyBookings() {
 
           if (item.item_type === "placeholder" && details.message) {
             return (
-              <div className="text-xs text-gray-500 mt-1">
+              <div className="text-sm text-gray-600">
                 {details.message}
               </div>
             );
@@ -263,24 +300,27 @@ export default function MyBookings() {
       // Show pending status for items without details
       if (item.item_type === "hotel") {
         return (
-          <div className="text-xs text-amber-600 mt-1 italic">
-            ⏳ Waiting for room assignment
+          <div className="text-sm text-amber-600 italic flex items-center gap-2">
+            <span>⏳</span>
+            <span>Waiting for room assignment</span>
           </div>
         );
       }
 
       if (item.item_type === "transport") {
         return (
-          <div className="text-xs text-amber-600 mt-1 italic">
-            ⏳ Waiting for transport assignment
+          <div className="text-sm text-amber-600 italic flex items-center gap-2">
+            <span>⏳</span>
+            <span>Waiting for transport assignment</span>
           </div>
         );
       }
 
       if (item.item_type === "tour_guide") {
         return (
-          <div className="text-xs text-amber-600 mt-1 italic">
-            ⏳ Waiting for guide assignment
+          <div className="text-sm text-amber-600 italic flex items-center gap-2">
+            <span>⏳</span>
+            <span>Waiting for guide assignment</span>
           </div>
         );
       }
@@ -291,13 +331,13 @@ export default function MyBookings() {
     return (
       <div
         key={`${item.item_type}-${item.id}`}
-        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+        className="p-4 bg-gray-50 rounded-lg border"
       >
-        <div className="flex items-center gap-3 flex-1">
-          <div className="flex-shrink-0">{getItemIcon(item.item_type)}</div>
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0 mt-1">{getItemIcon(item.item_type)}</div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h4 className="font-medium text-sm text-gray-900 truncate">
+            <div className="flex items-center gap-3 mb-2">
+              <h4 className="font-medium text-base text-gray-900">
                 {item.item_name || item.item_type.replace("_", " ")}
               </h4>
               <Badge
@@ -307,13 +347,10 @@ export default function MyBookings() {
                 {item.item_type.replace("_", " ")}
               </Badge>
             </div>
-            {getItemDetails(item)}
+            <div className="mt-2">
+              {getItemDetails(item)}
+            </div>
           </div>
-        </div>
-        <div className="text-right flex-shrink-0 ml-3">
-          <p className="font-semibold text-sm text-gray-900">
-            {formatTZS(item.cost)}
-          </p>
         </div>
       </div>
     );

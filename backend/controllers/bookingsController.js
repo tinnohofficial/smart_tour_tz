@@ -970,7 +970,7 @@ exports.getEligibleGuidesForBooking = async (req, res) => {
 exports.processBookingPayment = async (req, res) => {
   try {
     const { bookingId } = req.params;
-    const { paymentMethod } = req.body;
+    const { paymentMethod, amount } = req.body;
     const userId = req.user.id;
 
     // Start a transaction to ensure database consistency
@@ -1068,21 +1068,24 @@ exports.processBookingPayment = async (req, res) => {
           }
 
           const balance = parseFloat(balanceResult[0].balance);
+          
+          // Use the amount passed from frontend (discounted price) if available, otherwise use full cost
+          const paymentAmount = amount || booking.total_cost;
 
-          if (balance < booking.total_cost) {
+          if (balance < paymentAmount) {
             await connection.rollback();
             connection.release();
             return res.status(400).json({
               message: "Insufficient funds",
               balance,
-              required: booking.total_cost,
+              required: paymentAmount,
             });
           }
 
           // Update balance
           await connection.query(
             "UPDATE users SET balance = balance - ? WHERE id = ?",
-            [booking.total_cost, userId],
+            [paymentAmount, userId],
           );
           
           paymentSuccess = true;
@@ -1112,7 +1115,7 @@ exports.processBookingPayment = async (req, res) => {
         const [paymentResult] = await connection.query(paymentQuery, [
           bookingId,
           userId,
-          booking.total_cost,
+          paymentMethod === "savings" && amount ? amount : booking.total_cost,
           paymentMethod,
           paymentReference,
           "successful",

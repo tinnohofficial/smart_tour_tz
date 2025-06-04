@@ -603,7 +603,8 @@ exports.checkoutCart = async (req, res) => {
       }
 
       let paymentReference = '';
-      const paymentAmount = cart.total_cost;
+      // Apply 5% discount for savings payments
+      const paymentAmount = paymentMethod === 'savings' ? cart.total_cost * 0.95 : cart.total_cost;
 
       // Process payment based on method
       if (paymentMethod === 'savings') {

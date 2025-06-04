@@ -62,10 +62,20 @@ export const useBookingsStore = create((set, get) => ({
     return apiUtils.withLoadingAndError(
       async () => {
         // First upload the PDF file
+        console.log('Starting ticket upload for item:', itemId);
+        console.log('File details:', {
+          name: ticketFile?.name,
+          size: ticketFile?.size,
+          type: ticketFile?.type
+        });
+        
         const formData = new FormData();
         formData.append('file', ticketFile);
         
-        const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/upload`, {
+        const uploadUrl = `${process.env.NEXT_PUBLIC_API_URL}/upload`;
+        console.log('Upload URL:', uploadUrl);
+        
+        const uploadResponse = await fetch(uploadUrl, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -73,8 +83,13 @@ export const useBookingsStore = create((set, get) => ({
           body: formData
         });
         
+        console.log('Upload response status:', uploadResponse.status);
+        console.log('Upload response ok:', uploadResponse.ok);
+        
         if (!uploadResponse.ok) {
-          throw new Error('Failed to upload ticket PDF');
+          const errorText = await uploadResponse.text().catch(() => 'No error details');
+          console.error('Upload failed with status:', uploadResponse.status, 'Error:', errorText);
+          throw new Error(`Failed to upload ticket PDF: ${uploadResponse.status} - ${errorText}`);
         }
         
         const uploadResult = await uploadResponse.json();

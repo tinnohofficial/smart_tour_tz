@@ -261,6 +261,10 @@ const CartComponent = ({ isProcessing }) => {
         paymentData.stripePaymentMethodId = paymentResult.paymentMethodId
       }
 
+      if (paymentResult.amount) {
+        paymentData.amount = paymentResult.amount
+      }
+
       await checkoutCart(paymentData)
       setIsPaymentDialogOpen(false)
       

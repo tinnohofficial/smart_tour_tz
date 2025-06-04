@@ -98,7 +98,7 @@ export default function TravelAgentBookings() {
           <div className="flex-1 min-w-0">
             <Badge variant="secondary" className="mb-1 text-xs">Booking #{booking.id}</Badge>
             <CardTitle className="text-base sm:text-lg font-semibold text-gray-800 truncate">
-              {booking.origin} to {booking.destination}
+              {booking.origin_name} to {booking.destination_name}
             </CardTitle>
           </div>
           <Badge variant={isCompleted ? "default" : "outline"} className={cn(
@@ -255,7 +255,7 @@ export default function TravelAgentBookings() {
           <DialogHeader>
             <DialogTitle className="text-lg sm:text-xl font-semibold">Upload Transport Ticket</DialogTitle>
             <DialogDescription className="text-sm">
-              Upload a PDF ticket for Booking #{selectedBooking?.id} ({selectedBooking?.origin} to {selectedBooking?.destination}).
+              Upload a PDF ticket for Booking #{selectedBooking?.id} ({selectedBooking?.origin_name} to {selectedBooking?.destination_name}).
             </DialogDescription>
           </DialogHeader>
 

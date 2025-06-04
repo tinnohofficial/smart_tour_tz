@@ -60,10 +60,6 @@ export default function TravelAgentProfile() {
     fetchData()
   }, [])
 
-  useEffect(() => {
-    fetchProfile()
-  }, [fetchProfile])
-
   const fetchProfile = useCallback(async () => {
     setIsLoading(true)
     try {
@@ -127,6 +123,10 @@ export default function TravelAgentProfile() {
       setIsLoading(false)
     }
   }, [router])
+
+  useEffect(() => {
+    fetchProfile()
+  }, [fetchProfile])
 
   const handleSubmit = async (e) => {
     e.preventDefault()

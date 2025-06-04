@@ -229,9 +229,13 @@ const upload = multer({
 
 exports.uploadFile = async (req, res) => {
   try {
+    console.log('Upload request received');
+    console.log('Request headers:', req.headers);
+    
     // Use multer middleware
     upload.single('file')(req, res, async (err) => {
       if (err) {
+        console.error('Multer error:', err);
         if (err instanceof multer.MulterError) {
           switch (err.code) {
             case 'LIMIT_FILE_SIZE':
@@ -263,11 +267,19 @@ exports.uploadFile = async (req, res) => {
       }
 
       if (!req.file) {
+        console.log('No file received in request');
         return res.status(400).json({ 
           message: 'No file uploaded',
           error: 'NO_FILE'
         });
       }
+
+      console.log('File received:', {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        filename: req.file.filename
+      });
 
       const originalSize = req.file.size;
       let finalFilePath = req.file.path;
@@ -360,6 +372,11 @@ exports.uploadFile = async (req, res) => {
         uploadedAt: new Date().toISOString()
       };
 
+      console.log('Upload successful:', {
+        filename: finalFilename,
+        url: fileUrl,
+        size: finalFileSize
+      });
 
       res.status(200).json(response);
     });
