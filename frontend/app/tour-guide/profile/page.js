@@ -202,8 +202,8 @@ export default function TourGuideProfile() {
             Currently Unavailable
           </AlertTitle>
           <AlertDescription className="text-amber-700">
-            You are currently marked as unavailable. Tourists cannot book tours
-            with you until you mark yourself as available.
+            You are currently marked as unavailable. Admin can not assign you
+            activity supervision unless mark yourself as available.
           </AlertDescription>
         </Alert>
       )}
@@ -383,42 +383,6 @@ export default function TourGuideProfile() {
             </CardContent>
           </Card>
         )}
-
-      {/* Guide Stats */}
-      {isApproved && (
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Guide Statistics</CardTitle>
-            <CardDescription>Overview of your guide status</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center p-4 bg-amber-50 rounded-lg">
-                <div className="text-2xl font-bold text-amber-600">
-                  {profileData.destination_id
-                    ? getDestinationName(profileData.destination_id)
-                    : "No Location"}
-                </div>
-                <div className="text-sm text-amber-600">Primary Location</div>
-              </div>
-              <div className="text-center p-4 bg-green-50 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">
-                  {profileData.activity_details
-                    ? profileData.activity_details.length
-                    : 0}
-                </div>
-                <div className="text-sm text-green-600">Activities</div>
-              </div>
-              <div className="text-center p-4 bg-purple-50 rounded-lg">
-                <div className="text-2xl font-bold text-purple-600">
-                  {profileData.available ? "Available" : "Unavailable"}
-                </div>
-                <div className="text-sm text-purple-600">Current Status</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

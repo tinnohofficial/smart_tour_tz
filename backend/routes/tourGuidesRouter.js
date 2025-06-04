@@ -43,4 +43,18 @@ router.put(
   tourGuideController.updateManagerProfile,
 );
 
+// Public route for getting available tour guides
+router.get(
+  "/available",
+  tourGuideController.getAvailableTourGuides,
+);
+
+// Admin route for getting all tour guides
+router.get(
+  "/all",
+  authenticateToken,
+  checkRole("admin"),
+  tourGuideController.getAllTourGuides,
+);
+
 module.exports = router;
