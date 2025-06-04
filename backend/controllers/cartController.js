@@ -24,6 +24,25 @@ const parseJsonFields = (items, fields) => {
 };
 
 /**
+ * Helper function to safely calculate costs
+ */
+const calculateCost = (price, multiplier = 1) => {
+  const numPrice = parseFloat(price) || 0;
+  const numMultiplier = parseInt(multiplier) || 1;
+  return Math.max(0, numPrice * numMultiplier);
+};
+
+/**
+ * Helper function to validate cost calculation
+ */
+const validateCostCalculation = (cost, itemType, itemName = '') => {
+  if (isNaN(cost) || cost < 0) {
+    throw new Error(`Invalid cost calculation for ${itemType}${itemName ? ` "${itemName}"` : ''}`);
+  }
+  return cost;
+};
+
+/**
  * Get or create active cart for user
  */
 exports.getActiveCart = async (req, res) => {
@@ -53,39 +72,98 @@ exports.getActiveCart = async (req, res) => {
 
     cart = carts[0];
 
-    // Get all bookings in this cart
-    const [bookings] = await db.query(
-      `SELECT b.*, d.name as destination_name, d.image_url
+    // Get all bookings with their items in a single optimized query
+    const [bookingResults] = await db.query(
+      `SELECT 
+         b.id as booking_id,
+         b.tourist_user_id,
+         b.tourist_full_name,
+         b.start_date,
+         b.end_date,
+         b.destination_id,
+         b.total_cost,
+         b.include_transport,
+         b.include_hotel,
+         b.include_activities,
+         b.status,
+         b.created_at,
+         d.name as destination_name,
+         d.image_url,
+         bi.id as item_id,
+         bi.item_type,
+         bi.item_details,
+         bi.sessions,
+         bi.cost as item_cost,
+         bi.provider_status,
+         CASE
+           WHEN bi.item_type = 'hotel' THEN h.name
+           WHEN bi.item_type = 'transport' THEN CONCAT(to_orig.name, ' to ', dest.name)
+           WHEN bi.item_type = 'tour_guide' THEN tg.full_name
+           WHEN bi.item_type = 'activity' THEN a.name
+           WHEN bi.item_type = 'placeholder' THEN 'Service Placeholder'
+           ELSE 'Unknown Service'
+         END as item_name
        FROM bookings b
        LEFT JOIN destinations d ON b.destination_id = d.id
+       LEFT JOIN booking_items bi ON b.id = bi.booking_id
+       LEFT JOIN hotels h ON bi.item_type = 'hotel' AND bi.id = h.id
+       LEFT JOIN transports tr ON bi.item_type = 'transport' AND bi.id = tr.id
+       LEFT JOIN transport_origins to_orig ON bi.item_type = 'transport' AND tr.origin_id = to_orig.id
+       LEFT JOIN destinations dest ON bi.item_type = 'transport' AND tr.destination_id = dest.id
+       LEFT JOIN tour_guides tg ON bi.item_type = 'tour_guide' AND bi.id = tg.user_id
+       LEFT JOIN activities a ON bi.item_type = 'activity' AND bi.id = a.id
        WHERE b.cart_id = ? AND b.status = 'in_cart'
-       ORDER BY b.id ASC`,
+       ORDER BY b.id ASC, bi.id ASC`,
       [cart.id]
     );
 
-    // For each booking, get its items
-    for (let booking of bookings) {
-      const [items] = await db.query(
-        `SELECT bi.*,
-         CASE
-           WHEN bi.item_type = 'hotel' THEN h.name
-           WHEN bi.item_type = 'transport' THEN CONCAT(to_orig.name, ' to ', d.name)
-           WHEN bi.item_type = 'tour_guide' THEN tg.full_name
-           WHEN bi.item_type = 'activity' THEN a.name
-         END as item_name
-         FROM booking_items bi
-         LEFT JOIN hotels h ON bi.item_type = 'hotel' AND bi.id = h.id
-         LEFT JOIN transports tr ON bi.item_type = 'transport' AND bi.id = tr.id
-         LEFT JOIN transport_origins to_orig ON bi.item_type = 'transport' AND tr.origin_id = to_orig.id
-         LEFT JOIN destinations d ON bi.item_type = 'transport' AND tr.destination_id = d.id
-         LEFT JOIN tour_guides tg ON bi.item_type = 'tour_guide' AND bi.id = tg.user_id
-         LEFT JOIN activities a ON bi.item_type = 'activity' AND bi.id = a.id
-         WHERE bi.booking_id = ?`,
-        [booking.id]
-      );
+    // Group booking items by booking
+    const bookingsMap = new Map();
+    
+    bookingResults.forEach(row => {
+      const bookingId = row.booking_id;
+      
+      if (!bookingsMap.has(bookingId)) {
+        bookingsMap.set(bookingId, {
+          id: bookingId,
+          tourist_user_id: row.tourist_user_id,
+          tourist_full_name: row.tourist_full_name,
+          start_date: row.start_date,
+          end_date: row.end_date,
+          destination_id: row.destination_id,
+          total_cost: row.total_cost,
+          include_transport: row.include_transport,
+          include_hotel: row.include_hotel,
+          include_activities: row.include_activities,
+          status: row.status,
+          created_at: row.created_at,
+          destination_name: row.destination_name,
+          image_url: row.image_url,
+          items: []
+        });
+      }
+      
+      // Add item if it exists (booking might have no items yet)
+      if (row.item_id !== null) {
+        const item = {
+          id: row.item_id,
+          item_type: row.item_type,
+          item_details: row.item_details,
+          sessions: row.sessions,
+          cost: row.item_cost,
+          provider_status: row.provider_status,
+          item_name: row.item_name
+        };
+        
+        bookingsMap.get(bookingId).items.push(item);
+      }
+    });
 
-      booking.items = parseJsonFields(items, ['item_details']);
-    }
+    // Convert map to array and parse JSON fields
+    const bookings = Array.from(bookingsMap.values());
+    bookings.forEach(booking => {
+      booking.items = parseJsonFields(booking.items, ['item_details']);
+    });
 
     cart.bookings = bookings;
 
@@ -115,6 +193,11 @@ exports.addToCart = async (req, res) => {
   } = req.body;
   const userId = req.user.id;
 
+  // Validate required fields
+  if (!destinationId) {
+    return res.status(400).json({ message: "Destination ID is required" });
+  }
+
   // Validate tourist full name
   if (!touristFullName || typeof touristFullName !== 'string' || touristFullName.trim().length < 2) {
     return res.status(400).json({ message: "Tourist full name is required and must be at least 2 characters long" });
@@ -127,6 +210,19 @@ exports.addToCart = async (req, res) => {
 
   if (!includeTransport && !includeHotel && !includeActivities) {
     return res.status(400).json({ message: "At least one service must be included" });
+  }
+
+  // Validate that if services are included, their IDs are provided
+  if (includeTransport && !transportId) {
+    return res.status(400).json({ message: "Transport ID is required when transport is included" });
+  }
+
+  if (includeHotel && !hotelId) {
+    return res.status(400).json({ message: "Hotel ID is required when hotel is included" });
+  }
+
+  if (includeActivities && (!activityIds || !Array.isArray(activityIds) || activityIds.length === 0)) {
+    return res.status(400).json({ message: "Activity IDs are required when activities are included" });
   }
 
   const start = new Date(startDate);
@@ -151,14 +247,15 @@ exports.addToCart = async (req, res) => {
     return res.status(400).json({ message: "Booking duration cannot exceed 30 days" });
   }
 
+  let connection;
   try {
-    const connection = await db.getConnection();
+    connection = await db.getConnection();
     await connection.beginTransaction();
 
     try {
-      // Get or create active cart
+      // Get or create active cart with row locking for concurrency
       let [carts] = await connection.query(
-        "SELECT * FROM booking_carts WHERE tourist_user_id = ? AND status = 'active'",
+        "SELECT * FROM booking_carts WHERE tourist_user_id = ? AND status = 'active' FOR UPDATE",
         [userId]
       );
 
@@ -191,11 +288,16 @@ exports.addToCart = async (req, res) => {
         }
 
         const transport = transportRows[0];
-        totalCost += parseFloat(transport.cost);
+        const transportCost = validateCostCalculation(
+          calculateCost(transport.cost), 
+          'transport', 
+          'route'
+        );
+        totalCost += transportCost;
         selectedItems.push({
           type: "transport",
           id: transport.id,
-          cost: transport.cost,
+          cost: transportCost,
         });
       }
 
@@ -214,7 +316,11 @@ exports.addToCart = async (req, res) => {
 
         const hotel = hotelRows[0];
         const nights = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-        const hotelCost = parseFloat(hotel.base_price_per_night) * Math.max(1, nights);
+        const hotelCost = validateCostCalculation(
+          calculateCost(hotel.base_price_per_night, Math.max(1, nights)),
+          'hotel',
+          hotel.name || 'accommodation'
+        );
         totalCost += hotelCost;
 
         selectedItems.push({
@@ -271,7 +377,11 @@ exports.addToCart = async (req, res) => {
 
         for (const activity of activityRows) {
           const sessions = activitySessions[activity.id] || 1;
-          const activityCost = parseFloat(activity.price) * sessions;
+          const activityCost = validateCostCalculation(
+            calculateCost(activity.price, sessions),
+            'activity',
+            activity.destination_name
+          );
           
           // Add activity cost (price * sessions)
           totalCost += activityCost;
@@ -346,7 +456,6 @@ exports.addToCart = async (req, res) => {
       );
 
       await connection.commit();
-      connection.release();
       
       res.status(201).json({
         message: "Booking added to cart successfully",
@@ -361,12 +470,15 @@ exports.addToCart = async (req, res) => {
       });
     } catch (error) {
       await connection.rollback();
-      connection.release();
       throw error;
     }
   } catch (error) {
     console.error("Error adding to cart:", error);
     res.status(500).json({ message: "Failed to add booking to cart", error: error.message });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
   }
 };
 
@@ -377,23 +489,28 @@ exports.removeFromCart = async (req, res) => {
   const { bookingId } = req.params;
   const userId = req.user.id;
 
+  if (!bookingId || isNaN(parseInt(bookingId))) {
+    return res.status(400).json({ message: "Valid booking ID is required" });
+  }
+
+  let connection;
   try {
-    const connection = await db.getConnection();
+    connection = await db.getConnection();
     await connection.beginTransaction();
 
     try {
-      // Verify the booking belongs to the user and is in cart
+      // Verify the booking belongs to the user and is in cart with row locking
       const [bookings] = await connection.query(
         `SELECT b.*, c.id as cart_id 
          FROM bookings b 
          JOIN booking_carts c ON b.cart_id = c.id
-         WHERE b.id = ? AND b.tourist_user_id = ? AND b.status = 'in_cart'`,
+         WHERE b.id = ? AND b.tourist_user_id = ? AND b.status = 'in_cart'
+         FOR UPDATE`,
         [bookingId, userId]
       );
 
       if (bookings.length === 0) {
         await connection.rollback();
-        connection.release();
         return res.status(404).json({ message: "Booking not found in cart" });
       }
 
@@ -401,7 +518,7 @@ exports.removeFromCart = async (req, res) => {
 
       // Update cart total by subtracting this booking's cost
       await connection.query(
-        "UPDATE booking_carts SET total_cost = total_cost - ? WHERE id = ?",
+        "UPDATE booking_carts SET total_cost = GREATEST(0, total_cost - ?) WHERE id = ?",
         [booking.total_cost, booking.cart_id]
       );
 
@@ -418,17 +535,19 @@ exports.removeFromCart = async (req, res) => {
       );
 
       await connection.commit();
-      connection.release();
 
       res.status(200).json({ message: "Booking removed from cart successfully" });
     } catch (error) {
       await connection.rollback();
-      connection.release();
       throw error;
     }
   } catch (error) {
     console.error("Error removing from cart:", error);
     res.status(500).json({ message: "Failed to remove booking from cart", error: error.message });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
   }
 };
 
@@ -439,20 +558,29 @@ exports.checkoutCart = async (req, res) => {
   const { paymentMethod, stripePaymentMethodId, walletSignature } = req.body;
   const userId = req.user.id;
 
+  // Validate payment method
+  const validPaymentMethods = ['savings', 'stripe', 'crypto', 'external'];
+  if (!paymentMethod || !validPaymentMethods.includes(paymentMethod)) {
+    return res.status(400).json({ 
+      message: "Valid payment method is required", 
+      validMethods: validPaymentMethods 
+    });
+  }
+
+  let connection;
   try {
-    const connection = await db.getConnection();
+    connection = await db.getConnection();
     await connection.beginTransaction();
 
     try {
-      // Get active cart with bookings
+      // Get active cart with bookings with row locking
       const [carts] = await connection.query(
-        "SELECT * FROM booking_carts WHERE tourist_user_id = ? AND status = 'active'",
+        "SELECT * FROM booking_carts WHERE tourist_user_id = ? AND status = 'active' FOR UPDATE",
         [userId]
       );
 
       if (carts.length === 0) {
         await connection.rollback();
-        connection.release();
         return res.status(404).json({ message: "No active cart found" });
       }
 
@@ -460,8 +588,7 @@ exports.checkoutCart = async (req, res) => {
 
       if (cart.total_cost <= 0) {
         await connection.rollback();
-        connection.release();
-        return res.status(400).json({ message: "Cart is empty" });
+        return res.status(400).json({ message: "Cart is empty or has no total amount" });
       }
 
       // Get user's balance
@@ -543,20 +670,19 @@ exports.checkoutCart = async (req, res) => {
         [cart.id, userId, paymentAmount, paymentMethod, paymentReference]
       );
 
-      // Update cart status
+      // Update cart status to completed
       await connection.query(
-        "UPDATE booking_carts SET status = 'confirmed' WHERE id = ?",
+        "UPDATE booking_carts SET status = 'completed' WHERE id = ?",
         [cart.id]
       );
 
-      // Update all bookings in cart
+      // Update all bookings in cart to confirmed
       await connection.query(
         "UPDATE bookings SET status = 'confirmed' WHERE cart_id = ? AND status = 'in_cart'",
         [cart.id]
       );
 
       await connection.commit();
-      connection.release();
 
       res.status(200).json({
         message: "Cart checkout successful",
@@ -568,12 +694,15 @@ exports.checkoutCart = async (req, res) => {
 
     } catch (error) {
       await connection.rollback();
-      connection.release();
       throw error;
     }
   } catch (error) {
     console.error("Error during cart checkout:", error);
     res.status(500).json({ message: "Cart checkout failed", error: error.message });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
   }
 };
 
@@ -583,20 +712,20 @@ exports.checkoutCart = async (req, res) => {
 exports.clearCart = async (req, res) => {
   const userId = req.user.id;
 
+  let connection;
   try {
-    const connection = await db.getConnection();
+    connection = await db.getConnection();
     await connection.beginTransaction();
 
     try {
-      // Get active cart
+      // Get active cart with row locking
       const [carts] = await connection.query(
-        "SELECT * FROM booking_carts WHERE tourist_user_id = ? AND status = 'active'",
+        "SELECT * FROM booking_carts WHERE tourist_user_id = ? AND status = 'active' FOR UPDATE",
         [userId]
       );
 
       if (carts.length === 0) {
         await connection.rollback();
-        connection.release();
         return res.status(404).json({ message: "No active cart found" });
       }
 
@@ -608,19 +737,23 @@ exports.clearCart = async (req, res) => {
         [cartId]
       );
 
-      // Delete booking items for all bookings
-      for (const booking of bookings) {
+      // Use a more efficient bulk delete approach
+      if (bookings.length > 0) {
+        const bookingIds = bookings.map(b => b.id);
+        const placeholders = bookingIds.map(() => '?').join(',');
+        
+        // Delete booking items for all bookings
         await connection.query(
-          "DELETE FROM booking_items WHERE booking_id = ?",
-          [booking.id]
+          `DELETE FROM booking_items WHERE booking_id IN (${placeholders})`,
+          bookingIds
+        );
+
+        // Delete all bookings in cart
+        await connection.query(
+          `DELETE FROM bookings WHERE cart_id = ? AND status = 'in_cart'`,
+          [cartId]
         );
       }
-
-      // Delete all bookings in cart
-      await connection.query(
-        "DELETE FROM bookings WHERE cart_id = ? AND status = 'in_cart'",
-        [cartId]
-      );
 
       // Reset cart total
       await connection.query(
@@ -629,16 +762,18 @@ exports.clearCart = async (req, res) => {
       );
 
       await connection.commit();
-      connection.release();
 
       res.status(200).json({ message: "Cart cleared successfully" });
     } catch (error) {
       await connection.rollback();
-      connection.release();
       throw error;
     }
   } catch (error) {
     console.error("Error clearing cart:", error);
     res.status(500).json({ message: "Failed to clear cart", error: error.message });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
   }
 };

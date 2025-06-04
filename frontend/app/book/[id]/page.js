@@ -420,8 +420,8 @@ function BookLocation({ params }) {
       total += parseFloat(hotelPrice) * nights;
     }
 
-    // Add selected activities cost only if not skipped, multiplied by sessions
-    if (!skipOptions.skipActivities && selectedActivitiesObj.length > 0) {
+    // Add selected activities cost, multiplied by sessions
+    if (selectedActivitiesObj.length > 0) {
       selectedActivitiesObj.forEach((activity) => {
         const activityPrice = activity.price ? parseFloat(activity.price) : 0;
         const sessions = activitySessions[activity.id] || 1;
@@ -1396,41 +1396,17 @@ function BookLocation({ params }) {
           {step === 4 && (
             <div className="space-y-8">
               <div>
-                <div className="flex items-center justify-between mb-6">
+                <div className="mb-6">
                   <h3 className="text-xl font-semibold flex items-center gap-2">
                     <MapPin className="h-5 w-5 text-amber-600" /> Select
                     Activities
                   </h3>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() =>
-                      setSkipOption(
-                        "skipActivities",
-                        !skipOptions.skipActivities,
-                      )
-                    }
-                    className={`${skipOptions.skipActivities ? "bg-amber-100 border-amber-300" : ""}`}
-                  >
-                    {skipOptions.skipActivities
-                      ? "Include Activities"
-                      : "Skip Activities"}
-                  </Button>
+                  <p className="text-sm text-gray-600 mt-2">
+                    Choose at least one activity to enjoy during your visit. A tour guide will be assigned to supervise your selected activities.
+                  </p>
                 </div>
 
-                {skipOptions.skipActivities && (
-                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg mb-6">
-                    <p className="text-amber-800 font-medium">
-                      Activities skipped
-                    </p>
-                    <p className="text-amber-700 text-sm">
-                      You can explore {destination?.name} on your own or book
-                      activities separately.
-                    </p>
-                  </div>
-                )}
 
-                {!skipOptions.skipActivities && (
                   <div className="space-y-6">
                     <div>
                       <Label
@@ -1557,8 +1533,7 @@ function BookLocation({ params }) {
                         </Alert>
                       )}
                     </div>
-                  </div>
-                )}
+                </div>
 
                 <div className="flex justify-between">
                   <Button
@@ -1574,8 +1549,7 @@ function BookLocation({ params }) {
                     onClick={handleNextStep}
                     className="h-12 px-8 text-white bg-amber-700 hover:bg-amber-800"
                     disabled={
-                      !skipOptions.skipActivities &&
-                      selectedActivities.length > 0 &&
+                      selectedActivities.length === 0 ||
                       selectedActivities.some((actId) => {
                         const sessions = activitySessions[actId] || 1;
                         return sessions < 1;
@@ -1958,8 +1932,7 @@ function BookLocation({ params }) {
                                     includeTransport:
                                       !skipOptions.skipTransport,
                                     includeHotel: !skipOptions.skipHotel,
-                                    includeActivities:
-                                      !skipOptions.skipActivities,
+                                    includeActivities: true,
                                     transportId: selectedTransportRoute || null,
                                     hotelId: selectedHotel || null,
                                     activityIds: selectedActivities || [],

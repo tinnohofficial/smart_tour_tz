@@ -1,57 +1,65 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import CartComponent from "../../components/CartComponent";
-import { useCartStore } from "../store/cartStore";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
 export default function CartPage() {
   const router = useRouter();
-  const { checkoutCart, getCartTotal } = useCartStore();
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Check if user is logged in and is a tourist
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("userData");
+    const checkAuth = () => {
+      const token = localStorage.getItem("token");
+      const userData = localStorage.getItem("userData");
 
-    if (!token || !userData) {
-      router.push("/login");
-      return;
-    }
-
-    const user = JSON.parse(userData);
-    if (user.role !== "tourist") {
-      router.push("/login");
-      return;
-    }
-  }, [router]);
-
-  const handleCheckout = async (paymentMethod) => {
-    setIsProcessing(true);
-
-    try {
-      const paymentData = {
-        paymentMethod,
-      };
-
-      // For crypto payments, you might want to add wallet signature
-      if (paymentMethod === "crypto") {
-        // Add wallet integration here
-        paymentData.walletSignature = "wallet_signature_here";
+      if (!token || !userData) {
+        toast.error("Please log in to access your cart");
+        router.push("/login");
+        return;
       }
 
-      await checkoutCart(paymentData);
+      try {
+        const user = JSON.parse(userData);
+        if (user.role !== "tourist") {
+          toast.error("Cart is only available for tourists");
+          router.push("/login");
+          return;
+        }
+        
+        setIsAuthorized(true);
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+        localStorage.removeItem("userData");
+        router.push("/login");
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-      // Redirect to bookings page on success
-      router.push("/my-bookings");
-    } catch (error) {
-      // Error is handled in store
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+    checkAuth();
+  }, [router]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return null; // Will redirect to login
+  }
+
+
 
 
 
@@ -67,10 +75,7 @@ export default function CartPage() {
           </p>
         </div>
 
-        <CartComponent
-          onCheckout={handleCheckout}
-          isProcessing={isProcessing}
-        />
+        <CartComponent />
       </div>
     </div>
   );

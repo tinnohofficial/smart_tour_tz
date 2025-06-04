@@ -302,12 +302,12 @@ exports.getUserBookings = async (req, res) => {
   const userId = req.user.id;
 
   try {
-    // Get all bookings for this user with destination information
+    // Get all paid bookings for this user (exclude 'in_cart' status)
     const [bookings] = await db.query(
       `SELECT b.*, d.name as destination_name, d.description as destination_description, d.image_url as destination_image
        FROM bookings b
        LEFT JOIN destinations d ON b.destination_id = d.id
-       WHERE b.tourist_user_id = ?
+       WHERE b.tourist_user_id = ? AND b.status != 'in_cart'
        ORDER BY b.id DESC`,
       [userId],
     );
@@ -654,7 +654,7 @@ exports.getTransportBookingsNeedingAction = async (req, res) => {
  */
 exports.assignTransportTicket = async (req, res) => {
   const { itemId } = req.params;
-  const { ticketDetails } = req.body;
+  const { ticketPdfUrl } = req.body;
   const userId = req.user.id;
   
   try {
@@ -681,41 +681,14 @@ exports.assignTransportTicket = async (req, res) => {
       });
     }
     
-    // Validate departure and arrival dates if provided in ticketDetails
-    if (ticketDetails.departure_date) {
-      const departureDate = new Date(ticketDetails.departure_date);
-      const currentDate = new Date();
-      
-      // Remove time component from current date for fair comparison
-      currentDate.setHours(0, 0, 0, 0);
-
-      // Validate date format
-      if (isNaN(departureDate.getTime())) {
-        return res.status(400).json({ message: "Invalid date format for departure date" });
-      }
-
-      // Check if departure date is in the past
-      if (departureDate < currentDate) {
-        return res.status(400).json({ message: "Departure date cannot be in the past" });
-      }
-      
-      // If both departure and arrival dates are provided, validate their sequence
-      if (ticketDetails.arrival_date) {
-        const arrivalDate = new Date(ticketDetails.arrival_date);
-        
-        if (isNaN(arrivalDate.getTime())) {
-          return res.status(400).json({ message: "Invalid date format for arrival date" });
-        }
-        
-        if (arrivalDate <= departureDate) {
-          return res.status(400).json({ message: "Arrival date must be after departure date" });
-        }
-      }
+    // Validate that PDF URL is provided
+    if (!ticketPdfUrl) {
+      return res.status(400).json({ message: "Ticket PDF is required" });
     }
     
-    // Prepare enhanced ticket details with assignment flag
-    const enhancedTicketDetails = {
-      ...ticketDetails,
+    // Prepare ticket details with PDF URL
+    const ticketDetails = {
+      ticket_pdf_url: ticketPdfUrl,
       ticket_assigned: true,
       assigned_at: new Date().toISOString(),
       assigned_by: "travel_agent"
@@ -727,7 +700,7 @@ exports.assignTransportTicket = async (req, res) => {
        SET provider_status = 'confirmed', 
            item_details = ? 
        WHERE id = ?`,
-      [JSON.stringify(enhancedTicketDetails), itemId]
+      [JSON.stringify(ticketDetails), itemId]
     );
     
     // Check if all booking items are now confirmed

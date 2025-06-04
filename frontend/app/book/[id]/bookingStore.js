@@ -29,8 +29,7 @@ export const useBookingStore = create((set, get) => ({
   activitySessions: {}, // Store number of sessions for each activity
   skipOptions: {    // Skip functionality for services
     skipTransport: false,
-    skipHotel: false,
-    skipActivities: false
+    skipHotel: false
   },
   errors: {},
   agreedToTerms: false,
@@ -203,11 +202,11 @@ export const useBookingStore = create((set, get) => ({
       endDate,
       includeTransport: !skipOptions.skipTransport,
       includeHotel: !skipOptions.skipHotel,
-      includeActivities: !skipOptions.skipActivities,
+      includeActivities: true,
       transportId: !skipOptions.skipTransport ? selectedTransportRoute : null,
       hotelId: !skipOptions.skipHotel ? selectedHotel : null,
-      activityIds: !skipOptions.skipActivities ? selectedActivities : [],
-      activitySessions: !skipOptions.skipActivities ? activitySessions : {}
+      activityIds: selectedActivities,
+      activitySessions: activitySessions
     };
 
     try {
@@ -291,8 +290,7 @@ export const useBookingStore = create((set, get) => ({
     activitySessions: {},
     skipOptions: {
       skipTransport: false,
-      skipHotel: false,
-      skipActivities: false
+      skipHotel: false
     },
     errors: {},
     agreedToTerms: false,
@@ -332,16 +330,14 @@ export const useBookingStore = create((set, get) => ({
         newErrors.hotel = "Please select a hotel or skip accommodation";
       }
     } else if (step === 4) {
-      // Step 4: Validate activity selection and scheduling if activities are not skipped
-      if (!skipOptions.skipActivities) {
-        if (selectedActivities.length === 0) {
-          newErrors.activities = "Please select at least one activity or skip activities";
-        } else {
-          // Validate that all selected activities have sessions specified
-          const missingSessions = selectedActivities.filter(activityId => !activitySessions[activityId] || activitySessions[activityId] < 1);
-          if (missingSessions.length > 0) {
-            newErrors.activitySessions = "Please specify number of sessions for all selected activities";
-          }
+      // Step 4: Validate activity selection and scheduling (activities are mandatory)
+      if (selectedActivities.length === 0) {
+        newErrors.activities = "Please select at least one activity";
+      } else {
+        // Validate that all selected activities have sessions specified
+        const missingSessions = selectedActivities.filter(activityId => !activitySessions[activityId] || activitySessions[activityId] < 1);
+        if (missingSessions.length > 0) {
+          newErrors.activitySessions = "Please specify number of sessions for all selected activities";
         }
       }
     } else if (step === 5) {

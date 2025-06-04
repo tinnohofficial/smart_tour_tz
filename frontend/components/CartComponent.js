@@ -1,14 +1,16 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useCartStore } from '../app/store/cartStore'
+import { useSavingsStore } from '../app/savings/savingStore'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
-import { Trash2, ShoppingCart, CreditCard, Wallet } from 'lucide-react'
+import { Trash2, ShoppingCart, CreditCard } from 'lucide-react'
 import { toast } from 'sonner'
+import PaymentDialog from './PaymentDialog'
 
-const CartComponent = ({ onCheckout }) => {
+const CartComponent = ({ isProcessing }) => {
   const {
     cart,
     isLoading,
@@ -17,12 +19,18 @@ const CartComponent = ({ onCheckout }) => {
     removeFromCart,
     clearCart,
     getCartItemCount,
-    getCartTotal
+    getCartTotal,
+    isCartEmpty,
+    checkoutCart
   } = useCartStore()
 
+  const { balance, fetchBalance } = useSavingsStore()
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false)
+
   useEffect(() => {
-    fetchCart()
-  }, [fetchCart])
+    fetchCart(true) // Force refresh on component mount
+    fetchBalance() // Fetch user balance for payments
+  }, [fetchCart, fetchBalance])
 
   const handleRemoveItem = async (bookingId) => {
     try {
@@ -86,7 +94,7 @@ const CartComponent = ({ onCheckout }) => {
         </CardHeader>
         <CardContent>
           <p className="text-red-600">{error}</p>
-          <Button onClick={fetchCart} className="mt-4">
+          <Button onClick={() => fetchCart(true)} className="mt-4">
             Retry
           </Button>
         </CardContent>
@@ -97,7 +105,7 @@ const CartComponent = ({ onCheckout }) => {
   const itemCount = getCartItemCount()
   const total = getCartTotal()
 
-  if (itemCount === 0) {
+  if (isCartEmpty()) {
     return (
       <Card className="w-full max-w-4xl mx-auto">
         <CardHeader>
@@ -162,19 +170,30 @@ const CartComponent = ({ onCheckout }) => {
                     
                     {/* Booking Items */}
                     <div className="space-y-2 mb-3">
-                      {booking.items?.map((item, index) => (
-                        <div key={`${booking.id}-${item.item_type}-${item.id || index}`} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="capitalize">
-                              {item.item_type}
-                            </Badge>
-                            <span className="text-sm">{item.item_name || 'Service'}</span>
+                      {booking.items?.length > 0 ? (
+                        booking.items
+                          .filter(item => item.item_type !== 'placeholder')
+                          .map((item, index) => (
+                          <div key={`${booking.id}-${item.item_type}-${item.id || index}`} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="capitalize">
+                                {item.item_type}
+                              </Badge>
+                              <span className="text-sm">{item.item_name || 'Service'}</span>
+                              {item.sessions && item.sessions > 1 && (
+                                <span className="text-xs text-gray-500">({item.sessions}x)</span>
+                              )}
+                            </div>
+                            <span className="text-sm font-medium">
+                              {formatCurrency(item.cost || 0)}
+                            </span>
                           </div>
-                          <span className="text-sm font-medium">
-                            {formatCurrency(item.cost)}
-                          </span>
+                        ))
+                      ) : (
+                        <div className="text-sm text-gray-500 bg-gray-50 px-3 py-2 rounded">
+                          No items configured yet
                         </div>
-                      ))}
+                      )}
                     </div>
                     
                     <div className="flex items-center justify-between font-semibold">
@@ -204,27 +223,56 @@ const CartComponent = ({ onCheckout }) => {
             <span>{formatCurrency(total)}</span>
           </div>
           
-          <div className="flex gap-3">
+          <div className="flex justify-center">
             <Button 
-              onClick={() => onCheckout?.('savings')} 
-              className="flex-1"
-              variant="outline"
-            >
-              <Wallet className="h-4 w-4 mr-2" />
-              Pay with Savings
-            </Button>
-            <Button 
-              onClick={() => onCheckout?.('stripe')} 
-              className="flex-1"
+              onClick={() => setIsPaymentDialogOpen(true)}
+              className="flex-1 max-w-md"
+              disabled={isLoading || total <= 0 || isProcessing}
+              size="lg"
             >
               <CreditCard className="h-4 w-4 mr-2" />
-              Pay with Card
+              {isProcessing ? "Processing..." : "Proceed to Checkout"}
             </Button>
           </div>
         </div>
       </CardContent>
+
+      {/* Payment Dialog */}
+      <PaymentDialog
+        isOpen={isPaymentDialogOpen}
+        onClose={() => setIsPaymentDialogOpen(false)}
+        totalAmount={total}
+        userBalance={balance}
+        onPaymentSuccess={handlePaymentSuccess}
+        title="Checkout Cart"
+        description="Choose how you want to pay for all your selected destinations."
+        applySavingsDiscount={true}
+      />
     </Card>
   )
+
+  async function handlePaymentSuccess(paymentResult) {
+    try {
+      const paymentData = {
+        paymentMethod: paymentResult.paymentMethod,
+      }
+
+      if (paymentResult.paymentMethodId) {
+        paymentData.stripePaymentMethodId = paymentResult.paymentMethodId
+      }
+
+      await checkoutCart(paymentData)
+      setIsPaymentDialogOpen(false)
+      
+      // Navigate to bookings page after successful checkout
+      setTimeout(() => {
+        window.location.href = '/my-bookings'
+      }, 1500)
+    } catch (error) {
+      console.error('Cart checkout error:', error)
+      // Error handling is done in the store
+    }
+  }
 }
 
 export default CartComponent

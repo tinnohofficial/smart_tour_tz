@@ -6,7 +6,7 @@ import { cartService } from '../services/cartService'
 // Helper function to check if current user is a tourist
 const isTourist = () => {
   if (typeof window === 'undefined') return false
-  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const user = JSON.parse(localStorage.getItem('userData') || '{}')
   return user.role === 'tourist'
 }
 
@@ -40,8 +40,8 @@ export const useCartStore = create(
         const now = Date.now()
         const fiveMinutes = 5 * 60 * 1000
 
-        // Skip fetch if recently synced (unless forced)
-        if (!forceRefresh && lastSyncTimestamp && (now - lastSyncTimestamp) < fiveMinutes) {
+        // Skip fetch if recently synced and cart exists (unless forced)
+        if (!forceRefresh && lastSyncTimestamp && (now - lastSyncTimestamp) < fiveMinutes && get().cart) {
           return get().cart
         }
 
@@ -62,7 +62,7 @@ export const useCartStore = create(
           if (forceRefresh) {
             toast.error('Failed to fetch cart')
           }
-          throw error
+          return null
         }
       },
 
@@ -141,7 +141,7 @@ export const useCartStore = create(
           
           // Clear cart after successful checkout
           set({ cart: null, lastSyncTimestamp: Date.now() })
-          
+      
           toast.success('Payment successful! Your bookings have been confirmed.')
           return result
         } catch (error) {
@@ -188,6 +188,15 @@ export const useCartStore = create(
         }
         const { cart } = get()
         return cart?.total_cost || 0
+      },
+
+      // Check if cart is empty
+      isCartEmpty: () => {
+        if (!isTourist()) {
+          return true
+        }
+        const { cart } = get()
+        return !cart || !cart.bookings || cart.bookings.length === 0
       }
     }),
     {

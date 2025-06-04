@@ -146,7 +146,7 @@ CREATE TABLE booking_items (
     id INT NOT NULL,
     booking_id INT NOT NULL,
     item_type ENUM ('hotel', 'transport', 'tour_guide', 'activity', 'placeholder') NOT NULL,
-    item_details TEXT, -- JSON: e.g., { "check_in": "YYYY-MM-DD", "check_out": "YYYY-MM-DD", "room_type": "Standard" } or { "ticket_number": "XYZ", "seat": "12A"}
+    item_details TEXT, -- JSON: e.g., { "check_in": "YYYY-MM-DD", "check_out": "YYYY-MM-DD", "room_type": "Standard" } or { "ticket_pdf_url": "https://..." }
     sessions INT DEFAULT 1, -- For activities: number of sessions booked
     cost DECIMAL(10, 2) NOT NULL,
     provider_status ENUM ('pending', 'confirmed', 'rejected') DEFAULT 'pending', -- Status set by hotel manager, travel agent etc.

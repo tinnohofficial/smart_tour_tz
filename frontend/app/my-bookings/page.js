@@ -181,14 +181,23 @@ export default function MyBookings() {
           }
 
           if (item.item_type === "transport") {
-            if (details.ticket_number) {
+            if (details.ticket_pdf_url) {
               return (
                 <div className="text-xs text-gray-500 mt-1 space-y-0.5">
-                  <div>Ticket: {details.ticket_number}</div>
-                  {details.departure_date && (
-                    <div>Departure: {formatDate(details.departure_date)}</div>
+                  <div className="flex items-center gap-2">
+                    <span>🎫</span>
+                    <a 
+                      href={details.ticket_pdf_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 underline font-medium"
+                    >
+                      Download Ticket PDF
+                    </a>
+                  </div>
+                  {details.assigned_at && (
+                    <div>Assigned: {formatDate(details.assigned_at)}</div>
                   )}
-                  {details.seat && <div>Seat: {details.seat}</div>}
                   {item.provider_email && (
                     <div className="text-green-600 font-medium">
                       📧 {item.provider_email}

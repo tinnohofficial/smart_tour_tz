@@ -12,32 +12,18 @@ export const useBookingsStore = create((set, get) => ({
   error: null,
   selectedBooking: null,
   isDialogOpen: false,
-  ticketDetails: {
-    departure_date: null,
-    arrival_date: null,
-    ticket_number: "",
-    seat_number: "",
-    additional_info: ""
-  },
+  ticketFile: null,
   activeTab: "pending",
 
   // Actions for dialog and ticket details
   setSelectedBooking: (booking) => set({ selectedBooking: booking }),
   setIsDialogOpen: (isOpen) => set({ isDialogOpen: isOpen }),
-  setTicketDetails: (details) => set(state => ({ ticketDetails: { ...state.ticketDetails, ...details } })),
-  resetTicketDetails: () => set({ 
-    ticketDetails: {
-      departure_date: null,
-      arrival_date: null,
-      ticket_number: "",
-      seat_number: "",
-      additional_info: ""
-    } 
-  }),
+  setTicketFile: (file) => set({ ticketFile: file }),
+  resetTicketFile: () => set({ ticketFile: null }),
   
   openTicketDialog: (booking) => {
     set({ selectedBooking: booking, isDialogOpen: true });
-    get().resetTicketDetails();
+    get().resetTicketFile();
   },
   closeTicketDialog: () => set({ isDialogOpen: false, selectedBooking: null }),
   setActiveTab: (tab) => set({ activeTab: tab }),
@@ -72,19 +58,29 @@ export const useBookingsStore = create((set, get) => ({
     )
   },
 
-  assignTransportTicket: async (itemId, ticketDetails) => {
+  assignTransportTicket: async (itemId, ticketFile) => {
     return apiUtils.withLoadingAndError(
       async () => {
-        // Format dates for the API
-        const formattedTicketDetails = {
-          ...ticketDetails,
-          departure_date: ticketDetails.departure_date ? 
-            ticketDetails.departure_date.toISOString() : null,
-          arrival_date: ticketDetails.arrival_date ? 
-            ticketDetails.arrival_date.toISOString() : null
+        // First upload the PDF file
+        const formData = new FormData();
+        formData.append('file', ticketFile);
+        
+        const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/upload`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: formData
+        });
+        
+        if (!uploadResponse.ok) {
+          throw new Error('Failed to upload ticket PDF');
         }
-
-        await enhancedBookingsService.assignTransportTicket(itemId, formattedTicketDetails)
+        
+        const uploadResult = await uploadResponse.json();
+        
+        // Then assign the ticket with the PDF URL
+        await enhancedBookingsService.assignTransportTicket(itemId, uploadResult.url)
         
         // Refresh bookings after successful assignment
         await get().fetchPendingBookings()

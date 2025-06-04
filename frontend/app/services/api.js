@@ -342,10 +342,10 @@ export const enhancedBookingsService = {
     return apiRequest("/bookings/transport-bookings-completed");
   },
 
-  async assignTransportTicket(itemId, ticketDetails) {
+  async assignTransportTicket(itemId, ticketPdfUrl) {
     return apiRequest(`/bookings/items/${itemId}/assign-ticket`, {
       method: "PATCH",
-      body: JSON.stringify(ticketDetails),
+      body: JSON.stringify({ ticketPdfUrl }),
     });
   },
 };

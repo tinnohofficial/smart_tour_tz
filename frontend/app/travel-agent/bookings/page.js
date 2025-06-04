@@ -15,27 +15,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Calendar as CalendarIcon,
   Check,
-  Car,
   Clock,
-  AlertTriangle,
   Ticket,
   Users,
-  Plane,
-  Train,
-  Ship,
   Loader2,
   PackageOpen,
+  Upload,
+  FileText,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -63,10 +52,10 @@ export default function TravelAgentBookings() {
     assignTransportTicket,
     selectedBooking,
     isDialogOpen,
-    ticketDetails,
+    ticketFile,
     openTicketDialog,
     closeTicketDialog,
-    setTicketDetails,
+    setTicketFile,
     activeTab, // Get activeTab from store
     setActiveTab, // Get setActiveTab from store
   } = useBookingsStore();
@@ -80,13 +69,19 @@ export default function TravelAgentBookings() {
   }, [activeTab, fetchPendingBookings, fetchCompletedBookings]);
 
   const handleAssignTicket = async () => {
-    if (!ticketDetails.departure_date || !ticketDetails.ticket_number) {
-      toast.error("Please provide departure date and ticket number.");
+    if (!ticketFile) {
+      toast.error("Please upload a ticket PDF file.");
+      return;
+    }
+
+    // Validate file type
+    if (ticketFile.type !== 'application/pdf') {
+      toast.error("Please upload a PDF file only.");
       return;
     }
 
     try {
-      await assignTransportTicket(selectedBooking.id, ticketDetails);
+      await assignTransportTicket(selectedBooking.id, ticketFile);
       toast.success("Ticket assigned successfully!");
       closeTicketDialog();
     } catch (error) {
@@ -150,11 +145,20 @@ export default function TravelAgentBookings() {
             <div className="space-y-2 text-xs">
               <h4 className="font-medium text-gray-600 mb-1">Ticket Information:</h4>
               <div className="space-y-1">
-                <p><span className="font-semibold">Departure:</span> {formatDate(booking.item_details.departure_date)}</p>
-                {booking.item_details.arrival_date && <p><span className="font-semibold">Arrival:</span> {formatDate(booking.item_details.arrival_date)}</p>}
-                <p className="truncate"><span className="font-semibold">Ticket No:</span> {booking.item_details.ticket_number}</p>
-                {booking.item_details.seat_number && <p><span className="font-semibold">Seat:</span> {booking.item_details.seat_number}</p>}
-                {booking.item_details.additional_info && <p className="break-words"><span className="font-semibold">Notes:</span> {booking.item_details.additional_info}</p>}
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-red-600" />
+                  <a 
+                    href={booking.item_details.ticket_pdf_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 underline font-medium"
+                  >
+                    Download Ticket PDF
+                  </a>
+                </div>
+                <p className="text-gray-500">
+                  Assigned: {formatDate(booking.item_details.assigned_at)}
+                </p>
               </div>
             </div>
           </>
@@ -247,120 +251,40 @@ export default function TravelAgentBookings() {
       </Tabs>
 
       <Dialog open={isDialogOpen} onOpenChange={closeTicketDialog}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-lg sm:text-xl font-semibold">Assign Transport Ticket</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl font-semibold">Upload Transport Ticket</DialogTitle>
             <DialogDescription className="text-sm">
-              Provide ticket details for Booking #{selectedBooking?.id} ({selectedBooking?.origin} to {selectedBooking?.destination}).
+              Upload a PDF ticket for Booking #{selectedBooking?.id} ({selectedBooking?.origin} to {selectedBooking?.destination}).
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="departure_date" className="font-medium text-sm">Departure Date*</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal text-sm",
-                        !ticketDetails.departure_date && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
-                      <span className="truncate">
-                        {ticketDetails.departure_date
-                          ? format(ticketDetails.departure_date, "PPP")
-                          : "Select date"}
-                      </span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={ticketDetails.departure_date}
-                      onSelect={(date) =>
-                        setTicketDetails({ departure_date: date })
-                      }
-                      initialFocus
-                      disabled={(date) => date < new Date(new Date().setHours(0,0,0,0)) } // Disable past dates
-                    />
-                  </PopoverContent>
-                </Popover>
+          <div className="grid gap-6 py-4">
+            <div className="grid gap-3">
+              <Label htmlFor="ticket_file" className="font-medium text-sm">Ticket PDF File*</Label>
+              <div className="flex flex-col gap-3">
+                <Input
+                  id="ticket_file"
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  onChange={(e) => setTicketFile(e.target.files?.[0] || null)}
+                  className="text-sm cursor-pointer"
+                />
+                {ticketFile && (
+                  <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-md">
+                    <FileText className="h-4 w-4 text-green-600" />
+                    <span className="text-sm font-medium text-green-700 truncate">
+                      {ticketFile.name}
+                    </span>
+                    <span className="text-xs text-green-600 ml-auto">
+                      {(ticketFile.size / 1024 / 1024).toFixed(2)} MB
+                    </span>
+                  </div>
+                )}
+                <p className="text-xs text-gray-500">
+                  Please upload a PDF file containing the transport ticket details.
+                </p>
               </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="arrival_date" className="font-medium text-sm">Arrival Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal text-sm",
-                        !ticketDetails.arrival_date && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
-                      <span className="truncate">
-                        {ticketDetails.arrival_date
-                          ? format(ticketDetails.arrival_date, "PPP")
-                          : "Select date"}
-                      </span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={ticketDetails.arrival_date}
-                      onSelect={(date) =>
-                        setTicketDetails({ arrival_date: date })
-                      }
-                      initialFocus
-                      disabled={(date) => ticketDetails.departure_date ? date < ticketDetails.departure_date : date < new Date(new Date().setHours(0,0,0,0))}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="ticket_number" className="font-medium text-sm">Ticket Number*</Label>
-              <Input
-                id="ticket_number"
-                value={ticketDetails.ticket_number}
-                onChange={(e) =>
-                  setTicketDetails({ ticket_number: e.target.value })
-                }
-                placeholder="e.g., TZA12345"
-                className="text-sm"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="seat_number" className="font-medium text-sm">Seat/Cabin Number</Label>
-              <Input
-                id="seat_number"
-                value={ticketDetails.seat_number}
-                onChange={(e) =>
-                  setTicketDetails({ seat_number: e.target.value })
-                }
-                placeholder="e.g., 24A, Cabin B"
-                className="text-sm"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="additional_info" className="font-medium text-sm">Additional Information</Label>
-              <Input
-                id="additional_info"
-                value={ticketDetails.additional_info}
-                onChange={(e) =>
-                  setTicketDetails({ additional_info: e.target.value })
-                }
-                placeholder="e.g., Gate 7, Platform 2"
-                className="text-sm"
-              />
             </div>
           </div>
 
@@ -375,11 +299,12 @@ export default function TravelAgentBookings() {
             </Button>
             <Button
               onClick={handleAssignTicket}
-              disabled={isLoading}
+              disabled={isLoading || !ticketFile}
               className="bg-amber-700 hover:bg-amber-800 text-white w-full sm:w-auto order-1 sm:order-2"
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Assign Ticket
+              <Upload className="mr-2 h-4 w-4" />
+              Upload Ticket
             </Button>
           </DialogFooter>
         </DialogContent>

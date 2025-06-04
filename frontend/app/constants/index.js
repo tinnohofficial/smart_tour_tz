@@ -117,7 +117,7 @@ export const SUCCESS_MESSAGES = {
   PROFILE_UPDATE_SUCCESS: "Hotel profile updated successfully",
   PROGRESS_SAVED: "Progress saved locally",
   BOOKING_ASSIGNED: "Booking assigned successfully",
-  TICKET_ASSIGNED: "Ticket assigned successfully",
+  TICKET_ASSIGNED: "Ticket uploaded successfully",
   ROOM_CONFIRM_SUCCESS: "Room confirmed successfully",
   ROUTE_CREATED: "Transport route created successfully",
   ROUTE_UPDATED: "Transport route updated successfully",

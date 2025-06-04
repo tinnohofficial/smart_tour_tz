@@ -389,11 +389,20 @@ function TourDetailsDialog({ tour }) {
                   <p className="text-sm font-medium mt-2">TZS {(transport.cost * 2835).toLocaleString()}</p>
                   {transport.item_details && typeof transport.item_details === 'object' && (
                     <div className="mt-2 text-xs text-muted-foreground">
-                      {transport.item_details.departure_time && (
-                        <p>Departure: {transport.item_details.departure_time}</p>
-                      )}
-                      {transport.item_details.seat_number && (
-                        <p>Seat: {transport.item_details.seat_number}</p>
+                      {transport.item_details.ticket_pdf_url ? (
+                        <div className="flex items-center gap-2">
+                          <span>🎫</span>
+                          <a 
+                            href={transport.item_details.ticket_pdf_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 underline font-medium"
+                          >
+                            Download Ticket PDF
+                          </a>
+                        </div>
+                      ) : (
+                        <p className="text-amber-600 italic">⏳ Waiting for ticket assignment</p>
                       )}
                     </div>
                   )}
