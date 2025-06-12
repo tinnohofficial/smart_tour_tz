@@ -10,6 +10,7 @@ const nextConfig = {
             "jyquznoodnlreg99.public.blob.vercel-storage.com",
             "example.com",
             "localhost",
+            "app.tinnoh.me",
         ]
     }
 };

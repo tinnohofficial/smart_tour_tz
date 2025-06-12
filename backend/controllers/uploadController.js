@@ -386,9 +386,7 @@ exports.uploadFile = async (req, res) => {
 
       // Return the file information with compression stats
       // Construct full URL for the uploaded file (without /api prefix)
-      const protocol = req.protocol || "http";
-      const host = req.get("host") || "localhost:80";
-      const baseUrl = `${protocol}://${host}`;
+      const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get("host")}`;
       const fileUrl = `${baseUrl}/uploads/${finalFilename}`;
 
       const response = {
