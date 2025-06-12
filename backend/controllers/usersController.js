@@ -58,6 +58,7 @@ exports.register = async (req, res) => {
       user: {
         id: result.insertId,
         email,
+        phone_number,
         role,
         status: initialStatus,
       }
@@ -79,7 +80,7 @@ exports.login = async (req, res) => {
 
   try {
     const [users] = await db.query(
-      "SELECT id, email, password_hash, role, status FROM users WHERE email = ?",
+      "SELECT id, email, password_hash, phone_number, role, status FROM users WHERE email = ?",
       [email],
     );
     if (users.length === 0) {
@@ -119,6 +120,7 @@ exports.login = async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
+        phone_number: user.phone_number,
         role: user.role,
         status: user.status,
         // Add other relevant non-sensitive info if needed
@@ -402,6 +404,98 @@ exports.updateBalance = async (req, res) => {
   }
 };
 
+// Simplified profile update methods without password verification (for basic profile info)
+exports.updateEmailSimple = async (req, res) => {
+  const userId = req.user.id;
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({
+      message: "Email is required",
+    });
+  }
+
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({
+      message: "Please provide a valid email address",
+    });
+  }
+
+  try {
+    // Check if email already exists for another user
+    const [existingUsers] = await db.query(
+      "SELECT id FROM users WHERE email = ? AND id != ?",
+      [email, userId]
+    );
+    
+    if (existingUsers.length > 0) {
+      return res.status(409).json({ 
+        message: "Email is already in use by another account" 
+      });
+    }
+
+    // Update email
+    await db.query(
+      "UPDATE users SET email = ? WHERE id = ?",
+      [email, userId]
+    );
+
+    res.json({ message: "Email updated successfully" });
+  } catch (error) {
+    console.error("Error updating email:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to update email", error: error.message });
+  }
+};
+
+exports.updatePhoneSimple = async (req, res) => {
+  const userId = req.user.id;
+  const { phone_number } = req.body;
+
+  if (!phone_number) {
+    return res.status(400).json({
+      message: "Phone number is required",
+    });
+  }
+
+  // Validate phone number using international standards
+  if (phone_number && !isValidPhoneNumber(phone_number)) {
+    return res.status(400).json({
+      message: "Please provide a valid international phone number",
+    });
+  }
+
+  try {
+    // Check if phone number already exists for another user
+    const [existingUsers] = await db.query(
+      "SELECT id FROM users WHERE phone_number = ? AND id != ?",
+      [phone_number, userId]
+    );
+    
+    if (existingUsers.length > 0) {
+      return res.status(409).json({ 
+        message: "Phone number is already in use by another account" 
+      });
+    }
+
+    // Update phone number
+    await db.query(
+      "UPDATE users SET phone_number = ? WHERE id = ?",
+      [phone_number, userId]
+    );
+
+    res.json({ message: "Phone number updated successfully" });
+  } catch (error) {
+    console.error("Error updating phone number:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to update phone number", error: error.message });
+  }
+};
+
 // Refresh JWT token with latest user data from database
 exports.refreshToken = async (req, res) => {
   try {
@@ -409,7 +503,7 @@ exports.refreshToken = async (req, res) => {
 
     // Get fresh user data from database
     const [users] = await db.query(
-      "SELECT id, email, role, status FROM users WHERE id = ?",
+      "SELECT id, email, phone_number, role, status FROM users WHERE id = ?",
       [userId]
     );
 
@@ -439,6 +533,7 @@ exports.refreshToken = async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
+        phone_number: user.phone_number,
         role: user.role,
         status: user.status,
       },

@@ -45,6 +45,10 @@ router.put("/email", authenticateToken, usersController.updateEmail);
 // F4.3: Update phone number
 router.put("/update-phone", authenticateToken, usersController.updatePhone);
 
+// Simplified profile update endpoints (without password verification)
+router.put("/profile/email", authenticateToken, usersController.updateEmailSimple);
+router.put("/profile/phone", authenticateToken, usersController.updatePhoneSimple);
+
 // Balance management routes (for tourists only)
 router.get("/balance", authenticateToken, checkRole("tourist"), usersController.getBalance);
 router.put("/balance", authenticateToken, checkRole("tourist"), usersController.updateBalance);

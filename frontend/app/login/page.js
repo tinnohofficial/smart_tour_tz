@@ -111,6 +111,7 @@ function LoginForm() {
       const userData = {
         id: data.user.id,
         email: data.user.email,
+        phone_number: data.user.phone_number,
         role: data.user.role,
         status: data.user.status,
       };

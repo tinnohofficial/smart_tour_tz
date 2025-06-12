@@ -77,7 +77,7 @@ export default function TouristProfile() {
 
       // Update email if changed
       if (email !== user.email) {
-        const emailResponse = await fetch(`${API_URL}/users/email`, {
+        const emailResponse = await fetch(`${API_URL}/users/profile/email`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -94,7 +94,7 @@ export default function TouristProfile() {
 
       // Update phone if changed
       if (phoneNumber !== user.phone_number) {
-        const phoneResponse = await fetch(`${API_URL}/users/phone`, {
+        const phoneResponse = await fetch(`${API_URL}/users/profile/phone`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
