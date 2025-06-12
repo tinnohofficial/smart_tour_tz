@@ -1,7 +1,5 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-const BACKEND_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ||
-  "http://localhost:3002";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "");
 
 // Utility function to construct full image URLs
 export const getFullImageUrl = (imageUrl) => {
@@ -39,7 +37,7 @@ const apiRequest = async (endpoint, options = {}) => {
 
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}`;
-      
+
       try {
         const errorData = await response.json();
         errorMessage = errorData.message || errorMessage;
@@ -47,7 +45,7 @@ const apiRequest = async (endpoint, options = {}) => {
         const text = await response.text().catch(() => "");
         errorMessage = text || errorMessage;
       }
-      
+
       const error = new Error(errorMessage);
       error.response = { status: response.status };
       throw error;
@@ -271,7 +269,9 @@ export const activitiesService = {
   },
 
   async getActivitiesByDestination(destinationId) {
-    const response = await apiRequest(`/activities/destination/${destinationId}`);
+    const response = await apiRequest(
+      `/activities/destination/${destinationId}`,
+    );
     return response.activities || [];
   },
 
@@ -315,7 +315,8 @@ export const bookingsService = {
   },
 
   async assignGuide(bookingId, guideId) {
-    if (!bookingId || !guideId) throw new Error("Booking ID and Guide ID are required");
+    if (!bookingId || !guideId)
+      throw new Error("Booking ID and Guide ID are required");
     return apiRequest(`/bookings/${bookingId}/assign-guide`, {
       method: "POST",
       body: JSON.stringify({ guideId }),
@@ -559,5 +560,3 @@ export const bookingCreationService = {
     return apiRequest("/bookings/my-bookings");
   },
 };
-
-
