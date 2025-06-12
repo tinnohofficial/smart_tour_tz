@@ -5,12 +5,10 @@ import { ERROR_MESSAGES } from '@/app/constants'
 
 export const useBookingsStore = create((set, get) => ({
   tours: [],
-  selectedTour: null,
   isLoading: true,
-  statusFilter: "all",
+  statusFilter: "current",
   
   setTours: (tours) => set({ tours }),
-  setSelectedTour: (tour) => set({ selectedTour: tour }),
   setIsLoading: (isLoading) => set({ isLoading }),
   setStatusFilter: (filter) => set({ statusFilter: filter }),
   
@@ -54,21 +52,5 @@ export const useBookingsStore = create((set, get) => ({
     )
   },
 
-  fetchTourDetails: async (bookingId) => {
-    return apiUtils.withLoadingAndError(
-      async () => {
-        const data = await bookingsService.getTourGuideBookingDetails(bookingId)
-        set({ selectedTour: data })
-        return data
-      },
-      {
-        setLoading: (loading) => set({ isLoading: loading }),
-        setError: (error) => set({ error }),
-        onError: (error) => {
-          console.error('Error fetching tour details:', error)
-          toast.error('Failed to load tour details')
-        }
-      }
-    )
-  }
+
 }))

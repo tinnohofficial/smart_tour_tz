@@ -24,9 +24,11 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   tourGuideService,
   destinationsService,
+  activitiesService,
   apiUtils,
 } from "@/app/services/api";
 import { toast } from "sonner";
@@ -37,6 +39,9 @@ export default function TourGuideProfile() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [profileData, setProfileData] = useState(null);
   const [destinations, setDestinations] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [isLoadingActivities, setIsLoadingActivities] = useState(false);
+  const [selectedActivities, setSelectedActivities] = useState([]);
   const [error, setError] = useState(null);
 
   const fetchProfile = async () => {
@@ -57,6 +62,19 @@ export default function TourGuideProfile() {
 
       setProfileData(data);
       setDestinations(destinationsData);
+
+      // Load activities for the destination first
+      if (data.destination_id) {
+        await loadActivities(data.destination_id);
+      }
+
+      // Set selected activities from profile data after loading available activities
+      if (data.activities) {
+        const activities = Array.isArray(data.activities)
+          ? data.activities
+          : JSON.parse(data.activities || "[]");
+        setSelectedActivities(activities);
+      }
 
       // Check if user is approved to access profile
       if (data.status !== "active") {
@@ -86,6 +104,52 @@ export default function TourGuideProfile() {
     fetchProfile();
   }, []);
 
+  const loadActivities = async (destinationId) => {
+    if (!destinationId) {
+      setActivities([]);
+      return;
+    }
+
+    setIsLoadingActivities(true);
+    try {
+      const activitiesData =
+        await activitiesService.getActivitiesByDestination(destinationId);
+      const activitiesList = Array.isArray(activitiesData)
+        ? activitiesData
+        : [];
+      setActivities(activitiesList);
+    } catch (error) {
+      console.error("Error loading activities:", error);
+      setActivities([]);
+    } finally {
+      setIsLoadingActivities(false);
+    }
+  };
+
+  const toggleActivity = (activityId) => {
+    const id = parseInt(activityId);
+    setSelectedActivities((prev) => {
+      const isSelected = prev.includes(id);
+      if (isSelected) {
+        // Don't allow removing the last activity (minimum 1 required)
+        if (prev.length <= 1) {
+          toast.error("At least one activity must be selected");
+          return prev;
+        }
+        return prev.filter((existingId) => existingId !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
+
+  const handleDestinationChange = async (e) => {
+    const destinationId = e.target.value;
+    // Clear selected activities when destination changes
+    setSelectedActivities([]);
+    await loadActivities(destinationId);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -97,7 +161,14 @@ export default function TourGuideProfile() {
         full_name: formData.get("full_name"),
         destination_id: parseInt(formData.get("destination_id")),
         description: formData.get("description"),
+        activities: selectedActivities,
       };
+
+      // Validate minimum activities
+      if (!selectedActivities || selectedActivities.length === 0) {
+        toast.error("Please select at least one activity");
+        return;
+      }
 
       await tourGuideService.updateProfile(updateData);
       toast.success("Profile updated successfully!");
@@ -272,9 +343,6 @@ export default function TourGuideProfile() {
               <Award className="h-5 w-5 mr-2" />
               Professional Information
             </CardTitle>
-            <CardDescription>
-              Update your guide details and expertise
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -303,6 +371,7 @@ export default function TourGuideProfile() {
                     id="destination_id"
                     name="destination_id"
                     defaultValue={profileData.destination_id || ""}
+                    onChange={handleDestinationChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                     required
                   >
@@ -330,11 +399,59 @@ export default function TourGuideProfile() {
                 />
               </div>
 
-              <div className="flex justify-end pt-4 border-t">
+              {/* Activities Selection */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Activities * (minimum 1 required)
+                </label>
+                <div className="border border-gray-300 rounded-md p-4 bg-gray-50">
+                  {isLoadingActivities ? (
+                    <div className="text-center py-4">
+                      <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
+                      <p className="text-sm text-gray-500">Loading activities...</p>
+                    </div>
+                  ) : activities.length === 0 ? (
+                    <p className="text-sm text-gray-500 text-center py-4">
+                      No activities available for this destination
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {activities.map((activity) => {
+                        const isSelected = selectedActivities.includes(activity.id);
+                        return (
+                          <div
+                            key={activity.id}
+                            className="flex items-center space-x-3"
+                          >
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => toggleActivity(activity.id)}
+                              className="data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600"
+                            />
+                            <label 
+                              className="text-sm font-medium text-gray-700 cursor-pointer"
+                              onClick={() => toggleActivity(activity.id)}
+                            >
+                              {activity.name}
+                            </label>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                {selectedActivities.length > 0 && (
+                  <p className="text-xs text-gray-500">
+                    {selectedActivities.length} activity(ies) selected
+                  </p>
+                )}
+              </div>
+
+              <div className="flex justify-end pt-4">
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="bg-amber-600 hover:bg-amber-700"
+                  className="bg-amber-600 hover:bg-amber-700 text-white"
                 >
                   {isSubmitting ? (
                     <>
@@ -354,35 +471,7 @@ export default function TourGuideProfile() {
         </Card>
       </div>
 
-      {/* Activities Section */}
-      {profileData.activity_details &&
-        profileData.activity_details.length > 0 && (
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Supervised Activities</CardTitle>
-              <CardDescription>
-                Activities you can guide tourists through
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {profileData.activity_details.map((activity, index) => (
-                  <div
-                    key={index}
-                    className="border border-gray-200 rounded-lg p-4"
-                  >
-                    <h3 className="font-medium mb-2">{activity.name}</h3>
-                    {activity.description && (
-                      <p className="text-sm text-gray-600">
-                        {activity.description}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+
     </div>
   );
 }
