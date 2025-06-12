@@ -35,6 +35,11 @@ export default function TravelAgentLayout({ children }) {
     const checkUserProfile = async () => {
       setIsLoading(true);
       try {
+        // Check if we're in browser environment
+        if (typeof window === 'undefined') {
+          return;
+        }
+
         const token = localStorage.getItem("token");
         if (!token) {
           router.push("/login");
@@ -49,13 +54,27 @@ export default function TravelAgentLayout({ children }) {
           if (error.response?.status === 404) {
             setUserStatus("pending_profile");
             setHasProfile(false);
+          } else if (error.response?.status === 401 || error.response?.status === 403 || error.isAuthError) {
+            // Handle authentication errors gracefully
+            console.log("Authentication error, redirecting to login");
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem("token");
+              localStorage.removeItem("userData");
+            }
+            router.push("/login");
+            return;
           } else {
             console.error("Error fetching profile:", error);
-            apiUtils.handleAuthError(error, router);
+            // Don't crash the app, just set a default state
+            setUserStatus("pending_profile");
+            setHasProfile(false);
           }
         }
       } catch (error) {
         console.error("Error fetching user profile:", error);
+        // Don't crash the app, set safe defaults
+        setUserStatus("pending_profile");
+        setHasProfile(false);
       } finally {
         setIsLoading(false);
       }
@@ -137,10 +156,23 @@ export default function TravelAgentLayout({ children }) {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("userData");
-    publishAuthChange();
-    router.push("/login");
+    try {
+      // Clear authentication data
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem("token");
+        localStorage.removeItem("userData");
+      }
+
+      // Notify navbar about auth state change
+      publishAuthChange();
+
+      // Navigate to login page immediately
+      router.push("/login");
+    } catch (error) {
+      console.error("Error during logout:", error);
+      // Still navigate to login even if there's an error
+      router.push("/login");
+    }
   };
 
   if (isLoading) {

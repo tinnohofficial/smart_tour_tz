@@ -19,10 +19,32 @@ export function RouteProtection({ allowedRoles = [], children }) {
       try {
         setIsLoading(true)
         
+        // Check if we're in browser environment
+        if (typeof window === 'undefined') {
+          return
+        }
+        
         // Check if token exists in localStorage
         const token = localStorage.getItem("token")
         if (!token) {
           toast.error("You must be signed in to access this page")
+          router.push("/login")
+          return
+        }
+
+        // Validate token format (basic check)
+        try {
+          const parts = token.split('.')
+          if (parts.length !== 3) {
+            throw new Error("Invalid token format")
+          }
+          // Try to decode the payload to check if token is malformed
+          JSON.parse(atob(parts[1]))
+        } catch (tokenError) {
+          console.error("Invalid token:", tokenError)
+          localStorage.removeItem("token")
+          localStorage.removeItem("userData")
+          toast.error("Invalid authentication token. Please sign in again.")
           router.push("/login")
           return
         }
@@ -37,7 +59,17 @@ export function RouteProtection({ allowedRoles = [], children }) {
           return
         }
         
-        const userData = JSON.parse(storedUserData)
+        let userData
+        try {
+          userData = JSON.parse(storedUserData)
+        } catch (parseError) {
+          console.error("Error parsing user data:", parseError)
+          localStorage.removeItem("token")
+          localStorage.removeItem("userData")
+          toast.error("Authentication error. Please sign in again.")
+          router.push("/login")
+          return
+        }
         
         // Check if user has one of the allowed roles
         if (allowedRoles.length > 0 && !allowedRoles.includes(userData.role)) {
@@ -50,8 +82,10 @@ export function RouteProtection({ allowedRoles = [], children }) {
         setIsAuthorized(true)
       } catch (error) {
         console.error("Authentication error:", error)
-        localStorage.removeItem("token")
-        localStorage.removeItem("userData")
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem("token")
+          localStorage.removeItem("userData")
+        }
         toast.error("Authentication error. Please sign in again.")
         router.push("/login")
       } finally {

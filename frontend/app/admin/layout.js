@@ -80,15 +80,23 @@ export default function AdminLayout({ children }) {
   const closeMobileSidebar = () => setMobileSidebarOpen(false);
 
   const handleLogout = () => {
-    // Clear authentication data
-    localStorage.removeItem("token");
-    localStorage.removeItem("userData");
+    try {
+      // Clear authentication data
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem("token");
+        localStorage.removeItem("userData");
+      }
 
-    // Notify navbar about auth state change
-    publishAuthChange();
+      // Notify navbar about auth state change
+      publishAuthChange();
 
-    // Navigate to login page immediately
-    router.push("/login");
+      // Navigate to login page immediately
+      router.push("/login");
+    } catch (error) {
+      console.error("Error during logout:", error);
+      // Still navigate to login even if there's an error
+      router.push("/login");
+    }
   };
 
   // Use RouteProtection to protect the entire admin layout

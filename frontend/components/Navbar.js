@@ -36,22 +36,33 @@ export function Navbar() {
 
   // Function to check authentication status
   const checkUser = () => {
-    if (typeof window !== 'undefined') {
-      const userData = localStorage.getItem("userData")
-      if (userData) {
-        const parsedUser = JSON.parse(userData)
-        setUser(parsedUser)
-        
-        // Hide navbar for specific roles
-        if (['admin', 'tour_guide', 'hotel_manager', 'travel_agent'].includes(parsedUser.role)) {
-          setShowNavbar(false)
+    try {
+      if (typeof window !== 'undefined') {
+        const userData = localStorage.getItem("userData")
+        if (userData) {
+          const parsedUser = JSON.parse(userData)
+          setUser(parsedUser)
+          
+          // Hide navbar for specific roles
+          if (['admin', 'tour_guide', 'hotel_manager', 'travel_agent'].includes(parsedUser.role)) {
+            setShowNavbar(false)
+          } else {
+            setShowNavbar(true)
+          }
         } else {
+          setUser(null)
           setShowNavbar(true)
         }
-      } else {
-        setUser(null)
-        setShowNavbar(true)
       }
+    } catch (error) {
+      console.error("Error checking user authentication:", error)
+      // Clear potentially corrupted data
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem("userData")
+        localStorage.removeItem("token")
+      }
+      setUser(null)
+      setShowNavbar(true)
     }
   }
 
@@ -60,15 +71,18 @@ export function Navbar() {
     // Check on mount
     checkUser()
     
-    // Listen for storage events (for when user logs in/out in another tab)
-    window.addEventListener('storage', checkUser)
-    
-    // Listen for custom auth state change events
-    window.addEventListener('authStateChanged', checkUser)
-    
-    return () => {
-      window.removeEventListener('storage', checkUser)
-      window.removeEventListener('authStateChanged', checkUser)
+    // Only add event listeners if we're in browser environment
+    if (typeof window !== 'undefined') {
+      // Listen for storage events (for when user logs in/out in another tab)
+      window.addEventListener('storage', checkUser)
+      
+      // Listen for custom auth state change events
+      window.addEventListener('authStateChanged', checkUser)
+      
+      return () => {
+        window.removeEventListener('storage', checkUser)
+        window.removeEventListener('authStateChanged', checkUser)
+      }
     }
   }, [])
 
@@ -83,14 +97,23 @@ export function Navbar() {
 
   // Handle logout
   const handleLogout = () => {
-    localStorage.removeItem("token")
-    localStorage.removeItem("userData")
-    localStorage.removeItem("loginTimestamp")
-    setUser(null)
-    toast.success("You've been successfully logged out")
-    // Notify other components about auth state change
-    publishAuthChange()
-    router.push("/")
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem("token")
+        localStorage.removeItem("userData")
+        localStorage.removeItem("loginTimestamp")
+      }
+      setUser(null)
+      toast.success("You've been successfully logged out")
+      // Notify other components about auth state change
+      publishAuthChange()
+      router.push("/")
+    } catch (error) {
+      console.error("Error during logout:", error)
+      // Still reset user state and navigate
+      setUser(null)
+      router.push("/")
+    }
   }
 
   // Extract name from email address
