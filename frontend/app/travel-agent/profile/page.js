@@ -140,12 +140,6 @@ export default function TravelAgentProfile() {
             <h1 className="text-2xl font-bold">Travel Agency Profile</h1>
             <p className="text-amber-100">Manage your agency information</p>
           </div>
-          {isApproved && (
-            <Badge className="bg-green-100 text-green-800 border-0">
-              <CheckCircle className="h-4 w-4 mr-1" />
-              Verified
-            </Badge>
-          )}
         </div>
       </div>
 

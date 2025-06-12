@@ -246,12 +246,6 @@ export default function TourGuideProfile() {
           </div>
           <div className="flex items-center gap-4">
             {isApproved && (
-              <Badge className="bg-green-100 text-green-800 border-0">
-                <CheckCircle className="h-4 w-4 mr-1" />
-                Verified
-              </Badge>
-            )}
-            {isApproved && (
               <div className="flex items-center gap-2">
                 <span className="text-sm">Available:</span>
                 <Switch
@@ -309,12 +303,6 @@ export default function TourGuideProfile() {
                 <Badge className="bg-amber-100 text-amber-700 border-0">
                   Tour Guide
                 </Badge>
-                {isApproved && (
-                  <Badge className="bg-green-100 text-green-700 border-0">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Verified
-                  </Badge>
-                )}
               </div>
 
               {profileData.license_document_url && (
@@ -401,14 +389,14 @@ export default function TourGuideProfile() {
 
               {/* Activities Selection */}
               <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  Activities * (minimum 1 required)
-                </label>
+                <label className="text-sm font-medium">Activities *</label>
                 <div className="border border-gray-300 rounded-md p-4 bg-gray-50">
                   {isLoadingActivities ? (
                     <div className="text-center py-4">
                       <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
-                      <p className="text-sm text-gray-500">Loading activities...</p>
+                      <p className="text-sm text-gray-500">
+                        Loading activities...
+                      </p>
                     </div>
                   ) : activities.length === 0 ? (
                     <p className="text-sm text-gray-500 text-center py-4">
@@ -417,7 +405,9 @@ export default function TourGuideProfile() {
                   ) : (
                     <div className="space-y-3">
                       {activities.map((activity) => {
-                        const isSelected = selectedActivities.includes(activity.id);
+                        const isSelected = selectedActivities.includes(
+                          activity.id,
+                        );
                         return (
                           <div
                             key={activity.id}
@@ -425,10 +415,12 @@ export default function TourGuideProfile() {
                           >
                             <Checkbox
                               checked={isSelected}
-                              onCheckedChange={() => toggleActivity(activity.id)}
+                              onCheckedChange={() =>
+                                toggleActivity(activity.id)
+                              }
                               className="data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600"
                             />
-                            <label 
+                            <label
                               className="text-sm font-medium text-gray-700 cursor-pointer"
                               onClick={() => toggleActivity(activity.id)}
                             >
@@ -470,8 +462,6 @@ export default function TourGuideProfile() {
           </CardContent>
         </Card>
       </div>
-
-
     </div>
   );
 }

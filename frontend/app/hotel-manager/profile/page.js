@@ -179,12 +179,6 @@ export default function HotelManagerProfile() {
           </div>
           <div className="flex items-center gap-4">
             {isApproved && (
-              <Badge className="bg-green-100 text-green-800 border-0">
-                <CheckCircle className="h-4 w-4 mr-1" />
-                Verified
-              </Badge>
-            )}
-            {isApproved && (
               <div className="flex items-center gap-2">
                 <span className="text-sm">Available:</span>
                 <Switch
