@@ -365,9 +365,6 @@ export default function TravelAgentCompleteProfile() {
                   <Briefcase className="h-5 w-5 text-amber-600 mr-2" />
                   Agency Information
                 </CardTitle>
-                <CardDescription>
-                  Basic information about your travel agency
-                </CardDescription>
               </CardHeader>
 
               <CardContent className="space-y-6">
