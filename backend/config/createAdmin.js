@@ -19,9 +19,9 @@ async function createAdminUser(email, password, phoneNumber) {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Insert admin user
+    // Insert admin user with email_verified = TRUE
     const [result] = await db.query(
-      "INSERT INTO users (email, password_hash, phone_number, role, status) VALUES (?, ?, ?, 'admin', 'active')",
+      "INSERT INTO users (email, password_hash, phone_number, role, status, email_verified) VALUES (?, ?, ?, 'admin', 'active', TRUE)",
       [email, hashedPassword, phoneNumber],
     );
 

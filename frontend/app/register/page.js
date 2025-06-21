@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,12 +24,24 @@ import { toast } from "sonner";
 import { ChevronRight } from "lucide-react";
 import { useRegisterStore } from "./registerStore";
 import { publishAuthChange } from "@/components/Navbar";
+import ReCAPTCHA from "react-google-recaptcha";
 
 export default function Register() {
   const router = useRouter();
   const { basicFormData, setRole, setBasicFormData } = useRegisterStore();
+  const [isLoading, setIsLoading] = useState(false);
+  const [captchaValue, setCaptchaValue] = useState(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+  // Extract form values from store
+  const {
+    email,
+    password,
+    confirmPassword,
+    phoneNumber,
+    role: selectedRole,
+  } = basicFormData;
 
   // Check if user is already logged in
   useEffect(() => {
@@ -63,6 +75,7 @@ export default function Register() {
 
   const onBasicSubmit = async (event) => {
     event.preventDefault();
+    setIsLoading(true);
 
     const email = basicFormData.email;
     const password = basicFormData.password;
@@ -78,6 +91,13 @@ export default function Register() {
       !selectedRole
     ) {
       toast.error("Please fill in all fields.");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!captchaValue) {
+      toast.error("Please complete the CAPTCHA verification.");
+      setIsLoading(false);
       return;
     }
 
@@ -108,12 +128,14 @@ export default function Register() {
 
     if (password !== confirmPassword) {
       toast.error("Passwords do not match.");
+      setIsLoading(false);
       return;
     }
 
     // Basic presence check only - detailed validation is handled by backend
     if (!phoneNumber) {
       toast.error("Please enter a phone number.");
+      setIsLoading(false);
       return;
     }
 
@@ -144,16 +166,26 @@ export default function Register() {
         } else {
           toast.error(data.message || "Registration failed.");
         }
+        setIsLoading(false);
         return;
       }
 
+      // Check if email verification is required
+      if (data.requiresEmailVerification) {
+        toast.success(
+          "Registration successful! Please check your email to verify your account.",
+        );
+
+        // Redirect to check email page with user's email
+        router.push(`/check-email?email=${encodeURIComponent(email)}`);
+        return;
+      }
+
+      // Legacy flow for cases where email verification is not required
       // Store the token and user data
       localStorage.setItem("token", data.token);
 
       toast.success("Registration successful!");
-
-      // Store token and user data
-      localStorage.setItem("token", data.token);
 
       // Store user data from the response
       const userData = {
@@ -202,16 +234,20 @@ export default function Register() {
             travel_agent: "/travel-agent/dashboard",
           }[selectedRole];
 
-          if (dashboardPath) {
-            router.push(dashboardPath);
-          } else {
-            router.push("/");
-          }
+          router.push(dashboardPath || "/");
         }
       }
     } catch (error) {
       toast.error("An error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
+      // Reset CAPTCHA on error
+      setCaptchaValue(null);
     }
+  };
+
+  const handleCaptchaChange = (value) => {
+    setCaptchaValue(value);
   };
 
   return (
@@ -304,13 +340,14 @@ export default function Register() {
                   Role
                 </label>
                 <Select
+                  value={selectedRole}
                   onValueChange={(value) => setBasicFormData({ role: value })}
-                  defaultValue={basicFormData.role}
+                  defaultValue={selectedRole}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select your role" />
+                    <SelectValue placeholder="Choose your role" />
                   </SelectTrigger>
-                  <SelectContent className="bg-white">
+                  <SelectContent>
                     <SelectItem value="tourist">Tourist</SelectItem>
                     <SelectItem value="tour_guide">Tour Guide</SelectItem>
                     <SelectItem value="hotel_manager">Hotel Manager</SelectItem>
@@ -318,13 +355,26 @@ export default function Register() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none">
+                  Verify you're not a robot
+                </label>
+                <ReCAPTCHA
+                  sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
+                  onChange={handleCaptchaChange}
+                  onExpired={() => setCaptchaValue(null)}
+                  onError={() => setCaptchaValue(null)}
+                />
+              </div>
             </div>
 
             <Button
               type="submit"
-              className="w-full text-white bg-amber-700 hover:bg-amber-800"
+              disabled={isLoading}
+              className="w-full text-white bg-amber-700 hover:bg-amber-800 disabled:bg-amber-400"
             >
-              Create Account
+              {isLoading ? "Creating Account..." : "Create Account"}
               <ChevronRight className="ml-2 h-4 w-4" />
             </Button>
           </form>

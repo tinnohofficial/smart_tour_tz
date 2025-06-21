@@ -30,32 +30,26 @@ function LoginForm() {
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-  // Check if user is already logged in
+  // Check if user is already logged in - simplified to avoid conflicts
   useEffect(() => {
     const token = getAuthToken();
     const userData = getUserData();
 
-    if (token && userData) {
+    // Only redirect if we have both token and userData and we're on login page
+    if (token && userData && window.location.pathname === "/login") {
       const user = userData;
 
-      // Redirect based on role
-      switch (user.role) {
-        case "admin":
-          router.push("/admin/dashboard");
-          break;
-        case "tour_guide":
-          router.push("/tour-guide/dashboard");
-          break;
-        case "travel_agent":
-          router.push("/travel-agent/dashboard");
-          break;
-        case "hotel_manager":
-          router.push("/hotel-manager/dashboard");
-          break;
-        default:
-          // Default case for tourists
-          router.push("/");
-          break;
+      // Use a simple redirect without complex logic
+      if (user.role === "admin") {
+        window.location.href = "/admin/dashboard";
+      } else if (user.role === "tour_guide") {
+        window.location.href = "/tour-guide/dashboard";
+      } else if (user.role === "travel_agent") {
+        window.location.href = "/travel-agent/dashboard";
+      } else if (user.role === "hotel_manager") {
+        window.location.href = "/hotel-manager/dashboard";
+      } else {
+        window.location.href = "/";
       }
     }
   }, [router]);
@@ -97,6 +91,14 @@ function LoginForm() {
       const data = await response.json();
 
       if (!response.ok) {
+        // Check if email verification is required
+        if (data.requiresEmailVerification) {
+          toast.error("Please verify your email address before logging in.");
+          router.push(`/check-email?email=${encodeURIComponent(email)}`);
+          setIsLoading(false);
+          return;
+        }
+
         toast.error(
           data.message || "Invalid email or password. Please try again.",
         );
@@ -132,20 +134,20 @@ function LoginForm() {
 
       switch (userRole) {
         case "admin":
-          router.push("/admin/dashboard");
+          router.replace("/admin/dashboard");
           break;
         case "tour_guide":
-          router.push("/tour-guide/dashboard");
+          router.replace("/tour-guide/dashboard");
           break;
         case "travel_agent":
-          router.push("/travel-agent/dashboard");
+          router.replace("/travel-agent/dashboard");
           break;
         case "hotel_manager":
-          router.push("/hotel-manager/dashboard");
+          router.replace("/hotel-manager/dashboard");
           break;
         default:
           // Default case for tourists
-          router.push("/");
+          router.replace("/");
           break;
       }
     } catch (error) {

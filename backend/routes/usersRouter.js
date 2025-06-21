@@ -40,6 +40,10 @@ router.post("/refresh-token", authenticateToken, usersController.refreshToken);
 router.post("/forgot-password", usersController.forgotPassword);
 router.post("/reset-password", usersController.resetPassword);
 
+// Email verification routes
+router.post("/verify-email", usersController.verifyEmail);
+router.post("/resend-verification", usersController.resendEmailVerification);
+
 // F4.1: Update password - migrated from users controller
 router.put("/password", authenticateToken, usersController.updatePassword);
 

@@ -17,6 +17,22 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Add response interceptor for auth error handling
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      // Handle auth errors
+      if (error.response?.data?.requiresReauth) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("userData");
+        window.location.href = "/login";
+      }
+    }
+    return Promise.reject(error);
+  },
+);
+
 export const cartService = {
   // Get active cart
   async getActiveCart() {
@@ -27,6 +43,12 @@ export const cartService = {
       console.error("Cart fetch error:", error);
       if (error.code === "ECONNABORTED") {
         throw new Error("Request timeout - please check your connection");
+      }
+      if (
+        error.response?.status === 404 &&
+        error.response?.data?.requiresReauth
+      ) {
+        throw new Error("Please log in again to continue");
       }
       throw new Error(error.response?.data?.message || "Failed to fetch cart");
     }

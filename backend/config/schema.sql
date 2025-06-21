@@ -19,6 +19,9 @@ CREATE TABLE users (
         'rejected',
         'inactive'
     ) NOT NULL DEFAULT 'pending_profile',
+    email_verified BOOLEAN DEFAULT TRUE,
+    email_verification_token VARCHAR(255) NULL,
+    email_verification_expires TIMESTAMP NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
@@ -174,6 +177,8 @@ CREATE TABLE payments (
 CREATE INDEX idx_users_email ON users (email);
 CREATE INDEX idx_users_phone ON users (phone_number);
 CREATE INDEX idx_users_role_status ON users (role, status);
+CREATE INDEX idx_users_email_verified ON users (email_verified);
+CREATE INDEX idx_users_verification_token ON users (email_verification_token);
 
 CREATE INDEX idx_bookings_tourist_id ON bookings (tourist_user_id);
 CREATE INDEX idx_bookings_cart_id ON bookings (cart_id);

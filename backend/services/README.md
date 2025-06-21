@@ -9,10 +9,11 @@ The email service provides functionality for sending various types of emails inc
 ### Features
 
 - **Password Reset Emails**: Secure password reset functionality with time-limited tokens
-- **Email Verification**: For user registration verification (ready for future implementation)
+- **Email Verification**: Complete email verification system for user registration
 - **General Notifications**: Flexible notification system for various app events
 - **HTML + Text**: All emails include both HTML and plain text versions
 - **Branded Templates**: Consistent Smart Tour Tanzania branding
+- **Security**: Email enumeration protection and secure token handling
 
 ### Setup
 

@@ -3,7 +3,10 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { validationResult } = require("express-validator");
 const { parsePhoneNumber, isValidPhoneNumber } = require("libphonenumber-js");
-const { sendPasswordResetEmail } = require("../services/emailService");
+const {
+  sendPasswordResetEmail,
+  sendEmailVerificationEmail,
+} = require("../services/emailService");
 const crypto = require("crypto");
 
 const saltRounds = 10;
@@ -32,39 +35,48 @@ exports.register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     const initialStatus = role === "tourist" ? "active" : "pending_profile"; // Tourists are active immediately, others need profile/approval
 
+    // Generate email verification token
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+
     const [result] = await db.query(
-      "INSERT INTO users (email, password_hash, phone_number, role, status) VALUES (?, ?, ?, ?, ?)",
-      [email, hashedPassword, phone_number, role, initialStatus],
-    );
-
-    // Tourist users already have balance initialized in users table
-
-    // Generate JWT token just like in login
-    const token = jwt.sign(
-      {
-        id: result.insertId,
+      "INSERT INTO users (email, password_hash, phone_number, role, status, email_verified, email_verification_token, email_verification_expires) VALUES (?, ?, ?, ?, ?, FALSE, ?, ?)",
+      [
         email,
+        hashedPassword,
+        phone_number,
         role,
-        status: initialStatus,
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: process.env.JWT_EXPIRES_IN || "30d",
-      },
+        initialStatus,
+        verificationToken,
+        verificationExpires,
+      ],
     );
 
-    // Return token and user info like in login
+    // Send email verification
+    try {
+      await sendEmailVerificationEmail(
+        email,
+        verificationToken,
+        email.split("@")[0],
+      );
+    } catch (emailError) {
+      console.error("Failed to send verification email:", emailError);
+      // Continue with registration even if email fails
+    }
+
+    // Return success without token - user needs to verify email first
     res.status(201).json({
       message:
-        "User registered successfully. Please complete your profile if required.",
-      token,
+        "Registration successful! Please check your email to verify your account before logging in.",
       user: {
         id: result.insertId,
         email,
         phone_number,
         role,
         status: initialStatus,
+        email_verified: false,
       },
+      requiresEmailVerification: true,
     });
   } catch (error) {
     console.error("Registration Error:", error);
@@ -83,7 +95,7 @@ exports.login = async (req, res) => {
 
   try {
     const [users] = await db.query(
-      "SELECT id, email, password_hash, phone_number, role, status FROM users WHERE email = ?",
+      "SELECT id, email, password_hash, phone_number, role, status, email_verified FROM users WHERE email = ?",
       [email],
     );
     if (users.length === 0) {
@@ -95,6 +107,15 @@ exports.login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid credentials." });
+    }
+
+    // Check if email is verified (skip for admins and existing users who don't have verification set up)
+    if (user.email_verified === false && user.role !== "admin") {
+      return res.status(403).json({
+        message: "Please verify your email address before logging in.",
+        requiresEmailVerification: true,
+        email: user.email,
+      });
     }
 
     if (user.status === "inactive" || user.status === "rejected") {
@@ -126,6 +147,7 @@ exports.login = async (req, res) => {
         phone_number: user.phone_number,
         role: user.role,
         status: user.status,
+        email_verified: user.email_verified,
         // Add other relevant non-sensitive info if needed
       },
     });
@@ -684,6 +706,123 @@ exports.resetPassword = async (req, res) => {
     console.error("Error in reset password:", error);
     res.status(500).json({
       message: "Error resetting password",
+    });
+  }
+};
+
+// Verify email using token
+exports.verifyEmail = async (req, res) => {
+  const { token } = req.body;
+
+  if (!token) {
+    return res.status(400).json({
+      message: "Verification token is required",
+    });
+  }
+
+  try {
+    // Find user with valid verification token
+    const [users] = await db.query(
+      "SELECT id, email, email_verified FROM users WHERE email_verification_token = ? AND email_verification_expires > NOW()",
+      [token],
+    );
+
+    if (users.length === 0) {
+      return res.status(400).json({
+        message: "Invalid or expired verification token",
+      });
+    }
+
+    const user = users[0];
+
+    if (user.email_verified) {
+      return res.status(400).json({
+        message: "Email is already verified",
+      });
+    }
+
+    // Mark email as verified and clear verification token
+    await db.query(
+      "UPDATE users SET email_verified = TRUE, email_verification_token = NULL, email_verification_expires = NULL WHERE id = ?",
+      [user.id],
+    );
+
+    res.json({
+      message: "Email verified successfully! You can now log in.",
+    });
+  } catch (error) {
+    console.error("Error in email verification:", error);
+    res.status(500).json({
+      message: "Error verifying email",
+    });
+  }
+};
+
+// Resend email verification
+exports.resendEmailVerification = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({
+      message: "Email is required",
+    });
+  }
+
+  try {
+    // Find user by email
+    const [users] = await db.query(
+      "SELECT id, email, email_verified, full_name FROM users WHERE email = ?",
+      [email],
+    );
+
+    if (users.length === 0) {
+      // Don't reveal if email exists or not
+      return res.json({
+        message:
+          "If an account with that email exists and is unverified, a verification email has been sent.",
+      });
+    }
+
+    const user = users[0];
+
+    if (user.email_verified) {
+      return res.status(400).json({
+        message: "Email is already verified",
+      });
+    }
+
+    // Generate new verification token
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+
+    // Update verification token
+    await db.query(
+      "UPDATE users SET email_verification_token = ?, email_verification_expires = ? WHERE id = ?",
+      [verificationToken, verificationExpires, user.id],
+    );
+
+    // Send verification email
+    try {
+      await sendEmailVerificationEmail(
+        email,
+        verificationToken,
+        user.full_name || email.split("@")[0],
+      );
+    } catch (emailError) {
+      console.error("Failed to send verification email:", emailError);
+      return res.status(500).json({
+        message: "Failed to send verification email. Please try again later.",
+      });
+    }
+
+    res.json({
+      message:
+        "If an account with that email exists and is unverified, a verification email has been sent.",
+    });
+  } catch (error) {
+    console.error("Error in resend email verification:", error);
+    res.status(500).json({
+      message: "Error sending verification email",
     });
   }
 };

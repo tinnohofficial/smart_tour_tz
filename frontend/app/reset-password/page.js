@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
-export default function ResetPassword() {
+function ResetPasswordContent() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -66,7 +67,9 @@ export default function ResetPassword() {
       const data = await response.json();
 
       if (response.ok) {
-        toast.success("Password has been reset successfully! You can now log in with your new password.");
+        toast.success(
+          "Password has been reset successfully! You can now log in with your new password.",
+        );
         router.push("/login");
       } else {
         toast.error(data.message || "Failed to reset password.");
@@ -103,7 +106,10 @@ export default function ResetPassword() {
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4">
             <div>
-              <label htmlFor="newPassword" className="block text-sm font-medium mb-1">
+              <label
+                htmlFor="newPassword"
+                className="block text-sm font-medium mb-1"
+              >
                 New Password
               </label>
               <Input
@@ -117,7 +123,10 @@ export default function ResetPassword() {
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium mb-1">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium mb-1"
+              >
                 Confirm New Password
               </label>
               <Input
@@ -153,5 +162,24 @@ export default function ResetPassword() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function ResetPassword() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container max-w-3xl mx-auto py-16">
+          <Card>
+            <CardContent className="p-8 text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+              <p className="mt-2">Loading...</p>
+            </CardContent>
+          </Card>
+        </div>
+      }
+    >
+      <ResetPasswordContent />
+    </Suspense>
   );
 }

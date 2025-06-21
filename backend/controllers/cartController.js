@@ -5,12 +5,12 @@ const db = require("../config/db");
  */
 const parseJsonFields = (items, fields) => {
   if (!items || !Array.isArray(items)) return items;
-  
-  return items.map(item => {
+
+  return items.map((item) => {
     const newItem = { ...item };
-    
-    fields.forEach(field => {
-      if (newItem[field] && typeof newItem[field] === 'string') {
+
+    fields.forEach((field) => {
+      if (newItem[field] && typeof newItem[field] === "string") {
         try {
           newItem[field] = JSON.parse(newItem[field]);
         } catch (e) {
@@ -18,7 +18,7 @@ const parseJsonFields = (items, fields) => {
         }
       }
     });
-    
+
     return newItem;
   });
 };
@@ -35,9 +35,11 @@ const calculateCost = (price, multiplier = 1) => {
 /**
  * Helper function to validate cost calculation
  */
-const validateCostCalculation = (cost, itemType, itemName = '') => {
+const validateCostCalculation = (cost, itemType, itemName = "") => {
   if (isNaN(cost) || cost < 0) {
-    throw new Error(`Invalid cost calculation for ${itemType}${itemName ? ` "${itemName}"` : ''}`);
+    throw new Error(
+      `Invalid cost calculation for ${itemType}${itemName ? ` "${itemName}"` : ""}`,
+    );
   }
   return cost;
 };
@@ -49,10 +51,21 @@ exports.getActiveCart = async (req, res) => {
   const userId = req.user.id;
 
   try {
+    // First check if the user exists
+    const [users] = await db.query("SELECT id FROM users WHERE id = ?", [
+      userId,
+    ]);
+    if (users.length === 0) {
+      return res.status(404).json({
+        message: "User not found. Please log in again.",
+        requiresReauth: true,
+      });
+    }
+
     // First try to find an active cart
     let [carts] = await db.query(
       "SELECT * FROM booking_carts WHERE tourist_user_id = ? AND status = 'active'",
-      [userId]
+      [userId],
     );
 
     let cart;
@@ -60,21 +73,20 @@ exports.getActiveCart = async (req, res) => {
       // Create a new cart if none exists
       const [result] = await db.query(
         "INSERT INTO booking_carts (tourist_user_id, total_cost, status) VALUES (?, 0.00, 'active')",
-        [userId]
+        [userId],
       );
-      
+
       // Fetch the newly created cart
-      [carts] = await db.query(
-        "SELECT * FROM booking_carts WHERE id = ?",
-        [result.insertId]
-      );
+      [carts] = await db.query("SELECT * FROM booking_carts WHERE id = ?", [
+        result.insertId,
+      ]);
     }
 
     cart = carts[0];
 
     // Get all bookings with their items in a single optimized query
     const [bookingResults] = await db.query(
-      `SELECT 
+      `SELECT
          b.id as booking_id,
          b.tourist_user_id,
          b.tourist_full_name,
@@ -114,15 +126,15 @@ exports.getActiveCart = async (req, res) => {
        LEFT JOIN activities a ON bi.item_type = 'activity' AND bi.id = a.id
        WHERE b.cart_id = ? AND b.status = 'in_cart'
        ORDER BY b.id ASC, bi.id ASC`,
-      [cart.id]
+      [cart.id],
     );
 
     // Group booking items by booking
     const bookingsMap = new Map();
-    
-    bookingResults.forEach(row => {
+
+    bookingResults.forEach((row) => {
       const bookingId = row.booking_id;
-      
+
       if (!bookingsMap.has(bookingId)) {
         bookingsMap.set(bookingId, {
           id: bookingId,
@@ -139,10 +151,10 @@ exports.getActiveCart = async (req, res) => {
           created_at: row.created_at,
           destination_name: row.destination_name,
           image_url: row.image_url,
-          items: []
+          items: [],
         });
       }
-      
+
       // Add item if it exists (booking might have no items yet)
       if (row.item_id !== null) {
         const item = {
@@ -152,17 +164,17 @@ exports.getActiveCart = async (req, res) => {
           sessions: row.sessions,
           cost: row.item_cost,
           provider_status: row.provider_status,
-          item_name: row.item_name
+          item_name: row.item_name,
         };
-        
+
         bookingsMap.get(bookingId).items.push(item);
       }
     });
 
     // Convert map to array and parse JSON fields
     const bookings = Array.from(bookingsMap.values());
-    bookings.forEach(booking => {
-      booking.items = parseJsonFields(booking.items, ['item_details']);
+    bookings.forEach((booking) => {
+      booking.items = parseJsonFields(booking.items, ["item_details"]);
     });
 
     cart.bookings = bookings;
@@ -170,7 +182,9 @@ exports.getActiveCart = async (req, res) => {
     res.status(200).json(cart);
   } catch (error) {
     console.error("Error fetching cart:", error);
-    res.status(500).json({ message: "Failed to fetch cart", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to fetch cart", error: error.message });
   }
 };
 
@@ -178,18 +192,18 @@ exports.getActiveCart = async (req, res) => {
  * Add a booking to cart
  */
 exports.addToCart = async (req, res) => {
-  const { 
-    transportId, 
-    hotelId, 
-    activityIds, 
+  const {
+    transportId,
+    hotelId,
+    activityIds,
     activitySessions = {},
-    startDate, 
-    endDate, 
+    startDate,
+    endDate,
     destinationId,
     touristFullName,
     includeTransport = true,
     includeHotel = true,
-    includeActivities = true
+    includeActivities = true,
   } = req.body;
   const userId = req.user.id;
 
@@ -199,30 +213,54 @@ exports.addToCart = async (req, res) => {
   }
 
   // Validate tourist full name
-  if (!touristFullName || typeof touristFullName !== 'string' || touristFullName.trim().length < 2) {
-    return res.status(400).json({ message: "Tourist full name is required and must be at least 2 characters long" });
+  if (
+    !touristFullName ||
+    typeof touristFullName !== "string" ||
+    touristFullName.trim().length < 2
+  ) {
+    return res
+      .status(400)
+      .json({
+        message:
+          "Tourist full name is required and must be at least 2 characters long",
+      });
   }
 
   // Validate date inputs
   if (!startDate || !endDate) {
-    return res.status(400).json({ message: "Start date and end date are required" });
+    return res
+      .status(400)
+      .json({ message: "Start date and end date are required" });
   }
 
   if (!includeTransport && !includeHotel && !includeActivities) {
-    return res.status(400).json({ message: "At least one service must be included" });
+    return res
+      .status(400)
+      .json({ message: "At least one service must be included" });
   }
 
   // Validate that if services are included, their IDs are provided
   if (includeTransport && !transportId) {
-    return res.status(400).json({ message: "Transport ID is required when transport is included" });
+    return res
+      .status(400)
+      .json({ message: "Transport ID is required when transport is included" });
   }
 
   if (includeHotel && !hotelId) {
-    return res.status(400).json({ message: "Hotel ID is required when hotel is included" });
+    return res
+      .status(400)
+      .json({ message: "Hotel ID is required when hotel is included" });
   }
 
-  if (includeActivities && (!activityIds || !Array.isArray(activityIds) || activityIds.length === 0)) {
-    return res.status(400).json({ message: "Activity IDs are required when activities are included" });
+  if (
+    includeActivities &&
+    (!activityIds || !Array.isArray(activityIds) || activityIds.length === 0)
+  ) {
+    return res
+      .status(400)
+      .json({
+        message: "Activity IDs are required when activities are included",
+      });
   }
 
   const start = new Date(startDate);
@@ -235,16 +273,22 @@ exports.addToCart = async (req, res) => {
   }
 
   if (start < currentDate) {
-    return res.status(400).json({ message: "Start date cannot be in the past" });
+    return res
+      .status(400)
+      .json({ message: "Start date cannot be in the past" });
   }
 
   if (end <= start) {
-    return res.status(400).json({ message: "End date must be after start date" });
+    return res
+      .status(400)
+      .json({ message: "End date must be after start date" });
   }
 
   const daysBooked = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
   if (daysBooked > 30) {
-    return res.status(400).json({ message: "Booking duration cannot exceed 30 days" });
+    return res
+      .status(400)
+      .json({ message: "Booking duration cannot exceed 30 days" });
   }
 
   let connection;
@@ -256,14 +300,14 @@ exports.addToCart = async (req, res) => {
       // Get or create active cart with row locking for concurrency
       let [carts] = await connection.query(
         "SELECT * FROM booking_carts WHERE tourist_user_id = ? AND status = 'active' FOR UPDATE",
-        [userId]
+        [userId],
       );
 
       let cartId;
       if (carts.length === 0) {
         const [cartResult] = await connection.query(
           "INSERT INTO booking_carts (tourist_user_id, total_cost, status) VALUES (?, 0.00, 'active')",
-          [userId]
+          [userId],
         );
         cartId = cartResult.insertId;
       } else {
@@ -278,7 +322,7 @@ exports.addToCart = async (req, res) => {
       if (includeTransport && transportId) {
         const [transportRows] = await connection.query(
           "SELECT id, cost FROM transports WHERE id = ?",
-          [transportId]
+          [transportId],
         );
 
         if (transportRows.length === 0) {
@@ -289,9 +333,9 @@ exports.addToCart = async (req, res) => {
 
         const transport = transportRows[0];
         const transportCost = validateCostCalculation(
-          calculateCost(transport.cost), 
-          'transport', 
-          'route'
+          calculateCost(transport.cost),
+          "transport",
+          "route",
         );
         totalCost += transportCost;
         selectedItems.push({
@@ -305,7 +349,7 @@ exports.addToCart = async (req, res) => {
       if (includeHotel && hotelId) {
         const [hotelRows] = await connection.query(
           "SELECT id, base_price_per_night FROM hotels WHERE id = ?",
-          [hotelId]
+          [hotelId],
         );
 
         if (hotelRows.length === 0) {
@@ -318,8 +362,8 @@ exports.addToCart = async (req, res) => {
         const nights = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
         const hotelCost = validateCostCalculation(
           calculateCost(hotel.base_price_per_night, Math.max(1, nights)),
-          'hotel',
-          hotel.name || 'accommodation'
+          "hotel",
+          hotel.name || "accommodation",
         );
         totalCost += hotelCost;
 
@@ -338,17 +382,22 @@ exports.addToCart = async (req, res) => {
         cost: 0,
         details: {
           type: "tour_guide_placeholder",
-          message: "Tour guide will be assigned by admin"
-        }
+          message: "Tour guide will be assigned by admin",
+        },
       });
 
       // Check activities
-      if (includeActivities && activityIds && Array.isArray(activityIds) && activityIds.length > 0) {
+      if (
+        includeActivities &&
+        activityIds &&
+        Array.isArray(activityIds) &&
+        activityIds.length > 0
+      ) {
         const placeholders = activityIds.map(() => "?").join(",");
-        
+
         const [activityRows] = await connection.query(
           `SELECT a.id, a.price, a.destination_id,
-                  d.name as destination_name 
+                  d.name as destination_name
            FROM activities a
            JOIN destinations d ON a.destination_id = d.id
            WHERE a.id IN (${placeholders})`,
@@ -358,19 +407,21 @@ exports.addToCart = async (req, res) => {
         if (activityRows.length !== activityIds.length) {
           await connection.rollback();
           connection.release();
-          return res.status(404).json({ message: "One or more activities not found" });
+          return res
+            .status(404)
+            .json({ message: "One or more activities not found" });
         }
 
         // Validate activity schedules
         for (const activity of activityRows) {
           const activityId = activity.id;
           const sessions = activitySessions[activityId] || 1;
-          
+
           if (!Number.isInteger(sessions) || sessions < 1) {
             await connection.rollback();
             connection.release();
-            return res.status(400).json({ 
-              message: `Invalid number of sessions for activity "${activity.destination_name}". Must be a positive integer.` 
+            return res.status(400).json({
+              message: `Invalid number of sessions for activity "${activity.destination_name}". Must be a positive integer.`,
             });
           }
         }
@@ -379,18 +430,18 @@ exports.addToCart = async (req, res) => {
           const sessions = activitySessions[activity.id] || 1;
           const activityCost = validateCostCalculation(
             calculateCost(activity.price, sessions),
-            'activity',
-            activity.destination_name
+            "activity",
+            activity.destination_name,
           );
-          
+
           // Add activity cost (price * sessions)
           totalCost += activityCost;
-          
+
           selectedItems.push({
             type: "activity",
             id: activity.id,
             cost: activityCost,
-            sessions: sessions
+            sessions: sessions,
           });
         }
       }
@@ -399,52 +450,58 @@ exports.addToCart = async (req, res) => {
       const [bookingResult] = await connection.query(
         `INSERT INTO bookings (
           cart_id,
-          tourist_user_id, 
+          tourist_user_id,
           tourist_full_name,
-          start_date, 
-          end_date, 
-          destination_id, 
-          total_cost, 
-          include_transport, 
-          include_hotel, 
-          include_activities, 
+          start_date,
+          end_date,
+          destination_id,
+          total_cost,
+          include_transport,
+          include_hotel,
+          include_activities,
           status
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'in_cart')`,
         [
           cartId,
-          userId, 
+          userId,
           touristFullName.trim(),
-          startDate, 
-          endDate, 
-          destinationId, 
-          totalCost, 
-          includeTransport, 
-          includeHotel, 
-          includeActivities
-        ]
+          startDate,
+          endDate,
+          destinationId,
+          totalCost,
+          includeTransport,
+          includeHotel,
+          includeActivities,
+        ],
       );
 
       const bookingId = bookingResult.insertId;
 
       // Create booking items
       for (const item of selectedItems) {
-        if (item.type === 'placeholder' && item.details) {
+        if (item.type === "placeholder" && item.details) {
           await connection.query(
             `INSERT INTO booking_items (id, booking_id, item_type, cost, provider_status, item_details)
              VALUES (?, ?, ?, ?, 'pending', ?)`,
-            [item.id, bookingId, item.type, item.cost, JSON.stringify(item.details)]
+            [
+              item.id,
+              bookingId,
+              item.type,
+              item.cost,
+              JSON.stringify(item.details),
+            ],
           );
-        } else if (item.type === 'activity' && item.sessions) {
+        } else if (item.type === "activity" && item.sessions) {
           await connection.query(
             `INSERT INTO booking_items (id, booking_id, item_type, cost, provider_status, sessions)
              VALUES (?, ?, ?, ?, 'pending', ?)`,
-            [item.id, bookingId, item.type, item.cost, item.sessions]
+            [item.id, bookingId, item.type, item.cost, item.sessions],
           );
         } else {
           await connection.query(
             `INSERT INTO booking_items (id, booking_id, item_type, cost, provider_status)
              VALUES (?, ?, ?, ?, 'pending')`,
-            [item.id, bookingId, item.type, item.cost]
+            [item.id, bookingId, item.type, item.cost],
           );
         }
       }
@@ -452,11 +509,11 @@ exports.addToCart = async (req, res) => {
       // Update cart total
       await connection.query(
         "UPDATE booking_carts SET total_cost = total_cost + ? WHERE id = ?",
-        [totalCost, cartId]
+        [totalCost, cartId],
       );
 
       await connection.commit();
-      
+
       res.status(201).json({
         message: "Booking added to cart successfully",
         bookingId,
@@ -465,8 +522,8 @@ exports.addToCart = async (req, res) => {
         flexibleOptions: {
           includeTransport,
           includeHotel,
-          includeActivities
-        }
+          includeActivities,
+        },
       });
     } catch (error) {
       await connection.rollback();
@@ -474,7 +531,9 @@ exports.addToCart = async (req, res) => {
     }
   } catch (error) {
     console.error("Error adding to cart:", error);
-    res.status(500).json({ message: "Failed to add booking to cart", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to add booking to cart", error: error.message });
   } finally {
     if (connection) {
       connection.release();
@@ -501,12 +560,12 @@ exports.removeFromCart = async (req, res) => {
     try {
       // Verify the booking belongs to the user and is in cart with row locking
       const [bookings] = await connection.query(
-        `SELECT b.*, c.id as cart_id 
-         FROM bookings b 
+        `SELECT b.*, c.id as cart_id
+         FROM bookings b
          JOIN booking_carts c ON b.cart_id = c.id
          WHERE b.id = ? AND b.tourist_user_id = ? AND b.status = 'in_cart'
          FOR UPDATE`,
-        [bookingId, userId]
+        [bookingId, userId],
       );
 
       if (bookings.length === 0) {
@@ -519,31 +578,34 @@ exports.removeFromCart = async (req, res) => {
       // Update cart total by subtracting this booking's cost
       await connection.query(
         "UPDATE booking_carts SET total_cost = GREATEST(0, total_cost - ?) WHERE id = ?",
-        [booking.total_cost, booking.cart_id]
+        [booking.total_cost, booking.cart_id],
       );
 
       // Delete booking items first (due to foreign key constraint)
-      await connection.query(
-        "DELETE FROM booking_items WHERE booking_id = ?",
-        [bookingId]
-      );
+      await connection.query("DELETE FROM booking_items WHERE booking_id = ?", [
+        bookingId,
+      ]);
 
       // Delete the booking
-      await connection.query(
-        "DELETE FROM bookings WHERE id = ?",
-        [bookingId]
-      );
+      await connection.query("DELETE FROM bookings WHERE id = ?", [bookingId]);
 
       await connection.commit();
 
-      res.status(200).json({ message: "Booking removed from cart successfully" });
+      res
+        .status(200)
+        .json({ message: "Booking removed from cart successfully" });
     } catch (error) {
       await connection.rollback();
       throw error;
     }
   } catch (error) {
     console.error("Error removing from cart:", error);
-    res.status(500).json({ message: "Failed to remove booking from cart", error: error.message });
+    res
+      .status(500)
+      .json({
+        message: "Failed to remove booking from cart",
+        error: error.message,
+      });
   } finally {
     if (connection) {
       connection.release();
@@ -559,11 +621,11 @@ exports.checkoutCart = async (req, res) => {
   const userId = req.user.id;
 
   // Validate payment method
-  const validPaymentMethods = ['savings', 'stripe', 'crypto', 'external'];
+  const validPaymentMethods = ["savings", "stripe", "crypto", "external"];
   if (!paymentMethod || !validPaymentMethods.includes(paymentMethod)) {
-    return res.status(400).json({ 
-      message: "Valid payment method is required", 
-      validMethods: validPaymentMethods 
+    return res.status(400).json({
+      message: "Valid payment method is required",
+      validMethods: validPaymentMethods,
     });
   }
 
@@ -576,7 +638,7 @@ exports.checkoutCart = async (req, res) => {
       // Get active cart with bookings with row locking
       const [carts] = await connection.query(
         "SELECT * FROM booking_carts WHERE tourist_user_id = ? AND status = 'active' FOR UPDATE",
-        [userId]
+        [userId],
       );
 
       if (carts.length === 0) {
@@ -588,13 +650,15 @@ exports.checkoutCart = async (req, res) => {
 
       if (cart.total_cost <= 0) {
         await connection.rollback();
-        return res.status(400).json({ message: "Cart is empty or has no total amount" });
+        return res
+          .status(400)
+          .json({ message: "Cart is empty or has no total amount" });
       }
 
       // Get user's balance
       const [userRows] = await connection.query(
         "SELECT balance FROM users WHERE id = ?",
-        [userId]
+        [userId],
       );
 
       let userBalance = 0;
@@ -602,19 +666,20 @@ exports.checkoutCart = async (req, res) => {
         userBalance = parseFloat(userRows[0].balance);
       }
 
-      let paymentReference = '';
+      let paymentReference = "";
       // Apply 5% discount for savings payments
-      const paymentAmount = paymentMethod === 'savings' ? cart.total_cost * 0.95 : cart.total_cost;
+      const paymentAmount =
+        paymentMethod === "savings" ? cart.total_cost * 0.95 : cart.total_cost;
 
       // Process payment based on method
-      if (paymentMethod === 'savings') {
+      if (paymentMethod === "savings") {
         if (userBalance < paymentAmount) {
           await connection.rollback();
           connection.release();
-          return res.status(400).json({ 
+          return res.status(400).json({
             message: "Insufficient balance",
             required: paymentAmount,
-            available: userBalance
+            available: userBalance,
           });
         }
 
@@ -622,13 +687,12 @@ exports.checkoutCart = async (req, res) => {
         if (userRows.length > 0) {
           await connection.query(
             "UPDATE users SET balance = balance - ? WHERE id = ?",
-            [paymentAmount, userId]
+            [paymentAmount, userId],
           );
         }
 
         paymentReference = `SAVINGS_${Date.now()}`;
-
-      } else if (paymentMethod === 'crypto') {
+      } else if (paymentMethod === "crypto") {
         // Enhanced crypto payment processing
         const walletAddress = req.body.walletAddress;
         const useVaultBalance = req.body.useVaultBalance || false;
@@ -639,14 +703,20 @@ exports.checkoutCart = async (req, res) => {
         if (!walletAddress) {
           await connection.rollback();
           connection.release();
-          return res.status(400).json({ message: "Wallet address is required for crypto payments" });
+          return res
+            .status(400)
+            .json({
+              message: "Wallet address is required for crypto payments",
+            });
         }
 
         // If vault balance is used, verify transaction hash
         if (useVaultBalance && !transactionHash) {
           await connection.rollback();
           connection.release();
-          return res.status(400).json({ message: "Transaction hash required for vault payments" });
+          return res
+            .status(400)
+            .json({ message: "Transaction hash required for vault payments" });
         }
 
         // Set payment reference based on payment type
@@ -655,11 +725,9 @@ exports.checkoutCart = async (req, res) => {
         } else {
           paymentReference = `CRYPTO-DIRECT-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
         }
-
-      } else if (paymentMethod === 'stripe') {
+      } else if (paymentMethod === "stripe") {
         // Stripe payment would be handled here
         paymentReference = stripePaymentMethodId || `STRIPE_${Date.now()}`;
-
       } else {
         paymentReference = `EXTERNAL_${Date.now()}`;
       }
@@ -668,19 +736,19 @@ exports.checkoutCart = async (req, res) => {
       await connection.query(
         `INSERT INTO payments (cart_id, user_id, amount, payment_method, reference, status)
          VALUES (?, ?, ?, ?, ?, 'successful')`,
-        [cart.id, userId, paymentAmount, paymentMethod, paymentReference]
+        [cart.id, userId, paymentAmount, paymentMethod, paymentReference],
       );
 
       // Update cart status to completed
       await connection.query(
         "UPDATE booking_carts SET status = 'completed' WHERE id = ?",
-        [cart.id]
+        [cart.id],
       );
 
       // Update all bookings in cart to confirmed
       await connection.query(
         "UPDATE bookings SET status = 'confirmed' WHERE cart_id = ? AND status = 'in_cart'",
-        [cart.id]
+        [cart.id],
       );
 
       await connection.commit();
@@ -690,16 +758,17 @@ exports.checkoutCart = async (req, res) => {
         cartId: cart.id,
         totalAmount: paymentAmount,
         paymentMethod,
-        paymentReference
+        paymentReference,
       });
-
     } catch (error) {
       await connection.rollback();
       throw error;
     }
   } catch (error) {
     console.error("Error during cart checkout:", error);
-    res.status(500).json({ message: "Cart checkout failed", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Cart checkout failed", error: error.message });
   } finally {
     if (connection) {
       connection.release();
@@ -722,7 +791,7 @@ exports.clearCart = async (req, res) => {
       // Get active cart with row locking
       const [carts] = await connection.query(
         "SELECT * FROM booking_carts WHERE tourist_user_id = ? AND status = 'active' FOR UPDATE",
-        [userId]
+        [userId],
       );
 
       if (carts.length === 0) {
@@ -735,31 +804,31 @@ exports.clearCart = async (req, res) => {
       // Get all bookings in cart
       const [bookings] = await connection.query(
         "SELECT id FROM bookings WHERE cart_id = ? AND status = 'in_cart'",
-        [cartId]
+        [cartId],
       );
 
       // Use a more efficient bulk delete approach
       if (bookings.length > 0) {
-        const bookingIds = bookings.map(b => b.id);
-        const placeholders = bookingIds.map(() => '?').join(',');
-        
+        const bookingIds = bookings.map((b) => b.id);
+        const placeholders = bookingIds.map(() => "?").join(",");
+
         // Delete booking items for all bookings
         await connection.query(
           `DELETE FROM booking_items WHERE booking_id IN (${placeholders})`,
-          bookingIds
+          bookingIds,
         );
 
         // Delete all bookings in cart
         await connection.query(
           `DELETE FROM bookings WHERE cart_id = ? AND status = 'in_cart'`,
-          [cartId]
+          [cartId],
         );
       }
 
       // Reset cart total
       await connection.query(
         "UPDATE booking_carts SET total_cost = 0.00 WHERE id = ?",
-        [cartId]
+        [cartId],
       );
 
       await connection.commit();
@@ -771,7 +840,9 @@ exports.clearCart = async (req, res) => {
     }
   } catch (error) {
     console.error("Error clearing cart:", error);
-    res.status(500).json({ message: "Failed to clear cart", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to clear cart", error: error.message });
   } finally {
     if (connection) {
       connection.release();
