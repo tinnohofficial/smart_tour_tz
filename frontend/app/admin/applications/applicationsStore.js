@@ -1,5 +1,5 @@
 // src/stores/applicationsStore.js (or your preferred location)
-import { create } from 'zustand';
+import { create } from "zustand";
 import { toast } from "sonner";
 import { applicationsService } from "@/app/services/api"; // Assuming your service path
 
@@ -11,6 +11,7 @@ export const useApplicationsStore = create((set, get) => ({
   selectedApplication: null,
   isDetailsOpen: false,
   isProcessing: false, // For approve/reject actions
+  comments: "", // For admin comments during approval/rejection
 
   // --- Actions ---
 
@@ -20,6 +21,7 @@ export const useApplicationsStore = create((set, get) => ({
   setIsDetailsOpen: (isOpen) => set({ isDetailsOpen: isOpen }),
   setIsProcessing: (processing) => set({ isProcessing: processing }),
   setSelectedApplication: (app) => set({ selectedApplication: app }),
+  setComments: (comments) => set({ comments }),
 
   // Fetching Action
   fetchApplications: async () => {
@@ -39,20 +41,24 @@ export const useApplicationsStore = create((set, get) => ({
 
   // Approve Action
   approveApplication: async (userId) => {
+    const { comments } = get();
     set({ isProcessing: true });
     try {
-      await applicationsService.approveApplication(userId);
+      await applicationsService.approveApplication(userId, comments);
 
       // Update state: remove the approved application
       set((state) => ({
-        applications: state.applications.filter((app) => app.user_id !== userId),
+        applications: state.applications.filter(
+          (app) => app.user_id !== userId,
+        ),
       }));
 
       toast.success("The user account has been successfully approved.");
-      set({ isDetailsOpen: false, selectedApplication: null }); // Close dialog and clear selection
+      set({ isDetailsOpen: false, selectedApplication: null, comments: "" }); // Close dialog and clear selection and comments
     } catch (err) {
       console.error("Error approving application:", err);
-      const errorMsg = "There was an error approving this application. Please try again.";
+      const errorMsg =
+        "There was an error approving this application. Please try again.";
       set({ error: errorMsg }); // Optionally set error state
       toast.error(errorMsg);
     } finally {
@@ -62,20 +68,24 @@ export const useApplicationsStore = create((set, get) => ({
 
   // Reject Action
   rejectApplication: async (userId) => {
+    const { comments } = get();
     set({ isProcessing: true });
     try {
-      await applicationsService.rejectApplication(userId);
+      await applicationsService.rejectApplication(userId, comments);
 
       // Update state: remove the rejected application
       set((state) => ({
-        applications: state.applications.filter((app) => app.user_id !== userId),
+        applications: state.applications.filter(
+          (app) => app.user_id !== userId,
+        ),
       }));
 
       toast.success("The user account has been rejected.");
-      set({ isDetailsOpen: false, selectedApplication: null }); // Close dialog and clear selection
+      set({ isDetailsOpen: false, selectedApplication: null, comments: "" }); // Close dialog and clear selection and comments
     } catch (err) {
       console.error("Error rejecting application:", err);
-      const errorMsg = "There was an error rejecting this application. Please try again.";
+      const errorMsg =
+        "There was an error rejecting this application. Please try again.";
       set({ error: errorMsg }); // Optionally set error state
       toast.error(errorMsg);
     } finally {
@@ -85,6 +95,11 @@ export const useApplicationsStore = create((set, get) => ({
 
   // View Details Action
   viewApplicationDetails: (application) => {
-    set({ selectedApplication: application, isDetailsOpen: true, error: null }); // Clear error when opening details
+    set({
+      selectedApplication: application,
+      isDetailsOpen: true,
+      error: null,
+      comments: "",
+    }); // Clear error and comments when opening details
   },
 }));

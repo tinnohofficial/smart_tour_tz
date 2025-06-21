@@ -14,10 +14,10 @@ export const getFullImageUrl = (imageUrl) => {
 // Utility function to get auth headers
 const getAuthHeaders = () => {
   // Check if we're in a browser environment
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return { "Content-Type": "application/json" };
   }
-  
+
   const token = localStorage.getItem("token");
   return {
     "Content-Type": "application/json",
@@ -54,11 +54,11 @@ const apiRequest = async (endpoint, options = {}) => {
       // Handle authentication errors gracefully
       if (response.status === 401 || response.status === 403) {
         // Clear invalid tokens
-        if (typeof window !== 'undefined') {
+        if (typeof window !== "undefined") {
           localStorage.removeItem("token");
           localStorage.removeItem("userData");
         }
-        
+
         const error = new Error(errorMessage);
         error.response = { status: response.status };
         error.isAuthError = true;
@@ -109,8 +109,12 @@ export const apiUtils = {
   },
 
   handleAuthError(error, router) {
-    if (error.response?.status === 401 || error.response?.status === 403 || error.isAuthError) {
-      if (typeof window !== 'undefined') {
+    if (
+      error.response?.status === 401 ||
+      error.response?.status === 403 ||
+      error.isAuthError
+    ) {
+      if (typeof window !== "undefined") {
         localStorage.removeItem("token");
         localStorage.removeItem("userData");
       }
@@ -178,10 +182,10 @@ export const hotelManagerService = {
 export const travelAgentService = {
   async getProfile() {
     // Get current user's ID from token payload
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       throw new Error("Not in browser environment");
     }
-    
+
     const token = localStorage.getItem("token");
     if (!token) throw new Error("No authentication token found");
 
@@ -199,16 +203,16 @@ export const travelAgentService = {
 
   async updateProfile(profileData) {
     // Get current user's ID from token payload
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       throw new Error("Not in browser environment");
     }
-    
+
     const token = localStorage.getItem("token");
     if (!token) throw new Error("No authentication token found");
 
     const payload = JSON.parse(atob(token.split(".")[1]));
     const userId = payload.id;
-    
+
     return apiRequest(`/travel-agents/${userId}`, {
       method: "PUT",
       body: JSON.stringify(profileData),
@@ -452,17 +456,17 @@ export const applicationsService = {
     return apiRequest(`/applications/${userId}/status`);
   },
 
-  async approveApplication(userId) {
+  async approveApplication(userId, comments = "") {
     return apiRequest(`/applications/${userId}/status`, {
       method: "PATCH",
-      body: JSON.stringify({ newStatus: "active" }),
+      body: JSON.stringify({ newStatus: "active", comments }),
     });
   },
 
-  async rejectApplication(userId) {
+  async rejectApplication(userId, comments = "") {
     return apiRequest(`/applications/${userId}/status`, {
       method: "PATCH",
-      body: JSON.stringify({ newStatus: "rejected" }),
+      body: JSON.stringify({ newStatus: "rejected", comments }),
     });
   },
 };
@@ -470,10 +474,10 @@ export const applicationsService = {
 // Upload Service
 export const uploadService = {
   async uploadFile(file) {
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       throw new Error("File upload not available in server environment");
     }
-    
+
     const formData = new FormData();
     formData.append("file", file);
 
@@ -507,10 +511,10 @@ export const uploadService = {
   },
 
   async uploadDocument(file) {
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       throw new Error("Document upload not available in server environment");
     }
-    
+
     const formData = new FormData();
     formData.append("file", file);
 
@@ -539,10 +543,10 @@ export const uploadService = {
   },
 
   async deleteFile(filename) {
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       throw new Error("File deletion not available in server environment");
     }
-    
+
     const token = localStorage.getItem("token");
     if (!token) {
       throw new Error("Authentication required for file deletion");

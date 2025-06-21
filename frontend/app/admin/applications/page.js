@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import Image from "next/image";
 import {
   Card,
@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -52,12 +53,14 @@ export default function ApplicationsPage() {
     selectedApplication,
     isDetailsOpen,
     isProcessing,
+    comments,
     // Actions
     fetchApplications,
     approveApplication,
     rejectApplication,
     viewApplicationDetails,
     setIsDetailsOpen,
+    setComments,
   } = useApplicationsStore();
 
   // Fetch initial data on component mount
@@ -487,6 +490,24 @@ export default function ApplicationsPage() {
                       )}
                     </>
                   )}
+
+                {/* Comments Section */}
+                <div className="mt-6 pt-6 border-t">
+                  <h4 className="text-sm font-medium text-gray-500 mb-2">
+                    Admin Comments (Optional)
+                  </h4>
+                  <p className="text-xs text-gray-400 mb-3">
+                    Add comments to be included in the email notification to the
+                    applicant.
+                  </p>
+                  <Textarea
+                    value={comments}
+                    onChange={(e) => setComments(e.target.value)}
+                    placeholder="Enter your comments for approval or rejection..."
+                    className="min-h-[100px] resize-none"
+                    disabled={isProcessing}
+                  />
+                </div>
               </div>
             </div>
           )}

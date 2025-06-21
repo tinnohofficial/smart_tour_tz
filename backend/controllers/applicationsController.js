@@ -1,4 +1,5 @@
 const db = require("../config/db");
+const { sendNotificationEmail } = require("../services/emailService");
 
 exports.getPendingApplications = async (req, res) => {
   try {
@@ -40,7 +41,7 @@ exports.getPendingApplications = async (req, res) => {
                     const placeholders = activityIds.map(() => "?").join(",");
                     const [activityDetails] = await db.query(
                       `SELECT id, name FROM activities WHERE id IN (${placeholders})`,
-                      activityIds
+                      activityIds,
                     );
                     profileDetails.activity_details = activityDetails;
                     profileDetails.activities = activityIds; // Keep the original array of IDs
@@ -96,7 +97,7 @@ exports.getPendingApplications = async (req, res) => {
 
               // Get related transport routes for this agency
               const [routesDetails] = await db.query(
-                `SELECT t.id, to_orig.name as origin, d.name as destination, 
+                `SELECT t.id, to_orig.name as origin, d.name as destination,
                         t.transportation_type, t.cost, t.description
                  FROM transports t
                  JOIN transport_origins to_orig ON t.origin_id = to_orig.id
@@ -106,11 +107,16 @@ exports.getPendingApplications = async (req, res) => {
               );
 
               profileDetails.routes = routesDetails;
-              
+
               // Try to parse document_url as JSON if it's stored that way
-              if (profileDetails.document_url && profileDetails.document_url.startsWith('[')) {
+              if (
+                profileDetails.document_url &&
+                profileDetails.document_url.startsWith("[")
+              ) {
                 try {
-                  profileDetails.document_url = JSON.parse(profileDetails.document_url);
+                  profileDetails.document_url = JSON.parse(
+                    profileDetails.document_url,
+                  );
                 } catch (e) {
                   // Keep as is if parsing fails
                 }
@@ -124,7 +130,10 @@ exports.getPendingApplications = async (req, res) => {
         return {
           ...user,
           user_id: user.id, // Add user_id field for frontend compatibility
-          name: profileDetails.full_name || profileDetails.name || user.email.split('@')[0], // Try to get a display name
+          name:
+            profileDetails.full_name ||
+            profileDetails.name ||
+            user.email.split("@")[0], // Try to get a display name
           details: profileDetails,
         };
       }),
@@ -141,7 +150,7 @@ exports.getPendingApplications = async (req, res) => {
 
 exports.updateApplicationStatus = async (req, res) => {
   const { userId } = req.params;
-  const { newStatus } = req.body; // Expecting 'active' or 'rejected'
+  const { newStatus, comments = "" } = req.body; // Expecting 'active' or 'rejected' and optional comments
 
   if (!["active", "rejected"].includes(newStatus)) {
     return res.status(400).json({
@@ -150,6 +159,21 @@ exports.updateApplicationStatus = async (req, res) => {
   }
 
   try {
+    // Get user information before updating status
+    const [userInfo] = await db.query(
+      "SELECT email, role FROM users WHERE id = ? AND status = ?",
+      [userId, "pending_approval"],
+    );
+
+    if (userInfo.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "Application not found or not in pending state." });
+    }
+
+    const user = userInfo[0];
+
+    // Update the user status
     const [result] = await db.query(
       "UPDATE users SET status = ? WHERE id = ? AND status = ?",
       [newStatus, userId, "pending_approval"],
@@ -168,6 +192,40 @@ exports.updateApplicationStatus = async (req, res) => {
         [userId],
       );
       // Tourist users already have balance initialized in users table
+    }
+
+    // Send email notification
+    try {
+      const isApproved = newStatus === "active";
+      const subject = isApproved
+        ? "Application Approved - Welcome to Smart Tour Tanzania!"
+        : "Application Status Update - Smart Tour Tanzania";
+
+      let message = isApproved
+        ? `<h2>Congratulations! Your application has been approved.</h2>
+           <p>Your ${user.role.replace("_", " ")} account is now active and you can start using Smart Tour Tanzania.</p>`
+        : `<h2>Application Status Update</h2>
+           <p>Thank you for your interest in Smart Tour Tanzania. After careful review, we rejected your ${user.role.replace("_", " ")} application.</p>`;
+
+      if (comments.trim()) {
+        message += `<h3>Admin Comments:</h3><p>${comments}</p>`;
+      }
+
+      if (isApproved) {
+        message += `<p>You can now log in to your account and start exploring all the features available to you.</p>`;
+      } else {
+        message += `<p>If you have any questions or would like to reapply in the future, please feel free to contact our support team.</p>`;
+      }
+
+      await sendNotificationEmail(
+        user.email,
+        subject,
+        message,
+        user.email.split("@")[0], // Use email prefix as username
+      );
+    } catch (emailError) {
+      console.error("Failed to send status notification email:", emailError);
+      // Continue with success response even if email fails
     }
 
     res.json({ message: `Application status updated to ${newStatus}.` });
