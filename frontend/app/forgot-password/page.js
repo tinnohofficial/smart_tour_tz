@@ -19,22 +19,31 @@ export default function ForgotPassword() {
       setIsLoading(false);
       return;
     }
-    // i need api for this forgot password (for now it stays as this sample first)
+
     try {
-      // TODO: Implement forgot password API endpoint
-      // const response = await fetch("/api/forgot-password", {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({ email }),
-      // })
-      // const data = await response.json()
-      // if (!response.ok) {
-      //   toast.error(data.message || "Failed to send reset email.")
-      // } else {
-      //   toast.success("Password reset instructions sent to your email.")
-      // }
-      toast.error("Forgot password feature not yet implemented.");
-    } catch {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/users/forgot-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(
+          "If an account with that email exists, a password reset link has been sent.",
+        );
+        setEmail(""); // Clear the form
+      } else {
+        toast.error(data.message || "Failed to send reset email.");
+      }
+    } catch (error) {
+      console.error("Forgot password error:", error);
       toast.error("Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
@@ -52,6 +61,7 @@ export default function ForgotPassword() {
             <Input
               type="email"
               value={email}
+              placeholder="Enter your email"
               onChange={(e) => setEmail(e.target.value)}
             />
             <Button

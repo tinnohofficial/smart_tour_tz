@@ -3,6 +3,8 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { validationResult } = require("express-validator");
 const { parsePhoneNumber, isValidPhoneNumber } = require("libphonenumber-js");
+const { sendPasswordResetEmail } = require("../services/emailService");
+const crypto = require("crypto");
 
 const saltRounds = 10;
 
@@ -541,6 +543,147 @@ exports.refreshToken = async (req, res) => {
     res.status(500).json({
       message: "Failed to refresh token",
       error: error.message,
+    });
+  }
+};
+
+// Forgot password - send reset email
+exports.forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({
+      message: "Email is required",
+    });
+  }
+
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({
+      message: "Please provide a valid email address",
+    });
+  }
+
+  try {
+    // Check if user exists
+    const [users] = await db.query(
+      "SELECT id, email, full_name FROM users WHERE email = ?",
+      [email],
+    );
+
+    // Always return success to prevent email enumeration attacks
+    if (users.length === 0) {
+      return res.json({
+        message:
+          "If an account with that email exists, a password reset link has been sent.",
+      });
+    }
+
+    const user = users[0];
+
+    // Generate secure random token
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+
+    // Clean up any existing unused tokens for this user
+    await db.query(
+      "DELETE FROM password_reset_tokens WHERE user_id = ? AND (used = TRUE OR expires_at < NOW())",
+      [user.id],
+    );
+
+    // Store the reset token
+    await db.query(
+      "INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)",
+      [user.id, resetToken, expiresAt],
+    );
+
+    // Send reset email
+    try {
+      await sendPasswordResetEmail(email, resetToken, user.full_name);
+    } catch (emailError) {
+      console.error("Failed to send password reset email:", emailError);
+      // Don't expose email errors to client for security
+      return res.status(500).json({
+        message: "Failed to send password reset email. Please try again later.",
+      });
+    }
+
+    res.json({
+      message:
+        "If an account with that email exists, a password reset link has been sent.",
+    });
+  } catch (error) {
+    console.error("Error in forgot password:", error);
+    res.status(500).json({
+      message: "Error processing password reset request",
+    });
+  }
+};
+
+// Reset password using token
+exports.resetPassword = async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  if (!token || !newPassword) {
+    return res.status(400).json({
+      message: "Token and new password are required",
+    });
+  }
+
+  // Validate new password
+  if (newPassword.length < 6) {
+    return res.status(400).json({
+      message: "Password must be at least 6 characters long",
+    });
+  }
+
+  try {
+    // Find valid reset token
+    const [tokens] = await db.query(
+      `SELECT prt.*, u.id as user_id, u.email
+       FROM password_reset_tokens prt
+       JOIN users u ON prt.user_id = u.id
+       WHERE prt.token = ? AND prt.used = FALSE AND prt.expires_at > NOW()`,
+      [token],
+    );
+
+    if (tokens.length === 0) {
+      return res.status(400).json({
+        message: "Invalid or expired reset token",
+      });
+    }
+
+    const resetData = tokens[0];
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update user password
+    await db.query("UPDATE users SET password_hash = ? WHERE id = ?", [
+      hashedPassword,
+      resetData.user_id,
+    ]);
+
+    // Mark token as used
+    await db.query(
+      "UPDATE password_reset_tokens SET used = TRUE WHERE id = ?",
+      [resetData.id],
+    );
+
+    // Clean up old tokens for this user
+    await db.query(
+      "DELETE FROM password_reset_tokens WHERE user_id = ? AND (used = TRUE OR expires_at < NOW())",
+      [resetData.user_id],
+    );
+
+    res.json({
+      message: "Password has been reset successfully",
+    });
+  } catch (error) {
+    console.error("Error in reset password:", error);
+    res.status(500).json({
+      message: "Error resetting password",
     });
   }
 };

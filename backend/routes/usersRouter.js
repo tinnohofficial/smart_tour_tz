@@ -4,7 +4,7 @@ const usersController = require("../controllers/usersController");
 const authenticateToken = require("../middleware/authenticateToken");
 const checkRole = require("../middleware/checkRole");
 const { body } = require("express-validator");
-const { isValidPhoneNumber } = require('libphonenumber-js');
+const { isValidPhoneNumber } = require("libphonenumber-js");
 
 validateRegistration = [
   body("email")
@@ -22,7 +22,7 @@ validateRegistration = [
     .optional({ checkFalsy: true })
     .custom((value) => {
       if (value && !isValidPhoneNumber(value)) {
-        throw new Error('Please provide a valid international phone number');
+        throw new Error("Please provide a valid international phone number");
       }
       return true;
     }),
@@ -36,6 +36,10 @@ router.post("/register", validateRegistration, usersController.register);
 router.post("/login", usersController.login);
 router.post("/refresh-token", authenticateToken, usersController.refreshToken);
 
+// Password reset routes
+router.post("/forgot-password", usersController.forgotPassword);
+router.post("/reset-password", usersController.resetPassword);
+
 // F4.1: Update password - migrated from users controller
 router.put("/password", authenticateToken, usersController.updatePassword);
 
@@ -46,11 +50,29 @@ router.put("/email", authenticateToken, usersController.updateEmail);
 router.put("/update-phone", authenticateToken, usersController.updatePhone);
 
 // Simplified profile update endpoints (without password verification)
-router.put("/profile/email", authenticateToken, usersController.updateEmailSimple);
-router.put("/profile/phone", authenticateToken, usersController.updatePhoneSimple);
+router.put(
+  "/profile/email",
+  authenticateToken,
+  usersController.updateEmailSimple,
+);
+router.put(
+  "/profile/phone",
+  authenticateToken,
+  usersController.updatePhoneSimple,
+);
 
 // Balance management routes (for tourists only)
-router.get("/balance", authenticateToken, checkRole("tourist"), usersController.getBalance);
-router.put("/balance", authenticateToken, checkRole("tourist"), usersController.updateBalance);
+router.get(
+  "/balance",
+  authenticateToken,
+  checkRole("tourist"),
+  usersController.getBalance,
+);
+router.put(
+  "/balance",
+  authenticateToken,
+  checkRole("tourist"),
+  usersController.updateBalance,
+);
 
 module.exports = router;
