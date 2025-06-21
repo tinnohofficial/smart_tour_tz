@@ -2,7 +2,7 @@ const db = require("../config/db");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { validationResult } = require("express-validator");
-const { parsePhoneNumber, isValidPhoneNumber } = require('libphonenumber-js');
+const { parsePhoneNumber, isValidPhoneNumber } = require("libphonenumber-js");
 
 const saltRounds = 10;
 
@@ -48,12 +48,13 @@ exports.register = async (req, res) => {
       process.env.JWT_SECRET,
       {
         expiresIn: process.env.JWT_EXPIRES_IN || "30d",
-      }
+      },
     );
 
     // Return token and user info like in login
     res.status(201).json({
-      message: "User registered successfully. Please complete your profile if required.",
+      message:
+        "User registered successfully. Please complete your profile if required.",
       token,
       user: {
         id: result.insertId,
@@ -61,7 +62,7 @@ exports.register = async (req, res) => {
         phone_number,
         role,
         status: initialStatus,
-      }
+      },
     });
   } catch (error) {
     console.error("Registration Error:", error);
@@ -172,10 +173,10 @@ exports.updatePassword = async (req, res) => {
     const newHash = await bcrypt.hash(newPassword, saltRounds);
 
     // Update password
-    await db.query(
-      "UPDATE users SET password_hash = ? WHERE id = ?",
-      [newHash, userId],
-    );
+    await db.query("UPDATE users SET password_hash = ? WHERE id = ?", [
+      newHash,
+      userId,
+    ]);
 
     res.json({ message: "Password updated successfully" });
   } catch (error) {
@@ -208,19 +209,19 @@ exports.updateEmail = async (req, res) => {
     // Check if email already exists for another user
     const [existingUsers] = await db.query(
       "SELECT id FROM users WHERE email = ? AND id != ?",
-      [email, userId]
+      [email, userId],
     );
-    
+
     if (existingUsers.length > 0) {
-      return res.status(409).json({ 
-        message: "Email is already in use by another account" 
+      return res.status(409).json({
+        message: "Email is already in use by another account",
       });
     }
 
     // Get current user data for password verification
     const [userResult] = await db.query(
-      "SELECT password_hash FROM users WHERE id = ?", 
-      [userId]
+      "SELECT password_hash FROM users WHERE id = ?",
+      [userId],
     );
 
     if (userResult.length === 0) {
@@ -237,10 +238,7 @@ exports.updateEmail = async (req, res) => {
     }
 
     // Update email
-    await db.query(
-      "UPDATE users SET email = ? WHERE id = ?",
-      [email, userId]
-    );
+    await db.query("UPDATE users SET email = ? WHERE id = ?", [email, userId]);
 
     res.json({ message: "Email updated successfully" });
   } catch (error) {
@@ -272,19 +270,19 @@ exports.updatePhone = async (req, res) => {
     // Check if phone number already exists for another user
     const [existingUsers] = await db.query(
       "SELECT id FROM users WHERE phone_number = ? AND id != ?",
-      [phone_number, userId]
+      [phone_number, userId],
     );
-    
+
     if (existingUsers.length > 0) {
-      return res.status(409).json({ 
-        message: "Phone number is already in use by another account" 
+      return res.status(409).json({
+        message: "Phone number is already in use by another account",
       });
     }
 
     // Get current user data for password verification
     const [userResult] = await db.query(
-      "SELECT password_hash FROM users WHERE id = ?", 
-      [userId]
+      "SELECT password_hash FROM users WHERE id = ?",
+      [userId],
     );
 
     if (userResult.length === 0) {
@@ -301,10 +299,10 @@ exports.updatePhone = async (req, res) => {
     }
 
     // Update phone number
-    await db.query(
-      "UPDATE users SET phone_number = ? WHERE id = ?",
-      [phone_number, userId]
-    );
+    await db.query("UPDATE users SET phone_number = ? WHERE id = ?", [
+      phone_number,
+      userId,
+    ]);
 
     res.json({ message: "Phone number updated successfully" });
   } catch (error) {
@@ -321,16 +319,15 @@ exports.getBalance = async (req, res) => {
     const userId = req.user.id;
     const userRole = req.user.role;
 
-    if (userRole !== 'tourist') {
-      return res.status(403).json({ 
-        message: "Only tourists can access balance information" 
+    if (userRole !== "tourist") {
+      return res.status(403).json({
+        message: "Only tourists can access balance information",
       });
     }
 
-    const [result] = await db.query(
-      "SELECT balance FROM users WHERE id = ?",
-      [userId]
-    );
+    const [result] = await db.query("SELECT balance FROM users WHERE id = ?", [
+      userId,
+    ]);
 
     if (result.length === 0) {
       return res.status(404).json({ message: "User not found" });
@@ -338,13 +335,13 @@ exports.getBalance = async (req, res) => {
 
     res.json({
       balance: parseFloat(result[0].balance) || 0,
-      user_id: userId
+      user_id: userId,
     });
   } catch (error) {
     console.error("Error fetching balance:", error);
-    res.status(500).json({ 
-      message: "Failed to get balance", 
-      error: error.message 
+    res.status(500).json({
+      message: "Failed to get balance",
+      error: error.message,
     });
   }
 };
@@ -356,16 +353,20 @@ exports.updateBalance = async (req, res) => {
     const userRole = req.user.role;
     const { balance } = req.body;
 
-    if (userRole !== 'tourist') {
-      return res.status(403).json({ 
-        message: "Only tourists can update balance" 
+    if (userRole !== "tourist") {
+      return res.status(403).json({
+        message: "Only tourists can update balance",
       });
     }
 
     // Validate balance
-    if (balance === undefined || isNaN(parseFloat(balance)) || parseFloat(balance) < 0) {
-      return res.status(400).json({ 
-        message: "Valid balance is required and must be non-negative" 
+    if (
+      balance === undefined ||
+      isNaN(parseFloat(balance)) ||
+      parseFloat(balance) < 0
+    ) {
+      return res.status(400).json({
+        message: "Valid balance is required and must be non-negative",
       });
     }
 
@@ -374,7 +375,7 @@ exports.updateBalance = async (req, res) => {
     // Get current balance for response
     const [currentResult] = await db.query(
       "SELECT balance FROM users WHERE id = ?",
-      [userId]
+      [userId],
     );
 
     if (currentResult.length === 0) {
@@ -384,22 +385,22 @@ exports.updateBalance = async (req, res) => {
     const previousBalance = parseFloat(currentResult[0].balance);
 
     // Update balance
-    await db.query(
-      "UPDATE users SET balance = ? WHERE id = ?",
-      [newBalance, userId]
-    );
+    await db.query("UPDATE users SET balance = ? WHERE id = ?", [
+      newBalance,
+      userId,
+    ]);
 
     res.json({
       message: "Balance updated successfully",
       user_id: userId,
       balance: newBalance,
-      previous_balance: previousBalance
+      previous_balance: previousBalance,
     });
   } catch (error) {
     console.error("Error updating balance:", error);
-    res.status(500).json({ 
-      message: "Failed to update balance", 
-      error: error.message 
+    res.status(500).json({
+      message: "Failed to update balance",
+      error: error.message,
     });
   }
 };
@@ -427,20 +428,17 @@ exports.updateEmailSimple = async (req, res) => {
     // Check if email already exists for another user
     const [existingUsers] = await db.query(
       "SELECT id FROM users WHERE email = ? AND id != ?",
-      [email, userId]
+      [email, userId],
     );
-    
+
     if (existingUsers.length > 0) {
-      return res.status(409).json({ 
-        message: "Email is already in use by another account" 
+      return res.status(409).json({
+        message: "Email is already in use by another account",
       });
     }
 
     // Update email
-    await db.query(
-      "UPDATE users SET email = ? WHERE id = ?",
-      [email, userId]
-    );
+    await db.query("UPDATE users SET email = ? WHERE id = ?", [email, userId]);
 
     res.json({ message: "Email updated successfully" });
   } catch (error) {
@@ -472,20 +470,20 @@ exports.updatePhoneSimple = async (req, res) => {
     // Check if phone number already exists for another user
     const [existingUsers] = await db.query(
       "SELECT id FROM users WHERE phone_number = ? AND id != ?",
-      [phone_number, userId]
+      [phone_number, userId],
     );
-    
+
     if (existingUsers.length > 0) {
-      return res.status(409).json({ 
-        message: "Phone number is already in use by another account" 
+      return res.status(409).json({
+        message: "Phone number is already in use by another account",
       });
     }
 
     // Update phone number
-    await db.query(
-      "UPDATE users SET phone_number = ? WHERE id = ?",
-      [phone_number, userId]
-    );
+    await db.query("UPDATE users SET phone_number = ? WHERE id = ?", [
+      phone_number,
+      userId,
+    ]);
 
     res.json({ message: "Phone number updated successfully" });
   } catch (error) {
@@ -504,7 +502,7 @@ exports.refreshToken = async (req, res) => {
     // Get fresh user data from database
     const [users] = await db.query(
       "SELECT id, email, phone_number, role, status FROM users WHERE id = ?",
-      [userId]
+      [userId],
     );
 
     if (users.length === 0) {
@@ -524,7 +522,7 @@ exports.refreshToken = async (req, res) => {
       process.env.JWT_SECRET,
       {
         expiresIn: process.env.JWT_EXPIRES_IN || "30d",
-      }
+      },
     );
 
     res.json({
@@ -540,10 +538,9 @@ exports.refreshToken = async (req, res) => {
     });
   } catch (error) {
     console.error("Error refreshing token:", error);
-    res.status(500).json({ 
-      message: "Failed to refresh token", 
-      error: error.message 
+    res.status(500).json({
+      message: "Failed to refresh token",
+      error: error.message,
     });
   }
 };
-

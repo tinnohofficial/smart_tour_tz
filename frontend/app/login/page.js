@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 import { LogIn } from "lucide-react";
 import { publishAuthChange } from "@/components/Navbar";
+import { getAuthToken, getUserData, storeAuthData } from "../utils/auth";
 
 function LoginForm() {
   const router = useRouter();
@@ -24,17 +25,18 @@ function LoginForm() {
   // Local state instead of Zustand store for simple form data
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   // Check if user is already logged in
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("userData");
+    const token = getAuthToken();
+    const userData = getUserData();
 
     if (token && userData) {
-      const user = JSON.parse(userData);
+      const user = userData;
 
       // Redirect based on role
       switch (user.role) {
@@ -104,9 +106,6 @@ function LoginForm() {
 
       toast.success("Welcome back to Smart Tour System.");
 
-      // Store token and user data
-      localStorage.setItem("token", data.token);
-
       // Store user data from the correct location in the response
       const userData = {
         id: data.user.id,
@@ -116,10 +115,8 @@ function LoginForm() {
         status: data.user.status,
       };
 
-      localStorage.setItem("userData", JSON.stringify(userData));
-
-      // Set login timestamp to prevent immediate token verification
-      localStorage.setItem("loginTimestamp", new Date().getTime().toString());
+      // Store authentication data based on remember me preference
+      storeAuthData(data.token, userData, rememberMe);
 
       // Notify about authentication change
       publishAuthChange();
@@ -193,6 +190,22 @@ function LoginForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="rememberMe"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-amber-700 focus:ring-amber-700"
+              />
+              <label
+                htmlFor="rememberMe"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Remember me
+              </label>
             </div>
 
             <Button
