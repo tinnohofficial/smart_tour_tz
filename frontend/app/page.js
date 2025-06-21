@@ -13,8 +13,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Star, Users, Calendar, ArrowRight } from "lucide-react";
+import { MapPin, Star, Users, Calendar, ArrowRight, Brain } from "lucide-react";
 import { destinationsService } from "@/app/services/api";
+import { toast } from "sonner";
 
 export default function Home() {
   const [user, setUser] = useState(null);
@@ -68,17 +69,15 @@ export default function Home() {
   }, [router]);
 
   const renderHeroSection = () => (
-    <div className="relative bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 rounded-2xl p-8 md:p-12 mb-12">
+    <div className="relative bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 rounded-2xl p-8 md:p-18 mb-12">
       <div className="max-w-4xl mx-auto text-center">
         <h1 className="text-4xl md:text-6xl font-bold mb-6 text-amber-900">
           Discover Tanzania's Wonders
-        </h1>
-        <p className="text-lg md:text-xl mb-8 text-amber-800 max-w-2xl mx-auto leading-relaxed">
-          Experience the breathtaking beauty of Tanzania's wildlife, culture,
-          and landscapes. From the Serengeti to Zanzibar's pristine beaches,
-          create memories that last a lifetime.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+        </h1>        <p className="text-md md:text-lg mb-8 text-amber-800 max-w-2xl mx-auto leading-relaxed">
+          Get AI-powered 
+          personalized recommendations, secure blockchain payments, build your travel savings, 
+          and connect with expert local guides for unforgettable adventures.
+        </p>        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <Link href="/locations">
             <Button
               size="lg"
@@ -88,7 +87,33 @@ export default function Home() {
               Explore Destinations
             </Button>
           </Link>
+           <Link href="/login">
+              <Button
+                size="lg"
+                onClick={() => {
+                  toast.warning("Please log in to access AI suggestions", {
+                    duration: 3000,
+                  });
+                }}
+                className="text-lg px-8 py-4 bg-gradient-to-r from-amber-600 to-orange-600 text-white hover:from-amber-700 hover:to-orange-700 shadow-lg"
+              >
+                <Brain className="mr-2 h-5 w-5" />
+                AI Travel Suggestions
+              </Button>
+            </Link>
+          {user && user.role === 'tourist' && (
+            <Link href="/ai-suggestions">
+              <Button
+                size="lg"
+                className="text-lg px-8 py-4 bg-gradient-to-r from-amber-600 to-orange-600 text-white hover:from-amber-700 hover:to-orange-700 shadow-lg"
+              >
+                <Brain className="mr-2 h-5 w-5" />
+                AI Travel Suggestions
+              </Button>
+            </Link>
+          )}
           {!user && (
+            <>
             <Link href="/register">
               <Button
                 size="lg"
@@ -98,6 +123,9 @@ export default function Home() {
                 Start Your Journey
               </Button>
             </Link>
+
+            </>
+            
           )}
           {user && (
             <Link href="/savings">
@@ -107,7 +135,7 @@ export default function Home() {
                 className="text-lg px-8 py-4 border-amber-700 text-amber-700 hover:bg-amber-50"
               >
                 <Calendar className="mr-2 h-5 w-5" />
-                Plan Your Trip
+                My Savings
               </Button>
             </Link>
           )}
@@ -219,6 +247,61 @@ export default function Home() {
       )}
     </div>
   );
+  const renderKeyFeatures = () => (
+    <div className="mb-12 bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 rounded-2xl p-8 md:p-12">
+      <div className="text-center mb-10">
+        <h2 className="text-3xl md:text-4xl font-bold text-amber-900 mb-4">
+          Why Choose Smart Tour Tanzania?
+        </h2>
+        <p className="text-lg text-amber-800 max-w-3xl mx-auto">
+          Experience the future of travel with our innovative platform combining AI intelligence, 
+          blockchain security, and local expertise
+        </p>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="text-center p-6 bg-white/90 backdrop-blur-sm border-amber-200 hover:shadow-lg transition-shadow">
+          <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Brain className="h-8 w-8 text-white" />
+          </div>
+          <h3 className="text-xl font-bold text-amber-900 mb-3">AI-Powered Suggestions</h3>
+          <p className="text-amber-700 text-sm">
+            Get personalized travel suggestions based on your preferences, budget, and interests using advanced AI
+          </p>
+        </Card>
+
+        <Card className="text-center p-6 bg-white/90 backdrop-blur-sm border-amber-200 hover:shadow-lg transition-shadow">
+          <div className="w-16 h-16 bg-gradient-to-br from-amber-600 to-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="text-white font-bold text-lg">₿</div>
+          </div>
+          <h3 className="text-xl font-bold text-amber-900 mb-3">Blockchain Payments</h3>
+          <p className="text-amber-700 text-sm">
+            Secure, transparent payments using blockchain technology with our Tanzania Shilling Coin (TZC)
+          </p>
+        </Card>
+
+        <Card className="text-center p-6 bg-white/90 backdrop-blur-sm border-amber-200 hover:shadow-lg transition-shadow">
+          <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Calendar className="h-8 w-8 text-white" />
+          </div>
+          <h3 className="text-xl font-bold text-amber-900 mb-3">Smart Savings System</h3>
+          <p className="text-amber-700 text-sm">
+            Build your travel fund with our savings system and get 5% discounts on bookings
+          </p>
+        </Card>
+
+        <Card className="text-center p-6 bg-white/90 backdrop-blur-sm border-amber-200 hover:shadow-lg transition-shadow">
+          <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Star className="h-8 w-8 text-white" />
+          </div>
+          <h3 className="text-xl font-bold text-amber-900 mb-3">Expert Local Guides</h3>
+          <p className="text-amber-700 text-sm">
+            Connect with verified, professional local guides with deep knowledge of Tanzania's culture and wildlife
+          </p>
+        </Card>
+      </div>
+    </div>
+  );
 
   const renderWhyChooseUs = () => (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
@@ -259,12 +342,12 @@ export default function Home() {
       </Card>
     </div>
   );
-
   return (
     <div className="max-w-7xl mx-auto">
       {renderHeroSection()}
       {renderWelcomeBack()}
       {renderFeaturedDestinations()}
+      {renderKeyFeatures()}
       {renderWhyChooseUs()}
     </div>
   );

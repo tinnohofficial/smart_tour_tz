@@ -155,10 +155,17 @@ export function Navbar() {
           <div className="hidden md:flex space-x-4 items-center">
             <Link href="/">
               <Button variant="ghost">Home</Button>
-            </Link>
-            <Link href="/locations">
+            </Link>            <Link href="/locations">
               <Button variant="ghost">Locations</Button>
             </Link>
+            
+            {user && user.role === 'tourist' && (
+              <Link href="/ai-suggestions">
+                <Button variant="ghost" className="text-amber-700 hover:bg-amber-50">
+                  AI Suggestions
+                </Button>
+              </Link>
+            )}
             
             {user ? (
               // Logged-in tourist view
@@ -246,12 +253,19 @@ export function Navbar() {
                   <Button variant="ghost" className="w-full justify-start">
                     Home
                   </Button>
-                </Link>
-                <Link href="/locations">
+                </Link>                <Link href="/locations">
                   <Button variant="ghost" className="w-full justify-start">
                     Locations
                   </Button>
                 </Link>
+                
+                {user && user.role === 'tourist' && (
+                  <Link href="/ai-suggestions">
+                    <Button variant="ghost" className="w-full justify-start text-amber-700">
+                      AI Suggestions
+                    </Button>
+                  </Link>
+                )}
                 
                 {user ? (
                   // Logged-in tourist mobile view
