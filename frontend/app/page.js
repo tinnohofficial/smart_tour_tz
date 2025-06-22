@@ -87,13 +87,20 @@ export default function Home() {
               Explore Destinations
             </Button>
           </Link>
-           <Link href="/login">
+
+          
+            <Link href={user && user.role === 'tourist' ? "/ai-suggestions" : "/login"}>
               <Button
                 size="lg"
                 onClick={() => {
-                  toast.warning("Please log in to access AI suggestions", {
-                    duration: 3000,
-                  });
+                  if (user && user.role === 'tourist') {
+                    router.push("/ai-suggestions");
+                  } else if (user && user.role !== 'tourist') {
+                    toast.error("AI Travel Suggestions are only available for tourists. Please log in with a tourist account.");
+                  } else {
+                    toast.info("Please log in to access AI Travel Suggestions.");
+                    router.push("/login");
+                  }
                 }}
                 className="text-lg px-8 py-4 bg-gradient-to-r from-amber-600 to-orange-600 text-white hover:from-amber-700 hover:to-orange-700 shadow-lg"
               >
@@ -101,17 +108,7 @@ export default function Home() {
                 AI Travel Suggestions
               </Button>
             </Link>
-          {user && user.role === 'tourist' && (
-            <Link href="/ai-suggestions">
-              <Button
-                size="lg"
-                className="text-lg px-8 py-4 bg-gradient-to-r from-amber-600 to-orange-600 text-white hover:from-amber-700 hover:to-orange-700 shadow-lg"
-              >
-                <Brain className="mr-2 h-5 w-5" />
-                AI Travel Suggestions
-              </Button>
-            </Link>
-          )}
+        
           {!user && (
             <>
             <Link href="/register">
@@ -211,13 +208,13 @@ export default function Home() {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 ">
           {featuredDestinations.map((destination) => (
             <Card
               key={destination.id}
-              className="overflow-hidden border-amber-200 hover:shadow-lg transition-shadow duration-300"
+              className="overflow-hidden border-amber-200 hover:shadow-lg transition-shadow duration-300 p-0 pb-4"
             >
-              <div className="relative h-48">
+              <div className="relative h-48 ">
                 <Image
                   src={destination.image_url || "/placeholder.svg"}
                   alt={destination.name}
@@ -264,19 +261,19 @@ export default function Home() {
           <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <Brain className="h-8 w-8 text-white" />
           </div>
-          <h3 className="text-xl font-bold text-amber-900 mb-3">AI-Powered Suggestions</h3>
+          <h3 className="text-xl font-bold text-amber-900 mb-3">AI Suggestions</h3>
           <p className="text-amber-700 text-sm">
-            Get personalized travel suggestions based on your preferences, budget, and interests using advanced AI
+            Get personalized travel suggestions based on your preferences
           </p>
         </Card>
 
         <Card className="text-center p-6 bg-white/90 backdrop-blur-sm border-amber-200 hover:shadow-lg transition-shadow">
           <div className="w-16 h-16 bg-gradient-to-br from-amber-600 to-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <div className="text-white font-bold text-lg">₿</div>
+            <div className="text-white font-bold text-2xl">₿</div>
           </div>
-          <h3 className="text-xl font-bold text-amber-900 mb-3">Blockchain Payments</h3>
+          <h3 className="text-xl font-bold text-amber-900 mb-3">Crypto Payments</h3>
           <p className="text-amber-700 text-sm">
-            Secure, transparent payments using blockchain technology with our Tanzania Shilling Coin (TZC)
+            Secure, transparent payments using crypto with our Tanzania Shilling Coin (TZC)
           </p>
         </Card>
 
@@ -284,9 +281,9 @@ export default function Home() {
           <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <Calendar className="h-8 w-8 text-white" />
           </div>
-          <h3 className="text-xl font-bold text-amber-900 mb-3">Smart Savings System</h3>
+          <h3 className="text-xl font-bold text-amber-900 mb-3">Smart Savings </h3>
           <p className="text-amber-700 text-sm">
-            Build your travel fund with our savings system and get 5% discounts on bookings
+            Build your travel fund with our savings and get 5% discounts on bookings
           </p>
         </Card>
 
@@ -296,7 +293,8 @@ export default function Home() {
           </div>
           <h3 className="text-xl font-bold text-amber-900 mb-3">Expert Local Guides</h3>
           <p className="text-amber-700 text-sm">
-            Connect with verified, professional local guides with deep knowledge of Tanzania's culture and wildlife
+            Professional local guides with deep knowledge of Tanzania's culture
+            and wildlife
           </p>
         </Card>
       </div>
@@ -348,7 +346,7 @@ export default function Home() {
       {renderWelcomeBack()}
       {renderFeaturedDestinations()}
       {renderKeyFeatures()}
-      {renderWhyChooseUs()}
+      {/* {renderWhyChooseUs()} */}
     </div>
   );
 }
