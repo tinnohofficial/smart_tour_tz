@@ -160,7 +160,7 @@ export function Navbar() {
             <Link href="/locations">
               <Button variant="ghost">Locations</Button>
             </Link>
-            {user && user.role === "tourist" && (
+            {/* {user && user.role === "tourist" && (
               <Link href="/ai-suggestions">
                 <Button
                   variant="ghost"
@@ -169,7 +169,7 @@ export function Navbar() {
                   AI Suggestions
                 </Button>
               </Link>
-            )}
+            )} */}
             {user ? (
               // Logged-in tourist view
               <>

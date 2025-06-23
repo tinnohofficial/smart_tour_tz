@@ -74,8 +74,7 @@ export default function Home() {
         <h1 className="text-4xl md:text-6xl font-bold mb-6 text-amber-900">
           Discover Tanzania's Wonders
         </h1>        <p className="text-md md:text-lg mb-8 text-amber-800 max-w-2xl mx-auto leading-relaxed">
-          Get AI-powered 
-          personalized recommendations, secure blockchain payments, build your travel savings, 
+          Get seamless booking experience with secure blockchain payments, build your travel savings, 
           and connect with expert local guides for unforgettable adventures.
         </p>        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <Link href="/locations">
@@ -89,7 +88,7 @@ export default function Home() {
           </Link>
 
           
-            <Link href={user && user.role === 'tourist' ? "/ai-suggestions" : "/login"}>
+            {/* <Link href={user && user.role === 'tourist' ? "/ai-suggestions" : "/login"}>
               <Button
                 size="lg"
                 onClick={() => {
@@ -107,7 +106,7 @@ export default function Home() {
                 <Brain className="mr-2 h-5 w-5" />
                 AI Travel Suggestions
               </Button>
-            </Link>
+            </Link> */}
         
           {!user && (
             <>
@@ -256,8 +255,8 @@ export default function Home() {
         </p>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="text-center p-6 bg-white/90 backdrop-blur-sm border-amber-200 hover:shadow-lg transition-shadow">
+      <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 gap-6">
+       {/* <Card className="text-center p-6 bg-white/90 backdrop-blur-sm border-amber-200 hover:shadow-lg transition-shadow">
           <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <Brain className="h-8 w-8 text-white" />
           </div>
@@ -265,7 +264,7 @@ export default function Home() {
           <p className="text-amber-700 text-sm">
             Get personalized travel suggestions based on your preferences
           </p>
-        </Card>
+        </Card>  */}
 
         <Card className="text-center p-6 bg-white/90 backdrop-blur-sm border-amber-200 hover:shadow-lg transition-shadow">
           <div className="w-16 h-16 bg-gradient-to-br from-amber-600 to-red-600 rounded-full flex items-center justify-center mx-auto mb-4">

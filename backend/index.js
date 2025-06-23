@@ -17,7 +17,7 @@ const transportsRouter = require("./routes/transportsRouter");
 
 const applicationsRouter = require("./routes/applicationsRouter");
 const cartRouter = require("./routes/cartRouter");
-const aiSuggestionsRouter = require("./routes/aiSuggestionsRouter");
+// const aiSuggestionsRouter = require("./routes/aiSuggestionsRouter");
 
 const uploadRouter = require("./routes/uploadRouter");
 
@@ -54,7 +54,7 @@ router.use("/transports", transportsRouter);
 
 router.use("/applications", applicationsRouter);
 router.use("/cart", cartRouter);
-router.use("/ai-suggestions", aiSuggestionsRouter);
+// router.use("/ai-suggestions", aiSuggestionsRouter);
 
 router.use("/upload", uploadRouter);
 

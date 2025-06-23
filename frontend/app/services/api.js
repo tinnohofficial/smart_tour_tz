@@ -607,12 +607,12 @@ export const bookingCreationService = {
   },
 };
 
-// AI Suggestions Service
-export const aiSuggestionsService = {
-  async getTourSuggestions(preferences) {
-    return apiRequest("/ai-suggestions", {
-      method: "POST",
-      body: JSON.stringify(preferences),
-    });
-  },
-};
+// // AI Suggestions Service
+// export const aiSuggestionsService = {
+//   async getTourSuggestions(preferences) {
+//     return apiRequest("/ai-suggestions", {
+//       method: "POST",
+//       body: JSON.stringify(preferences),
+//     });
+//   },
+// };
