@@ -38,7 +38,7 @@ async function createAdminUser(email, password, phoneNumber) {
 if (require.main === module) {
   // Get arguments from command line
   const args = process.argv.slice(2);
-  const email = args[0] || "admin@example.com";
+  const email = args[0] || "admin@smarttour.com";
   const password = args[1] || "password123"; // You should use a stronger password in production
   const phoneNumber = args[2] || "+1234567890";
 

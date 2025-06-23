@@ -34,7 +34,7 @@ node config/teardownDb.js table_name
 node config/createAdmin.js [email] [password] [phone]
 ```
 Default values if no arguments provided:
-- Email: admin@example.com
+- Email: admin@smarttour.com
 - Password: password123
 - Phone: +1234567890
 

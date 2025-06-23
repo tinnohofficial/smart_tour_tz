@@ -25,7 +25,7 @@ async function checkTableExists(tableName) {
 
 // Helper function to create admin with default values if needed
 async function ensureAdminExists() {
-  return createAdminUser("admin@example.com", "password123", "+1234567890");
+  return createAdminUser("admin@smarttour.com", "password123", "+1234567890");
 }
 
 async function runSchema() {
@@ -35,7 +35,7 @@ async function runSchema() {
 
     if (usersTableExists) {
       console.log("Database tables already exist. Skipping schema creation.");
-      
+
       // Check if we need to create an admin user anyway
       await ensureAdminExists();
       return;
@@ -55,10 +55,10 @@ async function runSchema() {
 
     // Clean up the uploads directory to start fresh
     cleanUploadsDirectory();
-    
+
     // Temporarily disable foreign key checks to handle circular dependencies
     await db.query("SET FOREIGN_KEY_CHECKS = 0");
-    
+
     // Execute each statement individually for better error tracking
     for (let i = 0; i < statements.length; i++) {
       const statement = statements[i];
@@ -77,12 +77,12 @@ async function runSchema() {
         throw error;
       }
     }
-    
+
     // Re-enable foreign key checks after all statements
     await db.query("SET FOREIGN_KEY_CHECKS = 1");
 
     console.log("Database schema created successfully!");
-    
+
     // Create admin user after schema setup is complete
     await ensureAdminExists();
   } catch (error) {
@@ -104,7 +104,7 @@ function extractCreateTableStatement(schemaSql, tableName) {
     // Case insensitive search for CREATE TABLE `tableName` or CREATE TABLE tableName
     const regex = new RegExp(
       `CREATE\\s+TABLE\\s+(?:\`?${tableName}\`?|\\b${tableName}\\b)\\s*\\(`,
-      "i"
+      "i",
     );
     return regex.test(statement);
   });
@@ -120,9 +120,9 @@ async function createSpecificTable(tableName) {
 
     if (tableExists) {
       console.log(`Table '${tableName}' already exists. Skipping creation.`);
-      
+
       // If creating the users table specifically, also create admin
-      if (tableName === 'users') {
+      if (tableName === "users") {
         await ensureAdminExists();
       }
       return;
@@ -136,12 +136,14 @@ async function createSpecificTable(tableName) {
     const createStatement = extractCreateTableStatement(schemaSql, tableName);
 
     if (!createStatement) {
-      console.error(`CREATE statement for table '${tableName}' not found in schema.sql`);
+      console.error(
+        `CREATE statement for table '${tableName}' not found in schema.sql`,
+      );
       throw new Error(`Table '${tableName}' not found in schema`);
     }
 
     console.log(`Creating table: ${tableName}`);
-    
+
     // Disable foreign key checks temporarily in case this table has dependencies
     await db.query("SET FOREIGN_KEY_CHECKS = 0");
 
@@ -152,9 +154,9 @@ async function createSpecificTable(tableName) {
     await db.query("SET FOREIGN_KEY_CHECKS = 1");
 
     console.log(`Table '${tableName}' created successfully.`);
-    
+
     // If we just created the users table, create an admin user
-    if (tableName === 'users') {
+    if (tableName === "users") {
       await ensureAdminExists();
     }
   } catch (error) {
