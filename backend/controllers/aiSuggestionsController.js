@@ -47,9 +47,32 @@ const getTourSuggestions = async (req, res) => {
 
     const [destinations] = await db.execute(destinationsQuery);
 
-    // Create a detailed prompt for Gemini AI
+    // Handle case when no destinations are available
+    if (!destinations || destinations.length === 0) {
+      return res.status(200).json({
+        message: "No destinations available at the moment",
+        suggestions: {
+          recommendations: [],
+          generalAdvice: "We apologize, but there are currently no destinations available in our system. Please check back later or contact our support team for assistance.",
+          budgetTips: "While we set up more destinations, consider planning your budget and researching Tanzania's amazing attractions online.",
+          noDestinationsAvailable: true
+        },
+        userPreferences: {
+          budget,
+          duration,
+          interests,
+          groupSize,
+          travelStyle,
+          accommodation,
+          season,
+          specialRequirements
+        }
+      });
+    }    // Create a detailed prompt for Gemini AI
     const prompt = `
 You are a professional Tanzania tour guide AI assistant specializing in Smart Tour Tanzania. Based on the following user preferences, suggest the most suitable tours from the available destinations.
+
+IMPORTANT: Only recommend destinations that are explicitly listed in the "Available Destinations" section below. Do not suggest any destinations that are not in this list.
 
 User Preferences:
 - Budget: ${budget} (in Tanzanian Shillings)
@@ -63,7 +86,7 @@ User Preferences:
 
 Available Destinations:
 ${destinations.map(dest => `
-- ${dest.name}
+- ${dest.name} (ID: ${dest.id})
   Description: ${dest.description}
   Available Activities: ${dest.activities || 'None listed'}
   Activity Details: ${dest.activity_descriptions || 'None listed'}
@@ -88,12 +111,13 @@ Please provide recommendations in the following JSON format ONLY (no additional 
 }
 
 Important: 
-- Only recommend destinations from the provided list
+- Only recommend destinations from the provided list with their exact IDs
 - Match recommendations to user interests and budget
 - Consider Tanzania-specific factors like weather patterns
 - Provide practical advice
 - Keep recommendations between 2-4 destinations maximum
 - Ensure JSON format is valid
+- Do not create fictional destinations or activities not in the available list
 `;
 
     // Get AI suggestions from Gemini
@@ -110,15 +134,14 @@ Important:
       suggestions = JSON.parse(aiResponse);
     } catch (parseError) {
       console.error("Error parsing AI response:", parseError);
-      console.error("AI Response:", aiResponse);
-      
-      // Fallback response if AI response is not valid JSON
+      console.error("AI Response:", aiResponse);        // Fallback response if AI response is not valid JSON
       suggestions = {
         recommendations: destinations.slice(0, 3).map(dest => ({
           destinationId: dest.id,
           destinationName: dest.name,
           matchScore: 75,
-          reasons: ["Popular destination", "Great activities", "Good value for money"],          suggestedActivities: dest.activities ? dest.activities.split(',').slice(0, 3) : [],
+          reasons: ["Popular destination", "Great activities", "Good value for money"],
+          suggestedActivities: dest.activities ? dest.activities.split(',').slice(0, 3) : [],
           estimatedCost: "Contact for pricing",
           bestTravelTime: "Year-round",
           itinerarySuggestion: `Explore ${dest.name} with ${duration} days to experience ${dest.description}`

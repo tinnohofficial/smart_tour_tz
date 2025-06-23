@@ -183,9 +183,7 @@ export default function AISuggestions() {
     }
   };  const handleBookDestination = (destinationId) => {
     router.push(`/book/${destinationId}`);
-  };
-
-  const resetSuggestions = () => {
+  };  const resetSuggestions = () => {
     setSuggestions(null);
     setCurrentStep(1);
     setPreferences({
@@ -467,19 +465,19 @@ export default function AISuggestions() {
             Based on your preferences, here are our AI-powered recommendations
           </CardDescription>
         </CardHeader>
-      </Card>
-
-      {/* General Advice */}
+      </Card>      {/* General Advice */}
       {suggestions?.suggestions?.generalAdvice && (
-        <Card className="bg-blue-50 border-blue-200">
+        <Card className={suggestions?.suggestions?.noDestinationsAvailable ? "bg-yellow-50 border-yellow-200" : "bg-blue-50 border-blue-200"}>
           <CardHeader>
-            <CardTitle className="flex items-center text-blue-800">
+            <CardTitle className={`flex items-center ${suggestions?.suggestions?.noDestinationsAvailable ? "text-yellow-800" : "text-blue-800"}`}>
               <Info className="mr-2 h-5 w-5" />
-              Travel Advice
+              {suggestions?.suggestions?.noDestinationsAvailable ? "No Destinations Available" : "Travel Advice"}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-blue-700">{suggestions.suggestions.generalAdvice}</p>
+            <p className={suggestions?.suggestions?.noDestinationsAvailable ? "text-yellow-700" : "text-blue-700"}>
+              {suggestions.suggestions.generalAdvice}
+            </p>
           </CardContent>
         </Card>
       )}
@@ -497,94 +495,95 @@ export default function AISuggestions() {
             <p className="text-green-700">{suggestions.suggestions.budgetTips}</p>
           </CardContent>
         </Card>
-      )}
-
-      {/* Recommendations */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {suggestions?.suggestions?.recommendations?.map((rec, index) => (
-          <Card key={index} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <CardTitle className="flex items-center">
-                    <MapPin className="mr-2 h-5 w-5 text-amber-600" />
-                    {rec.destinationName}
-                  </CardTitle>
-                  <div className="flex items-center mt-2">
-                    <Badge variant="secondary" className="mr-2">
-                      {rec.matchScore}% Match
-                    </Badge>
-                    <Badge variant="outline">
-                      {rec.estimatedCost}
-                    </Badge>
+      )}      {/* Recommendations */}
+      {!suggestions?.suggestions?.noDestinationsAvailable && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {suggestions?.suggestions?.recommendations?.map((rec, index) => (
+            <Card key={index} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <CardTitle className="flex items-center">
+                      <MapPin className="mr-2 h-5 w-5 text-amber-600" />
+                      {rec.destinationName}
+                    </CardTitle>
+                    <div className="flex items-center mt-2">
+                      <Badge variant="secondary" className="mr-2">
+                        {rec.matchScore}% Match
+                      </Badge>
+                      <Badge variant="outline">
+                        {rec.estimatedCost}
+                      </Badge>
+                    </div>
                   </div>
+                  {rec.destination?.imageUrl && (
+                    <div className="w-20 h-20 rounded-lg overflow-hidden ml-4">
+                      <Image
+                        src={getFullImageUrl(rec.destination.imageUrl)}
+                        alt={rec.destinationName}
+                        width={80}
+                        height={80}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
                 </div>
-                {rec.destination?.imageUrl && (
-                  <div className="w-20 h-20 rounded-lg overflow-hidden ml-4">
-                    <Image
-                      src={getFullImageUrl(rec.destination.imageUrl)}
-                      alt={rec.destinationName}
-                      width={80}
-                      height={80}
-                      className="w-full h-full object-cover"
-                    />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {rec.destination?.description && (
+                  <p className="text-sm text-gray-600">{rec.destination.description}</p>
+                )}
+
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-sm">Why this destination:</h4>
+                  <ul className="text-sm text-gray-600 space-y-1">
+                    {rec.reasons?.map((reason, idx) => (
+                      <li key={idx} className="flex items-start">
+                        <CheckCircle className="mr-2 h-3 w-3 text-green-500 mt-1 flex-shrink-0" />
+                        {reason}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {rec.suggestedActivities?.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm">Suggested Activities:</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {rec.suggestedActivities.map((activity, idx) => (
+                        <Badge key={idx} variant="outline" className="text-xs">
+                          <Activity className="mr-1 h-3 w-3" />
+                          {activity}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 )}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {rec.destination?.description && (
-                <p className="text-sm text-gray-600">{rec.destination.description}</p>
-              )}
 
-              <div className="space-y-2">
-                <h4 className="font-semibold text-sm">Why this destination:</h4>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  {rec.reasons?.map((reason, idx) => (
-                    <li key={idx} className="flex items-start">
-                      <CheckCircle className="mr-2 h-3 w-3 text-green-500 mt-1 flex-shrink-0" />
-                      {reason}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {rec.suggestedActivities?.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-sm">Suggested Activities:</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {rec.suggestedActivities.map((activity, idx) => (
-                      <Badge key={idx} variant="outline" className="text-xs">
-                        <Activity className="mr-1 h-3 w-3" />
-                        {activity}
-                      </Badge>
-                    ))}
+                {rec.bestTravelTime && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Calendar className="mr-2 h-4 w-4" />
+                    Best time: {rec.bestTravelTime}
                   </div>
-                </div>
-              )}
+                )}                {rec.itinerarySuggestion && (
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm">Itinerary Suggestion:</h4>
+                    <p className="text-sm text-gray-600">{rec.itinerarySuggestion}</p>
+                  </div>
+                )}
 
-              {rec.bestTravelTime && (
-                <div className="flex items-center text-sm text-gray-600">
-                  <Calendar className="mr-2 h-4 w-4" />
-                  Best time: {rec.bestTravelTime}
-                </div>
-              )}
-
-              {rec.itinerarySuggestion && (
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-sm">Itinerary Suggestion:</h4>
-                  <p className="text-sm text-gray-600">{rec.itinerarySuggestion}</p>
-                </div>
-              )}              <Button
-                onClick={() => handleBookDestination(rec.destinationId)}
-                className="w-full bg-amber-600 hover:bg-amber-700 text-white"
-              >
-                Book This Destination
-                <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
-            </CardContent>
-          </Card>
-        ))}      </div>
+                <Button
+                  onClick={() => handleBookDestination(rec.destinationId)}
+                  className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+                >
+                  Book This Destination
+                  <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <div className="flex justify-center space-x-4">
         <Button variant="outline" onClick={resetSuggestions}>
@@ -599,7 +598,6 @@ export default function AISuggestions() {
       </div>
     </div>
   );
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 py-8 px-4">
       <div className="container mx-auto">
