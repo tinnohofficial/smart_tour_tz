@@ -31,7 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { tourGuideService, apiUtils, authService } from "@/app/services/api";
 import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner";
-import { getUserData, clearAuthData, getAuthToken } from "../utils/auth";
+import { getUserData, clearAuthData, getAuthToken } from "../../utils/auth";
 
 export default function TourGuidePendingStatusPage() {
   const router = useRouter();
