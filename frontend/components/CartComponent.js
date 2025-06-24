@@ -174,14 +174,14 @@ const CartComponent = ({ isProcessing }) => {
                         booking.items
                           .filter(item => item.item_type !== 'placeholder')
                           .map((item, index) => (
-                          <div key={`${booking.id}-${item.item_type}-${item.id || index}`} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded">
+                          <div key={`${booking.id}-${item.item_type}-${item.id || index}`} className="flex items-center justify-between bg-amber-50 px-3 py-2 rounded">
                             <div className="flex items-center gap-2">
                               <Badge variant="secondary" className="capitalize">
                                 {item.item_type}
                               </Badge>
                               <span className="text-sm">{item.item_name || 'Service'}</span>
                               {item.sessions && item.sessions > 1 && (
-                                <span className="text-xs text-gray-500">({item.sessions}x)</span>
+                                <span className="text-xs text-amber-500">({item.sessions}x)</span>
                               )}
                             </div>
                             <span className="text-sm font-medium">
@@ -190,7 +190,7 @@ const CartComponent = ({ isProcessing }) => {
                           </div>
                         ))
                       ) : (
-                        <div className="text-sm text-gray-500 bg-gray-50 px-3 py-2 rounded">
+                        <div className="text-sm text-amber-500 bg-amber-50 px-3 py-2 rounded">
                           No items configured yet
                         </div>
                       )}
@@ -226,7 +226,8 @@ const CartComponent = ({ isProcessing }) => {
           <div className="flex justify-center">
             <Button 
               onClick={() => setIsPaymentDialogOpen(true)}
-              className="flex-1 max-w-md"
+              className="flex-1 max-w-full bg-amber-600 text-white"
+              variant="outline"
               disabled={isLoading || total <= 0 || isProcessing}
               size="lg"
             >

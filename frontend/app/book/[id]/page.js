@@ -830,7 +830,7 @@ function BookLocation({ params }) {
                 </div>
 
                 {/* Origin Selection - only show if transport is not skipped */}
-                {!skipOptions.skipTransport && <div>yeeeeeeeeeeee</div>}
+                {!skipOptions.skipTransport && <div></div>}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>
@@ -1540,7 +1540,7 @@ function BookLocation({ params }) {
                   </div>
                 </div>
 
-                <div className="flex justify-between">
+                <div className="flex justify-between mt-4">
                   <Button
                     type="button"
                     onClick={handlePrevStep}

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Menu, User, LogOut, Settings, ShoppingCart } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -254,9 +254,12 @@ export function Navbar() {
               <Button variant="outline" size="icon">
                 <Menu className="h-6 w-6" />
               </Button>
-            </SheetTrigger>
+            </SheetTrigger>            
             <SheetContent>
-              <div className="flex flex-col space-y-4 mt-4">
+              <SheetHeader>
+                <SheetTitle>Smart Tour System</SheetTitle>
+              </SheetHeader>
+              <div className="flex flex-col space-y-4 mt-0">
                 {user && (
                   <div className="flex items-center space-x-2 px-2 py-3 bg-amber-50 rounded-md mb-2">
                     <Avatar className="h-7 w-7">
@@ -277,7 +280,7 @@ export function Navbar() {
                     Locations
                   </Button>
                 </Link>
-                {user && user.role === "tourist" && (
+                {/* {user && user.role === "tourist" && (
                   <Link href="/ai-suggestions">
                     <Button
                       variant="ghost"
@@ -286,7 +289,7 @@ export function Navbar() {
                       AI Suggestions
                     </Button>
                   </Link>
-                )}
+                )} */}
                 {user ? (
                   // Logged-in tourist mobile view
                   <>

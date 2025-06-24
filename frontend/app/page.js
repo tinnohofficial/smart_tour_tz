@@ -250,8 +250,8 @@ export default function Home() {
           Why Choose Smart Tour Tanzania?
         </h2>
         <p className="text-lg text-amber-800 max-w-3xl mx-auto">
-          Experience the future of travel with our innovative platform combining
-          AI intelligence, blockchain security, and local expertise
+            Experience the future of travel with our innovative platform combining Smart Savings, 
+            blockchain security, and local expertise
         </p>
       </div>
 
