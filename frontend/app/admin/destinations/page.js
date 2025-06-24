@@ -188,8 +188,6 @@ export default function DestinationsPage() {
                   />
                 </div>
 
-
-
                 {/* Image Upload */}
                 <div className="grid grid-cols-4 items-start gap-4">
                   <Label htmlFor="image" className="text-right pt-2">
@@ -272,6 +270,7 @@ export default function DestinationsPage() {
                         <div className="h-12 w-20 overflow-hidden rounded-md">
                           {destination.image_url ? (
                             <div className="relative h-full w-full">
+                              <p>{destination.image_url}</p>
                               <Image
                                 src={destination.image_url}
                                 alt={destination.name || "Destination"}
@@ -356,7 +355,6 @@ export default function DestinationsPage() {
                   required
                 />
               </div>
-
 
               {/* Description Textarea */}
               <div className="grid grid-cols-4 items-start gap-4">
