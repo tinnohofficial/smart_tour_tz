@@ -89,9 +89,6 @@ export function RouteProtection({ allowedRoles = [], children }) {
     }
 
     checkAuth();
-
-    const timer = setTimeout(() => checkAuth(), 10); // A small delay is often enough
-    return () => clearTimeout(timer); // Cleanup the timer
   }, [allowedRoles, router]);
 
   // While checking authorization, show a loading spinner
