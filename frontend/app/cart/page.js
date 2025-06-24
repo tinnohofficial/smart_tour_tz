@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import CartComponent from "../../components/CartComponent";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { getUserData, clearAuthData, getAuthToken } from "../utils/auth";
 
 export default function CartPage() {
   const router = useRouter();
@@ -13,8 +14,8 @@ export default function CartPage() {
   // Check if user is logged in and is a tourist
   useEffect(() => {
     const checkAuth = () => {
-      const token = localStorage.getItem("token");
-      const userData = localStorage.getItem("userData");
+      const token = getAuthToken();
+      const userData = getUserData();
 
       if (!token || !userData) {
         toast.error("Please log in to access your cart");
@@ -29,11 +30,11 @@ export default function CartPage() {
           router.push("/login");
           return;
         }
-        
+
         setIsAuthorized(true);
       } catch (error) {
         console.error("Error parsing user data:", error);
-        localStorage.removeItem("userData");
+        clearAuthData();
         router.push("/login");
       } finally {
         setIsLoading(false);
@@ -58,10 +59,6 @@ export default function CartPage() {
   if (!isAuthorized) {
     return null; // Will redirect to login
   }
-
-
-
-
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

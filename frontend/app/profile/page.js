@@ -29,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { formatTZS } from "@/app/utils/currency";
+import { getUserData, clearAuthData, getAuthToken } from "../utils/auth";
 
 export default function TouristProfile() {
   const router = useRouter();
@@ -36,7 +37,6 @@ export default function TouristProfile() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
 
   // Form fields
   const [email, setEmail] = useState("");
@@ -46,8 +46,8 @@ export default function TouristProfile() {
 
   // Check authentication and load user data
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("userData");
+    const token = getAuthToken();
+    const userData = getUserData();
 
     if (!token || !userData) {
       router.push("/login");
@@ -66,14 +66,12 @@ export default function TouristProfile() {
     setIsLoading(false);
   }, [router]);
 
-
-
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      const token = localStorage.getItem("token");
+      const token = getAuthToken();
 
       // Update email if changed
       if (email !== user.email) {
@@ -121,9 +119,6 @@ export default function TouristProfile() {
       setIsSubmitting(false);
     }
   };
-
-
-
 
   if (isLoading) {
     return (

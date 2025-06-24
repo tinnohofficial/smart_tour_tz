@@ -25,6 +25,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { travelAgentService, apiUtils } from "@/app/services/api";
 import { toast } from "sonner";
+import { getUserData, clearAuthData, getAuthToken } from "../../utils/auth";
 
 export default function TravelAgentProfile() {
   const router = useRouter();
@@ -37,7 +38,7 @@ export default function TravelAgentProfile() {
     try {
       setIsLoading(true);
       setError(null);
-      const token = localStorage.getItem("token");
+      const token = getAuthToken();
 
       if (!token) {
         router.push("/login");
@@ -61,7 +62,7 @@ export default function TravelAgentProfile() {
       if (error.response?.status === 404) {
         router.push("/travel-agent/complete-profile");
       } else if (error.response?.status === 401) {
-        localStorage.removeItem("token");
+        clearAuthData();
         router.push("/login");
       } else {
         setError(error.message);

@@ -28,6 +28,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { formatTZS } from "@/app/utils/currency";
+import { getUserData, clearAuthData, getAuthToken } from "../../utils/auth";
 
 export default function PaymentPage() {
   const router = useRouter();
@@ -44,7 +45,7 @@ export default function PaymentPage() {
 
   const loadBookingDetails = useCallback(async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = getAuthToken();
       const response = await fetch(`${API_URL}/bookings/my-bookings`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -53,8 +54,10 @@ export default function PaymentPage() {
 
       if (response.ok) {
         const bookings = await response.json();
-        const targetBooking = bookings.find(b => b.id === parseInt(bookingId));
-        
+        const targetBooking = bookings.find(
+          (b) => b.id === parseInt(bookingId),
+        );
+
         if (!targetBooking) {
           toast.error("Booking not found");
           router.push("/my-bookings");
@@ -83,7 +86,7 @@ export default function PaymentPage() {
 
   const loadUserBalance = useCallback(async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = getAuthToken();
       const response = await fetch(`${API_URL}/users/balance`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -100,8 +103,8 @@ export default function PaymentPage() {
   }, [API_URL]);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("userData");
+    const token = getAuthToken();
+    const userData = getUserData();
 
     if (!token || !userData) {
       router.push("/login");
@@ -122,7 +125,7 @@ export default function PaymentPage() {
     setIsProcessing(true);
 
     try {
-      const token = localStorage.getItem("token");
+      const token = getAuthToken();
       const response = await fetch(`${API_URL}/bookings/${bookingId}/pay`, {
         method: "POST",
         headers: {
@@ -183,7 +186,8 @@ export default function PaymentPage() {
           <AlertCircle className="h-4 w-4 text-red-600" />
           <AlertTitle className="text-red-800">Booking Not Found</AlertTitle>
           <AlertDescription className="text-red-700">
-            The requested booking could not be found or is not available for payment.
+            The requested booking could not be found or is not available for
+            payment.
           </AlertDescription>
         </Alert>
       </div>
@@ -233,7 +237,8 @@ export default function PaymentPage() {
                     <div>
                       <p className="font-medium">Duration</p>
                       <p className="text-gray-600">
-                        {formatDate(booking.start_date)} - {formatDate(booking.end_date)}
+                        {formatDate(booking.start_date)} -{" "}
+                        {formatDate(booking.end_date)}
                       </p>
                     </div>
                   </div>
@@ -253,22 +258,33 @@ export default function PaymentPage() {
 
               <div>
                 <h3 className="font-medium mb-4">Select Payment Method</h3>
-                <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
+                <RadioGroup
+                  value={paymentMethod}
+                  onValueChange={setPaymentMethod}
+                >
                   <div className="space-y-3">
                     <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
                       <RadioGroupItem value="external" id="external" />
-                      <Label htmlFor="external" className="flex items-center gap-2 cursor-pointer flex-1">
+                      <Label
+                        htmlFor="external"
+                        className="flex items-center gap-2 cursor-pointer flex-1"
+                      >
                         <CreditCard className="w-4 h-4" />
                         <div>
                           <p className="font-medium">Credit/Debit Card</p>
-                          <p className="text-sm text-gray-500">Pay with your card via secure payment</p>
+                          <p className="text-sm text-gray-500">
+                            Pay with your card via secure payment
+                          </p>
                         </div>
                       </Label>
                     </div>
 
                     <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50">
                       <RadioGroupItem value="savings" id="savings" />
-                      <Label htmlFor="savings" className="flex items-center gap-2 cursor-pointer flex-1">
+                      <Label
+                        htmlFor="savings"
+                        className="flex items-center gap-2 cursor-pointer flex-1"
+                      >
                         <Wallet className="w-4 h-4" />
                         <div>
                           <p className="font-medium">Account Balance</p>
@@ -281,16 +297,21 @@ export default function PaymentPage() {
                   </div>
                 </RadioGroup>
 
-                {paymentMethod === "savings" && userBalance < booking.total_cost && (
-                  <Alert className="mt-4 border-yellow-200 bg-yellow-50">
-                    <AlertCircle className="h-4 w-4 text-yellow-600" />
-                    <AlertTitle className="text-yellow-800">Insufficient Balance</AlertTitle>
-                    <AlertDescription className="text-yellow-700">
-                      Your account balance ({formatTZS(userBalance)}) is less than the booking total ({formatTZS(booking.total_cost)}).
-                      Please add funds to your account or use a different payment method.
-                    </AlertDescription>
-                  </Alert>
-                )}
+                {paymentMethod === "savings" &&
+                  userBalance < booking.total_cost && (
+                    <Alert className="mt-4 border-yellow-200 bg-yellow-50">
+                      <AlertCircle className="h-4 w-4 text-yellow-600" />
+                      <AlertTitle className="text-yellow-800">
+                        Insufficient Balance
+                      </AlertTitle>
+                      <AlertDescription className="text-yellow-700">
+                        Your account balance ({formatTZS(userBalance)}) is less
+                        than the booking total ({formatTZS(booking.total_cost)}
+                        ). Please add funds to your account or use a different
+                        payment method.
+                      </AlertDescription>
+                    </Alert>
+                  )}
               </div>
 
               <Separator />
@@ -307,7 +328,8 @@ export default function PaymentPage() {
                   onClick={handlePayment}
                   disabled={
                     isProcessing ||
-                    (paymentMethod === "savings" && userBalance < booking.total_cost)
+                    (paymentMethod === "savings" &&
+                      userBalance < booking.total_cost)
                   }
                   className="bg-amber-700 hover:bg-amber-800 text-white"
                 >
@@ -335,18 +357,22 @@ export default function PaymentPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3">
-                {booking.items && booking.items.map((item, index) => (
-                  <div key={index} className="flex justify-between items-center text-sm">
-                    <span className="capitalize">
-                      {item.item_name || item.item_type?.replace('_', ' ')}
-                    </span>
-                    <span>{formatTZS(item.cost)}</span>
-                  </div>
-                ))}
+                {booking.items &&
+                  booking.items.map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex justify-between items-center text-sm"
+                    >
+                      <span className="capitalize">
+                        {item.item_name || item.item_type?.replace("_", " ")}
+                      </span>
+                      <span>{formatTZS(item.cost)}</span>
+                    </div>
+                  ))}
               </div>
-              
+
               <Separator />
-              
+
               <div className="flex justify-between items-center font-medium">
                 <span>Total Amount</span>
                 <span className="text-lg">{formatTZS(booking.total_cost)}</span>
@@ -355,7 +381,8 @@ export default function PaymentPage() {
               <Alert className="border-blue-200 bg-blue-50">
                 <CheckCircle className="h-4 w-4 text-blue-600" />
                 <AlertDescription className="text-blue-700">
-                  After payment, our partners will arrange your services and you&apos;ll receive confirmation details.
+                  After payment, our partners will arrange your services and
+                  you&apos;ll receive confirmation details.
                 </AlertDescription>
               </Alert>
             </CardContent>
@@ -367,7 +394,8 @@ export default function PaymentPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-600 mb-4">
-                If you have any questions about your booking or payment, our support team is here to help.
+                If you have any questions about your booking or payment, our
+                support team is here to help.
               </p>
               <Button
                 variant="outline"

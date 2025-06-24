@@ -22,12 +22,24 @@ import {
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { FileUploader } from "../../components/file-uploader";
 import { toast } from "sonner";
-import { hotelManagerService, uploadService, destinationsService, apiUtils } from "@/app/services/api";
+import {
+  hotelManagerService,
+  uploadService,
+  destinationsService,
+  apiUtils,
+} from "@/app/services/api";
 import { RouteProtection } from "@/components/route-protection";
 import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner";
+import { getUserData, clearAuthData, getAuthToken } from "../../utils/auth";
 
 export default function HotelManagerCompleteProfile() {
   const router = useRouter();
@@ -49,74 +61,74 @@ export default function HotelManagerCompleteProfile() {
   useEffect(() => {
     const checkAccess = async () => {
       try {
-        const token = localStorage.getItem('token')
+        const token = getAuthToken();
         if (!token) {
-          router.push('/login')
-          return
+          router.push("/login");
+          return;
         }
 
         try {
-          const data = await hotelManagerService.getProfile()
-          setUserStatus(data.status || 'pending_profile')
-          
+          const data = await hotelManagerService.getProfile();
+          setUserStatus(data.status || "pending_profile");
+
           // If user is active or pending approval, redirect them away
-          if (data.status === 'active') {
-            router.push('/hotel-manager/dashboard')
-            return
-          } else if (data.status === 'pending_approval') {
-            router.push('/hotel-manager/pending-status')
-            return
-          } else if (data.status === 'rejected') {
+          if (data.status === "active") {
+            router.push("/hotel-manager/dashboard");
+            return;
+          } else if (data.status === "pending_approval") {
+            router.push("/hotel-manager/pending-status");
+            return;
+          } else if (data.status === "rejected") {
             // Allow rejected users to resubmit
-            setUserStatus('rejected')
+            setUserStatus("rejected");
           }
         } catch (error) {
           if (error.response?.status === 404) {
             // No profile exists - this is expected for new users
-            setUserStatus('pending_profile')
+            setUserStatus("pending_profile");
           } else {
-            console.error('Error fetching profile:', error)
-            apiUtils.handleAuthError(error, router)
-            return
+            console.error("Error fetching profile:", error);
+            apiUtils.handleAuthError(error, router);
+            return;
           }
         }
       } catch (error) {
-        console.error("Error checking access:", error)
-        router.push('/login')
+        console.error("Error checking access:", error);
+        router.push("/login");
       } finally {
-        setIsCheckingAccess(false)
+        setIsCheckingAccess(false);
       }
-    }
+    };
 
-    checkAccess()
-  }, [router])
+    checkAccess();
+  }, [router]);
 
   // Fetch destinations for the dropdown
   useEffect(() => {
     const fetchDestinations = async () => {
       try {
-        setIsLoadingDestinations(true)
-        const destinationsData = await destinationsService.getAllDestinations()
-        setDestinations(destinationsData)
+        setIsLoadingDestinations(true);
+        const destinationsData = await destinationsService.getAllDestinations();
+        setDestinations(destinationsData);
       } catch (error) {
-        console.error('Error fetching destinations:', error)
-        toast.error('Failed to load destinations. Please refresh the page.')
+        console.error("Error fetching destinations:", error);
+        toast.error("Failed to load destinations. Please refresh the page.");
       } finally {
-        setIsLoadingDestinations(false)
+        setIsLoadingDestinations(false);
       }
-    }
+    };
 
-    fetchDestinations()
-  }, [])
+    fetchDestinations();
+  }, []);
 
   // Show loading while checking access
   if (isCheckingAccess) {
-    return <LoadingSpinner message="Checking access..." />
+    return <LoadingSpinner message="Checking access..." />;
   }
 
   // Don't render if user shouldn't have access
-  if (userStatus !== 'pending_profile' && userStatus !== 'rejected') {
-    return null
+  if (userStatus !== "pending_profile" && userStatus !== "rejected") {
+    return null;
   }
 
   const handleInputChange = (field, value) => {
@@ -227,13 +239,14 @@ export default function HotelManagerCompleteProfile() {
           <div className="bg-amber-700 p-6 rounded-lg mb-6 text-center">
             <Hotel className="h-12 w-12 text-white mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-white mb-2">
-              {userStatus === 'rejected' ? 'Resubmit Your Hotel Profile' : 'Complete Your Hotel Profile'}
+              {userStatus === "rejected"
+                ? "Resubmit Your Hotel Profile"
+                : "Complete Your Hotel Profile"}
             </h1>
             <p className="text-amber-100">
-              {userStatus === 'rejected' 
-                ? 'Your previous application was rejected. Please review the feedback and resubmit your hotel details.'
-                : 'Provide your hotel details to submit your application to offer services on our platform.'
-              }
+              {userStatus === "rejected"
+                ? "Your previous application was rejected. Please review the feedback and resubmit your hotel details."
+                : "Provide your hotel details to submit your application to offer services on our platform."}
             </p>
           </div>
 
@@ -276,11 +289,20 @@ export default function HotelManagerCompleteProfile() {
                         disabled={isLoadingDestinations}
                       >
                         <SelectTrigger className="pl-10 border-gray-300 focus:border-amber-500">
-                          <SelectValue placeholder={isLoadingDestinations ? "Loading destinations..." : "Select destination"} />
+                          <SelectValue
+                            placeholder={
+                              isLoadingDestinations
+                                ? "Loading destinations..."
+                                : "Select destination"
+                            }
+                          />
                         </SelectTrigger>
                         <SelectContent>
                           {destinations.map((destination) => (
-                            <SelectItem key={destination.id} value={destination.id.toString()}>
+                            <SelectItem
+                              key={destination.id}
+                              value={destination.id.toString()}
+                            >
                               {destination.name}
                             </SelectItem>
                           ))}

@@ -1,5 +1,6 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "");
+import { getUserData, clearAuthData, getAuthToken } from "../utils/auth";
 
 // Utility function to construct full image URLs
 export const getFullImageUrl = (imageUrl) => {
@@ -18,7 +19,7 @@ const getAuthHeaders = () => {
     return { "Content-Type": "application/json" };
   }
 
-  const token = localStorage.getItem("token");
+  const token = getAuthToken();
   return {
     "Content-Type": "application/json",
     ...(token && { Authorization: `Bearer ${token}` }),
@@ -55,8 +56,7 @@ const apiRequest = async (endpoint, options = {}) => {
       if (response.status === 401 || response.status === 403) {
         // Clear invalid tokens
         if (typeof window !== "undefined") {
-          localStorage.removeItem("token");
-          localStorage.removeItem("userData");
+          clearAuthData();
         }
 
         const error = new Error(errorMessage);
@@ -115,8 +115,7 @@ export const apiUtils = {
       error.isAuthError
     ) {
       if (typeof window !== "undefined") {
-        localStorage.removeItem("token");
-        localStorage.removeItem("userData");
+        clearAuthData();
       }
       if (router) {
         router.push("/login");
@@ -186,7 +185,7 @@ export const travelAgentService = {
       throw new Error("Not in browser environment");
     }
 
-    const token = localStorage.getItem("token");
+    const token = getAuthToken();
     if (!token) throw new Error("No authentication token found");
 
     const payload = JSON.parse(atob(token.split(".")[1]));
@@ -207,7 +206,7 @@ export const travelAgentService = {
       throw new Error("Not in browser environment");
     }
 
-    const token = localStorage.getItem("token");
+    const token = getAuthToken();
     if (!token) throw new Error("No authentication token found");
 
     const payload = JSON.parse(atob(token.split(".")[1]));
@@ -482,7 +481,7 @@ export const uploadService = {
     formData.append("file", file);
 
     // Get token for authentication
-    const token = localStorage.getItem("token");
+    const token = getAuthToken();
     if (!token) {
       throw new Error("Authentication required for file upload");
     }
@@ -519,7 +518,7 @@ export const uploadService = {
     formData.append("file", file);
 
     // Get token for authentication
-    const token = localStorage.getItem("token");
+    const token = getAuthToken();
     if (!token) {
       throw new Error("Authentication required for document upload");
     }
@@ -547,7 +546,7 @@ export const uploadService = {
       throw new Error("File deletion not available in server environment");
     }
 
-    const token = localStorage.getItem("token");
+    const token = getAuthToken();
     if (!token) {
       throw new Error("Authentication required for file deletion");
     }

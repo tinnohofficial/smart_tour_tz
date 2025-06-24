@@ -25,6 +25,7 @@ import {
   useElements,
 } from "@stripe/react-stripe-js";
 import blockchainService from "../services/blockchainService";
+import { getUserData, clearAuthData, getAuthToken } from "../utils/auth";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "pk_test_placeholder",
@@ -196,7 +197,7 @@ function StripeCheckoutForm({ amount, onSuccess, onError }) {
 
   const updateUserBalance = async (depositAmount) => {
     try {
-      const token = localStorage.getItem("token");
+      const token = getAuthToken();
 
       // First get current balance
       const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -277,8 +278,6 @@ function StripeCheckoutForm({ amount, onSuccess, onError }) {
           `Pay ${formatTZS(amount)}`
         )}
       </Button>
-
-
     </form>
   );
 }
@@ -312,7 +311,7 @@ export default function Savings() {
 
   useEffect(() => {
     // Get user data from localStorage
-    const userData = localStorage.getItem("userData");
+    const userData = getUserData();
     if (userData) {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
@@ -574,11 +573,18 @@ export default function Savings() {
                 className="w-full"
               >
                 <TabsList className="grid w-full grid-cols-2 bg-gray-100">
-                  <TabsTrigger value="stripe" className="data-[state=active]:bg-amber-600 data-[state=active]:text-white text-gray-700">
+                  <TabsTrigger
+                    value="stripe"
+                    className="data-[state=active]:bg-amber-600 data-[state=active]:text-white text-gray-700"
+                  >
                     <CreditCard className="h-4 w-4 mr-2" />
                     Credit/Debit Card
                   </TabsTrigger>
-                  <TabsTrigger value="crypto" disabled={!isWalletConnected} className="data-[state=active]:bg-amber-600 data-[state=active]:text-white text-gray-700">
+                  <TabsTrigger
+                    value="crypto"
+                    disabled={!isWalletConnected}
+                    className="data-[state=active]:bg-amber-600 data-[state=active]:text-white text-gray-700"
+                  >
                     <Wallet className="h-4 w-4 mr-2" />
                     Cryptocurrency
                   </TabsTrigger>
@@ -606,7 +612,8 @@ export default function Savings() {
                     <div className="p-4 bg-gray-50 rounded-lg text-center">
                       <CreditCard className="h-8 w-8 mx-auto text-gray-400 mb-2" />
                       <p className="text-gray-600">
-                        Please enter a valid amount greater than zero to proceed with card payment.
+                        Please enter a valid amount greater than zero to proceed
+                        with card payment.
                       </p>
                     </div>
                   )}

@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import blockchainService from "../services/blockchainService";
+import { getAuthToken } from "../utils/auth";
+import { getUserData, clearAuthData, getAuthToken } from "../utils/auth";
 
 const useSavingsStore = create((set, get) => ({
   balance: 0,
@@ -17,7 +19,8 @@ const useSavingsStore = create((set, get) => ({
   setIsLoading: (loading) => set({ isLoading: loading }),
   setIsDepositing: (depositing) => set({ isDepositing: depositing }),
   setIsWalletConnected: (connected) => set({ isWalletConnected: connected }),
-  setIsConnectingWallet: (connecting) => set({ isConnectingWallet: connecting }),
+  setIsConnectingWallet: (connecting) =>
+    set({ isConnectingWallet: connecting }),
   setDepositAmount: (amount) => set({ depositAmount: amount }),
 
   toggleBalanceVisibility: () =>
@@ -29,9 +32,9 @@ const useSavingsStore = create((set, get) => ({
     try {
       const result = await blockchainService.connectWallet();
       if (result.success) {
-        set({ 
-          isWalletConnected: true, 
-          walletAddress: result.address 
+        set({
+          isWalletConnected: true,
+          walletAddress: result.address,
         });
 
         // Store wallet address in local storage
@@ -53,9 +56,9 @@ const useSavingsStore = create((set, get) => ({
   disconnectWallet: () => {
     blockchainService.disconnect();
     localStorage.removeItem("walletAddress");
-    set({ 
-      isWalletConnected: false, 
-      walletAddress: null
+    set({
+      isWalletConnected: false,
+      walletAddress: null,
     });
   },
 
@@ -63,7 +66,7 @@ const useSavingsStore = create((set, get) => ({
   fetchBalance: async () => {
     set({ isLoading: true });
     try {
-      const token = localStorage.getItem("token");
+      const token = getAuthToken();
       if (!token) {
         console.warn("No authentication token found");
         return;
@@ -88,16 +91,16 @@ const useSavingsStore = create((set, get) => ({
           response.status,
         );
         if (response.status === 401) {
-          localStorage.removeItem("token");
+          clearAuthData();
         }
       }
 
       // Check if wallet was previously connected
       const savedWalletAddress = localStorage.getItem("walletAddress");
       if (savedWalletAddress && !get().isWalletConnected) {
-        set({ 
+        set({
           isWalletConnected: true,
-          walletAddress: savedWalletAddress
+          walletAddress: savedWalletAddress,
         });
       }
     } catch (error) {
@@ -111,7 +114,7 @@ const useSavingsStore = create((set, get) => ({
   updateBalance: async (newBalance) => {
     set({ isLoading: true });
     try {
-      const token = localStorage.getItem("token");
+      const token = getAuthToken();
       if (!token) throw new Error("No authentication token");
 
       const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -154,16 +157,19 @@ const useSavingsStore = create((set, get) => ({
           // After successful blockchain deposit, update the database balance
           const currentBalance = get().balance;
           const newBalance = currentBalance + amountInTZC;
-          
+
           const updateResult = await get().updateBalance(newBalance);
           if (updateResult.success) {
             return {
               success: true,
               message: `Successfully deposited ${amount} TZS to your account!`,
-              txHash: result.transactionHash
+              txHash: result.transactionHash,
             };
           } else {
-            return { success: false, error: "Failed to update balance in database" };
+            return {
+              success: false,
+              error: "Failed to update balance in database",
+            };
           }
         } else {
           return { success: false, error: result.error };
@@ -212,6 +218,6 @@ const useSavingsStore = create((set, get) => ({
       depositAmount: "",
     });
   },
-}))
+}));
 
 export { useSavingsStore };

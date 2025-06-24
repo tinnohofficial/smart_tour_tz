@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/badge.jsx";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { formatTZS } from "@/app/utils/currency";
+import { getUserData, clearAuthData, getAuthToken } from "../utils/auth";
 
 export default function MyBookings() {
   const router = useRouter();
@@ -39,7 +40,7 @@ export default function MyBookings() {
 
   const loadBookings = useCallback(async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = getAuthToken();
       const response = await fetch(`${API_URL}/bookings/my-bookings`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -61,8 +62,8 @@ export default function MyBookings() {
   }, [API_URL]);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("userData");
+    const token = getAuthToken();
+    const userData = getUserData();
 
     if (!token || !userData) {
       router.push("/login");
@@ -202,9 +203,9 @@ export default function MyBookings() {
                 <div className="text-sm text-gray-600 space-y-3">
                   <div className="flex items-center gap-3">
                     <span>🎫</span>
-                    <a 
-                      href={details.ticket_pdf_url} 
-                      target="_blank" 
+                    <a
+                      href={details.ticket_pdf_url}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:text-blue-800 underline font-medium"
                     >
@@ -287,9 +288,7 @@ export default function MyBookings() {
 
           if (item.item_type === "placeholder" && details.message) {
             return (
-              <div className="text-sm text-gray-600">
-                {details.message}
-              </div>
+              <div className="text-sm text-gray-600">{details.message}</div>
             );
           }
         } catch (e) {
@@ -334,7 +333,9 @@ export default function MyBookings() {
         className="p-4 bg-gray-50 rounded-lg border"
       >
         <div className="flex items-start gap-4">
-          <div className="flex-shrink-0 mt-1">{getItemIcon(item.item_type)}</div>
+          <div className="flex-shrink-0 mt-1">
+            {getItemIcon(item.item_type)}
+          </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 mb-2">
               <h4 className="font-medium text-base text-gray-900">
@@ -347,9 +348,7 @@ export default function MyBookings() {
                 {item.item_type.replace("_", " ")}
               </Badge>
             </div>
-            <div className="mt-2">
-              {getItemDetails(item)}
-            </div>
+            <div className="mt-2">{getItemDetails(item)}</div>
           </div>
         </div>
       </div>

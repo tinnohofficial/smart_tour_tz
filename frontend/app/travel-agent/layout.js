@@ -22,6 +22,7 @@ import { RouteProtection } from "@/components/route-protection";
 import { publishAuthChange } from "@/components/Navbar";
 import { travelAgentService, apiUtils } from "@/app/services/api";
 import { useEffect, useState } from "react";
+import { getUserData, clearAuthData, getAuthToken } from "../utils/auth";
 
 export default function TravelAgentLayout({ children }) {
   const pathname = usePathname();
@@ -36,11 +37,11 @@ export default function TravelAgentLayout({ children }) {
       setIsLoading(true);
       try {
         // Check if we're in browser environment
-        if (typeof window === 'undefined') {
+        if (typeof window === "undefined") {
           return;
         }
 
-        const token = localStorage.getItem("token");
+        const token = getAuthToken();
         if (!token) {
           router.push("/login");
           return;
@@ -54,12 +55,15 @@ export default function TravelAgentLayout({ children }) {
           if (error.response?.status === 404) {
             setUserStatus("pending_profile");
             setHasProfile(false);
-          } else if (error.response?.status === 401 || error.response?.status === 403 || error.isAuthError) {
+          } else if (
+            error.response?.status === 401 ||
+            error.response?.status === 403 ||
+            error.isAuthError
+          ) {
             // Handle authentication errors gracefully
             console.log("Authentication error, redirecting to login");
-            if (typeof window !== 'undefined') {
-              localStorage.removeItem("token");
-              localStorage.removeItem("userData");
+            if (typeof window !== "undefined") {
+              clearAuthData();
             }
             router.push("/login");
             return;
@@ -158,9 +162,8 @@ export default function TravelAgentLayout({ children }) {
   const handleLogout = () => {
     try {
       // Clear authentication data
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem("token");
-        localStorage.removeItem("userData");
+      if (typeof window !== "undefined") {
+        clearAuthData();
       }
 
       // Notify navbar about auth state change

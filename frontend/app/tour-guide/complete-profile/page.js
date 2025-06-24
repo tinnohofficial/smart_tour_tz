@@ -40,6 +40,7 @@ import {
 } from "@/app/services/api";
 import { RouteProtection } from "@/components/route-protection";
 import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner";
+import { getUserData, clearAuthData, getAuthToken } from "../../utils/auth";
 
 export default function TourGuideCompleteProfile() {
   const router = useRouter();
@@ -90,8 +91,11 @@ export default function TourGuideCompleteProfile() {
             formData.destination_id,
           );
         // Backend returns { message, activities } - extract the activities array
-        const activities = Array.isArray(activitiesData.activities) ? activitiesData.activities : 
-                          Array.isArray(activitiesData) ? activitiesData : []
+        const activities = Array.isArray(activitiesData.activities)
+          ? activitiesData.activities
+          : Array.isArray(activitiesData)
+            ? activitiesData
+            : [];
         setActivities(activities);
       } catch (error) {
         console.error("Error loading activities:", error);
@@ -108,7 +112,7 @@ export default function TourGuideCompleteProfile() {
   useEffect(() => {
     const checkAccess = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = getAuthToken();
         if (!token) {
           router.push("/login");
           return;

@@ -39,6 +39,7 @@ import {
 } from "@/app/services/api";
 import { RouteProtection } from "@/components/route-protection";
 import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner";
+import { getUserData, clearAuthData, getAuthToken } from "../../utils/auth";
 
 export default function TravelAgentCompleteProfile() {
   const router = useRouter();
@@ -69,7 +70,7 @@ export default function TravelAgentCompleteProfile() {
   useEffect(() => {
     const checkAccess = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = getAuthToken();
         if (!token) {
           router.push("/login");
           return;

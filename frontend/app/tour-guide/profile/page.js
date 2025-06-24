@@ -32,6 +32,7 @@ import {
   apiUtils,
 } from "@/app/services/api";
 import { toast } from "sonner";
+import { getUserData, clearAuthData, getAuthToken } from "../../utils/auth";
 
 export default function TourGuideProfile() {
   const router = useRouter();
@@ -48,7 +49,7 @@ export default function TourGuideProfile() {
     try {
       setIsLoading(true);
       setError(null);
-      const token = localStorage.getItem("token");
+      const token = getAuthToken();
 
       if (!token) {
         router.push("/login");
@@ -90,7 +91,7 @@ export default function TourGuideProfile() {
       if (error.response?.status === 404) {
         router.push("/tour-guide/complete-profile");
       } else if (error.response?.status === 401) {
-        localStorage.removeItem("token");
+        clearAuthData();
         router.push("/login");
       } else {
         setError(error.message);

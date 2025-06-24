@@ -9,7 +9,6 @@ import {
   Clock,
   Calendar,
   Loader2,
-
   User,
   ArrowRight,
   CheckCircle,
@@ -39,6 +38,7 @@ import { formatDateWithFormat } from "@/app/utils/dateUtils";
 import { formatTZS } from "@/app/utils/currency";
 import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner";
 import { hotelManagerService, apiUtils } from "@/app/services/api";
+import { getUserData, clearAuthData, getAuthToken } from "../../utils/auth";
 
 export default function HotelManagerDashboard() {
   const { stats, recentBookings, isLoading, error, fetchDashboardData } =
@@ -50,7 +50,7 @@ export default function HotelManagerDashboard() {
   useEffect(() => {
     const checkAccess = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = getAuthToken();
         if (!token) {
           router.push("/login");
           return;
@@ -162,8 +162,6 @@ export default function HotelManagerDashboard() {
           <div className="absolute right-0 top-0 h-full w-1.5 bg-yellow-500" />
         </Card>
 
-
-
         {/* Total Bookings Card */}
         <Card className="relative overflow-hidden">
           <CardHeader className="pb-2">
@@ -188,7 +186,6 @@ export default function HotelManagerDashboard() {
           </CardContent>
           <div className="absolute right-0 top-0 h-full w-1.5 bg-amber-700" />
         </Card>
-
       </div>
 
       <div className="grid gap-4 md:grid-cols-12">

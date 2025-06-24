@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { getUserData, clearAuthData, getAuthToken } from "../app/utils/auth";
 
 /**
  * A component that handles route protection by checking authentication and role permissions
@@ -24,7 +25,7 @@ export function RouteProtection({ allowedRoles = [], children }) {
         }
 
         // Check if token exists in localStorage
-        const token = localStorage.getItem("token");
+        const token = getAuthToken();
         if (!token) {
           toast.error("You must be signed in to access this page");
           router.push("/login");
@@ -40,17 +41,16 @@ export function RouteProtection({ allowedRoles = [], children }) {
           // Try to decode the payload to check if token is malformed
           JSON.parse(atob(parts[1]));
         } catch (tokenError) {
-          localStorage.removeItem("token");
-          localStorage.removeItem("userData");
+          clearAuthData();
           toast.error("Invalid authentication token. Please sign in again.");
           router.push("/login");
           return;
         }
 
         // Get user data from localStorage
-        const storedUserData = localStorage.getItem("userData");
+        const storedUserData = getUserData();
         if (!storedUserData) {
-          localStorage.removeItem("token");
+          clearAuthData();
           toast.error("Authentication error. Please sign in again.");
           router.push("/login");
           return;
@@ -60,8 +60,7 @@ export function RouteProtection({ allowedRoles = [], children }) {
         try {
           userData = JSON.parse(storedUserData);
         } catch (parseError) {
-          localStorage.removeItem("token");
-          localStorage.removeItem("userData");
+          clearAuthData();
           toast.error("Authentication error. Please sign in again.");
           router.push("/login");
           return;
@@ -78,8 +77,7 @@ export function RouteProtection({ allowedRoles = [], children }) {
         setIsAuthorized(true);
       } catch (error) {
         if (typeof window !== "undefined") {
-          localStorage.removeItem("token");
-          localStorage.removeItem("userData");
+          clearAuthData();
         }
         toast.error("Authentication error. Please sign in again.");
         router.push("/login");

@@ -25,6 +25,7 @@ import { ChevronRight } from "lucide-react";
 import { useRegisterStore } from "./registerStore";
 import { publishAuthChange } from "@/components/Navbar";
 import ReCAPTCHA from "react-google-recaptcha";
+import { getUserData, clearAuthData, getAuthToken } from "../utils/auth";
 
 export default function Register() {
   const router = useRouter();
@@ -45,8 +46,8 @@ export default function Register() {
 
   // Check if user is already logged in
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("userData");
+    const token = getAuthToken();
+    const userData = getUserData();
 
     if (token && userData) {
       const user = JSON.parse(userData);

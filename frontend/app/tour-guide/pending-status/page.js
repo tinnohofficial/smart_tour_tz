@@ -31,6 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { tourGuideService, apiUtils, authService } from "@/app/services/api";
 import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner";
+import { getUserData, clearAuthData, getAuthToken } from "../utils/auth";
 
 export default function TourGuidePendingStatusPage() {
   const router = useRouter();
@@ -43,7 +44,7 @@ export default function TourGuidePendingStatusPage() {
   useEffect(() => {
     const checkStatusAndFetchData = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = getAuthToken();
         if (!token) {
           router.push("/login");
           return;
@@ -97,11 +98,13 @@ export default function TourGuidePendingStatusPage() {
     try {
       // Refresh the token to get updated user status
       const refreshResponse = await authService.refreshToken();
-      
+
       // Update local storage with new token and user data
       localStorage.setItem("token", refreshResponse.token);
       localStorage.setItem("userData", JSON.stringify(refreshResponse.user));
-      
+      sessionStorage.setItem("token", refreshResponse.token);
+      sessionStorage.setItem("userData", JSON.stringify(refreshResponse.user));
+
       // Navigate to dashboard
       router.push("/tour-guide/dashboard");
     } catch (error) {
@@ -199,7 +202,7 @@ export default function TourGuidePendingStatusPage() {
               {statusDisplay.title}
             </h1>
             <p className="text-gray-700 mb-4">{statusDisplay.message}</p>
-            
+
             {userStatus === "active" && (
               <Button
                 onClick={handleGoToDashboard}

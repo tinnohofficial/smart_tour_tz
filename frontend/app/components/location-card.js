@@ -1,44 +1,50 @@
-import Image from "next/image"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { toast } from "sonner"
-
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { getUserData, clearAuthData, getAuthToken } from "../utils/auth";
 
 export function LocationCard({ id, name, description, image }) {
-  const router = useRouter()
-  
+  const router = useRouter();
+
   const handleBooking = () => {
     // Check if user is logged in
-    const token = localStorage.getItem("token")
-    const userData = localStorage.getItem("userData")
-    
+    const token = getAuthToken();
+    const userData = getUserData();
+
     if (!token || !userData) {
-      toast.error("You need to log in to book a destination")
-      router.push("/login")
-      return
+      toast.error("You need to log in to book a destination");
+      router.push("/login");
+      return;
     }
-    
+
     // Check if the user is a tourist
     try {
-      const user = JSON.parse(userData)
+      const user = JSON.parse(userData);
       if (user.role !== "tourist") {
-        toast.error("Only tourists can make bookings")
-        return
+        toast.error("Only tourists can make bookings");
+        return;
       }
-      
+
       // If user is logged in and is a tourist, redirect to booking page
-      router.push(`/book/${id}`)
+      router.push(`/book/${id}`);
     } catch (error) {
-      console.error("Error parsing user data:", error)
-      toast.error("Authentication error. Please log in again.")
-      localStorage.removeItem("token")
-      localStorage.removeItem("userData")
-      router.push("/login")
+      console.error("Error parsing user data:", error);
+      toast.error("Authentication error. Please log in again.");
+      clearAuthData();
+      router.push("/login");
     }
-  }
-  
+  };
+
   return (
     <Card className="overflow-hidden flex flex-col py-0 pb-6">
       <Image
@@ -55,14 +61,13 @@ export function LocationCard({ id, name, description, image }) {
         <CardDescription>{description}</CardDescription>
       </CardContent>
       <CardFooter>
-        <Button 
-          className="w-full text-white bg-amber-700 hover:bg-amber-800" 
+        <Button
+          className="w-full text-white bg-amber-700 hover:bg-amber-800"
           onClick={handleBooking}
         >
           Book Now
         </Button>
       </CardFooter>
     </Card>
-  )
+  );
 }
-

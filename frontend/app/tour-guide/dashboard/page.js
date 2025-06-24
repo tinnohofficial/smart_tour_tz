@@ -15,6 +15,7 @@ import { useDashboardStore } from "./store";
 import { ProfileCompletionBanner } from "../../components/profile-completion-status/ProfileCompletionBanner";
 import { LoadingSpinner } from "@/app/components/shared/LoadingSpinner";
 import { tourGuideService, apiUtils } from "@/app/services/api";
+import { getUserData, clearAuthData, getAuthToken } from "../../utils/auth";
 
 export default function TourGuideDashboard() {
   const router = useRouter();
@@ -33,7 +34,7 @@ export default function TourGuideDashboard() {
   useEffect(() => {
     const checkAccess = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = getAuthToken();
         if (!token) {
           router.push("/login");
           return;

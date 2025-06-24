@@ -30,6 +30,7 @@ import {
   apiUtils,
 } from "@/app/services/api";
 import { toast } from "sonner";
+import { getUserData, clearAuthData, getAuthToken } from "../../utils/auth";
 
 export default function HotelManagerProfile() {
   const router = useRouter();
@@ -43,7 +44,7 @@ export default function HotelManagerProfile() {
     try {
       setIsLoading(true);
       setError(null);
-      const token = localStorage.getItem("token");
+      const token = getAuthToken();
 
       if (!token) {
         router.push("/login");

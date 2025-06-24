@@ -22,6 +22,7 @@ import { RouteProtection } from "@/components/route-protection";
 import { publishAuthChange } from "@/components/Navbar";
 import { hotelManagerService, apiUtils } from "@/app/services/api";
 import { useEffect, useState } from "react";
+import { getUserData, clearAuthData, getAuthToken } from "../utils/auth";
 
 export default function HotelManagerLayout({ children }) {
   const pathname = usePathname();
@@ -36,11 +37,11 @@ export default function HotelManagerLayout({ children }) {
       setIsLoading(true);
       try {
         // Check if we're in browser environment
-        if (typeof window === 'undefined') {
+        if (typeof window === "undefined") {
           return;
         }
 
-        const token = localStorage.getItem("token");
+        const token = getAuthToken();
         if (!token) {
           router.push("/login");
           return;
@@ -54,10 +55,14 @@ export default function HotelManagerLayout({ children }) {
           if (error.response?.status === 404) {
             setUserStatus("pending_profile");
             setHasProfile(false);
-          } else if (error.response?.status === 401 || error.response?.status === 403 || error.isAuthError) {
+          } else if (
+            error.response?.status === 401 ||
+            error.response?.status === 403 ||
+            error.isAuthError
+          ) {
             // Handle authentication errors gracefully
             console.log("Authentication error, redirecting to login");
-            if (typeof window !== 'undefined') {
+            if (typeof window !== "undefined") {
               localStorage.removeItem("token");
               localStorage.removeItem("userData");
             }
@@ -155,7 +160,7 @@ export default function HotelManagerLayout({ children }) {
   const handleLogout = () => {
     try {
       // Clear authentication data
-      if (typeof window !== 'undefined') {
+      if (typeof window !== "undefined") {
         localStorage.removeItem("token");
         localStorage.removeItem("userData");
       }
