@@ -313,7 +313,7 @@ export default function Savings() {
     // Get user data from localStorage
     const userData = getUserData();
     if (userData) {
-      const parsedUser = JSON.parse(userData);
+      const parsedUser = userData;
       setUser(parsedUser);
 
       if (parsedUser.role === "tourist") {

@@ -50,7 +50,7 @@ export default function Register() {
     const userData = getUserData();
 
     if (token && userData) {
-      const user = JSON.parse(userData);
+      const user = userData;
 
       // Redirect based on role
       switch (user.role) {

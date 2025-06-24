@@ -24,7 +24,7 @@ export default function CartPage() {
       }
 
       try {
-        const user = JSON.parse(userData);
+        const user = userData;
         if (user.role !== "tourist") {
           toast.error("Cart is only available for tourists");
           router.push("/login");

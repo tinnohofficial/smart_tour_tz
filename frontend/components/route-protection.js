@@ -26,6 +26,8 @@ export function RouteProtection({ allowedRoles = [], children }) {
 
         // Check if token exists in localStorage
         const token = getAuthToken();
+        console.log(token);
+        console.log("seeet");
         if (!token) {
           toast.error("You must be signed in to access this page");
           router.push("/login");
@@ -48,18 +50,8 @@ export function RouteProtection({ allowedRoles = [], children }) {
         }
 
         // Get user data from localStorage
-        const storedUserData = getUserData();
-        if (!storedUserData) {
-          clearAuthData();
-          toast.error("Authentication error. Please sign in again.");
-          router.push("/login");
-          return;
-        }
-
-        let userData;
-        try {
-          userData = JSON.parse(storedUserData);
-        } catch (parseError) {
+        const userData = getUserData();
+        if (!userData) {
           clearAuthData();
           toast.error("Authentication error. Please sign in again.");
           router.push("/login");

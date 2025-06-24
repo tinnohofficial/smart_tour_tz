@@ -100,7 +100,7 @@
 //   const [isLoading, setIsLoading] = useState(false);
 //   const [suggestions, setSuggestions] = useState(null);
 //   const [user, setUser] = useState(null);
-  
+
 //   const [preferences, setPreferences] = useState({
 //     budget: "",
 //     duration: "",
@@ -122,7 +122,7 @@
 //     }
 
 //     try {
-//       const parsedUser = JSON.parse(userData);
+//       const parsedUser = userData;
 //       if (parsedUser.role !== "tourist") {
 //         router.push("/forbidden");
 //         return;
@@ -170,7 +170,7 @@
 //     try {
 //       // Add a small delay to show the loading animation
 //       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
 //       const response = await aiSuggestionsService.getTourSuggestions(preferences);
 //       setSuggestions(response);
 //       setCurrentStep(4); // Move to results step

@@ -29,7 +29,7 @@ export function LocationCard({ id, name, description, image }) {
 
     // Check if the user is a tourist
     try {
-      const user = JSON.parse(userData);
+      const user = userData;
       if (user.role !== "tourist") {
         toast.error("Only tourists can make bookings");
         return;

@@ -27,8 +27,9 @@ export default function Home() {
   useEffect(() => {
     // Check if user is logged in and redirect to appropriate dashboard
     const userData = getUserData();
+    console.log(userData);
     if (userData) {
-      const user = JSON.parse(userData);
+      const user = userData;
       setUser(user);
 
       // Redirect logged-in users to their respective dashboards

@@ -54,7 +54,7 @@ export default function TouristProfile() {
       return;
     }
 
-    const parsedUser = JSON.parse(userData);
+    const parsedUser = userData;
     if (parsedUser.role !== "tourist") {
       router.push("/forbidden");
       return;
