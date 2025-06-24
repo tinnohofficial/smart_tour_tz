@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import blockchainService from "../services/blockchainService";
-import { getAuthToken } from "../utils/auth";
 import { getUserData, clearAuthData, getAuthToken } from "../utils/auth";
 
 const useSavingsStore = create((set, get) => ({
