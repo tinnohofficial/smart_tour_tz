@@ -217,7 +217,10 @@ function BookLocation({ params }) {
         }
 
         // Simulate payment processing for booking
-        const paymentResult = await simulateBookingPayment(amount, paymentMethod.id);
+        const paymentResult = await simulateBookingPayment(
+          amount,
+          paymentMethod.id,
+        );
 
         if (!paymentResult.success) {
           const errorMessage = "Payment processing failed";
@@ -311,7 +314,7 @@ function BookLocation({ params }) {
   }
 
   // Error-wrapped navigation functions with toast notifications
-    const handleNextStep = useCallback(async () => {
+  const handleNextStep = useCallback(async () => {
     try {
       const success = nextStep();
       if (!success) {
@@ -554,65 +557,68 @@ function BookLocation({ params }) {
     router,
   ]);
 
-  const handleStripePaymentSuccess = useCallback(async (paymentResult) => {
-    try {
-      // Create booking first
-      const booking = await createBooking(id, {
-        startDate,
-        endDate,
-        selectedOrigin,
-        selectedTransportRoute,
-        selectedHotel,
-        selectedActivities,
-        activitySessions,
-        skipOptions,
-      });
+  const handleStripePaymentSuccess = useCallback(
+    async (paymentResult) => {
+      try {
+        // Create booking first
+        const booking = await createBooking(id, {
+          startDate,
+          endDate,
+          selectedOrigin,
+          selectedTransportRoute,
+          selectedHotel,
+          selectedActivities,
+          activitySessions,
+          skipOptions,
+        });
 
-      if (booking.error) {
-        toast.error(booking.error);
-        return;
-      }
+        if (booking.error) {
+          toast.error(booking.error);
+          return;
+        }
 
-      // Process payment with Stripe details
-      const result = await bookingCreationService.processPayment(
-        booking.bookingId,
-        {
-          paymentMethod: "stripe",
-          amount: totalPrice,
-          paymentMethodId: paymentResult.paymentMethodId,
-        },
-      );
-
-      if (result && !result.error) {
-        toast.success(
-          `Booking confirmed! Payment of ${formatTZS(totalPrice)} processed successfully.`,
+        // Process payment with Stripe details
+        const result = await bookingCreationService.processPayment(
+          booking.bookingId,
+          {
+            paymentMethod: "stripe",
+            amount: totalPrice,
+            paymentMethodId: paymentResult.paymentMethodId,
+          },
         );
-        setIsPaymentDialogOpen(false);
-        resetBooking();
-        router.push("/my-bookings");
-      } else {
-        toast.error(result?.error || "Payment processing failed");
+
+        if (result && !result.error) {
+          toast.success(
+            `Booking confirmed! Payment of ${formatTZS(totalPrice)} processed successfully.`,
+          );
+          setIsPaymentDialogOpen(false);
+          resetBooking();
+          router.push("/my-bookings");
+        } else {
+          toast.error(result?.error || "Payment processing failed");
+        }
+      } catch (error) {
+        console.error("Error processing Stripe payment:", error);
+        toast.error("Failed to process payment. Please try again.");
       }
-    } catch (error) {
-      console.error("Error processing Stripe payment:", error);
-      toast.error("Failed to process payment. Please try again.");
-    }
-  }, [
-    id,
-    startDate,
-    endDate,
-    selectedOrigin,
-    selectedTransportRoute,
-    selectedHotel,
-    selectedActivities,
-    activitySessions,
-    skipOptions,
-    totalPrice,
-    createBooking,
-    setIsPaymentDialogOpen,
-    resetBooking,
-    router,
-  ]);
+    },
+    [
+      id,
+      startDate,
+      endDate,
+      selectedOrigin,
+      selectedTransportRoute,
+      selectedHotel,
+      selectedActivities,
+      activitySessions,
+      skipOptions,
+      totalPrice,
+      createBooking,
+      setIsPaymentDialogOpen,
+      resetBooking,
+      router,
+    ],
+  );
 
   const handleStripePaymentError = useCallback((error) => {
     toast.error(error);
@@ -824,33 +830,7 @@ function BookLocation({ params }) {
                 </div>
 
                 {/* Origin Selection - only show if transport is not skipped */}
-                {!skipOptions.skipTransport && (
-                  <div className="mb-8">
-                    <Label htmlFor="origin" className="text-base mb-2 block">
-                      Departure Location
-                    </Label>
-                    <select
-                      id="origin"
-                      value={selectedOrigin || ""}
-                      onChange={(e) => setSelectedOrigin(e.target.value)}
-                      className={`w-full h-12 text-base px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 ${
-                        errors.origin ? "border-red-500" : "border-gray-300"
-                      }`}
-                    >
-                      <option value="">Select your departure location</option>
-                      {(transportOrigins || []).map((origin) => (
-                        <option key={origin.id} value={origin.id}>
-                          {origin.name}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.origin && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.origin}
-                      </p>
-                    )}
-                  </div>
-                )}
+                {!skipOptions.skipTransport && <div>yeeeeeeeeeeee</div>}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>
@@ -955,6 +935,32 @@ function BookLocation({ params }) {
 
                 {!skipOptions.skipTransport && (
                   <div className="space-y-4">
+                    <div className="mb-8">
+                      <Label htmlFor="origin" className="text-base mb-2 block">
+                        Departure Location
+                      </Label>
+                      <select
+                        id="origin"
+                        value={selectedOrigin || ""}
+                        onChange={(e) => setSelectedOrigin(e.target.value)}
+                        className={`w-full h-12 text-base px-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 ${
+                          errors.origin ? "border-red-500" : "border-gray-300"
+                        }`}
+                      >
+                        <option value="">Select your departure location</option>
+                        {(transportOrigins || []).map((origin) => (
+                          <option key={origin.id} value={origin.id}>
+                            {origin.name}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.origin && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.origin}
+                        </p>
+                      )}
+                    </div>
+
                     <div>
                       <Label
                         htmlFor="transport"
@@ -1402,137 +1408,136 @@ function BookLocation({ params }) {
                     Activities
                   </h3>
                   <p className="text-sm text-gray-600 mt-2">
-                    Choose at least one activity to enjoy during your visit. A tour guide will be assigned to supervise your selected activities.
+                    Choose at least one activity to enjoy during your visit. A
+                    tour guide will be assigned to supervise your selected
+                    activities.
                   </p>
                 </div>
 
+                <div className="space-y-6">
+                  <div>
+                    <Label
+                      htmlFor="activities"
+                      className="text-base mb-2 block"
+                    >
+                      Choose Activities and Schedule Your Experience
+                    </Label>
 
-                  <div className="space-y-6">
-                    <div>
-                      <Label
-                        htmlFor="activities"
-                        className="text-base mb-2 block"
-                      >
-                        Choose Activities and Schedule Your Experience
-                      </Label>
+                    {/* Show loading state for activities */}
+                    {isLoading.activities ? (
+                      <div className="flex justify-center items-center py-8">
+                        <Loader2 className="h-8 w-8 text-amber-600 animate-spin" />
+                        <span className="ml-3 text-amber-600">
+                          Loading activities...
+                        </span>
+                      </div>
+                    ) : error.activities ? (
+                      <Alert variant="destructive" className="mb-4">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          {error.activities}. Please try refreshing the page.
+                        </AlertDescription>
+                      </Alert>
+                    ) : apiActivities &&
+                      Array.isArray(apiActivities) &&
+                      apiActivities.length > 0 ? (
+                      <>
+                        <p className="text-sm text-gray-500 mb-4">
+                          Enhance your stay in {destination.name} with these
+                          exciting activities. Select activities and specify the
+                          number of sessions you&apos;d like.
+                        </p>
+                        <div className="space-y-6">
+                          {(apiActivities || []).map((activity) => {
+                            const isSelected = selectedActivities.includes(
+                              activity.id.toString(),
+                            );
+                            const currentSessions =
+                              activitySessions[activity.id] || 1;
 
-                      {/* Show loading state for activities */}
-                      {isLoading.activities ? (
-                        <div className="flex justify-center items-center py-8">
-                          <Loader2 className="h-8 w-8 text-amber-600 animate-spin" />
-                          <span className="ml-3 text-amber-600">
-                            Loading activities...
-                          </span>
-                        </div>
-                      ) : error.activities ? (
-                        <Alert variant="destructive" className="mb-4">
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertDescription>
-                            {error.activities}. Please try refreshing the page.
-                          </AlertDescription>
-                        </Alert>
-                      ) : apiActivities &&
-                        Array.isArray(apiActivities) &&
-                        apiActivities.length > 0 ? (
-                        <>
-                          <p className="text-sm text-gray-500 mb-4">
-                            Enhance your stay in {destination.name} with these
-                            exciting activities. Select activities and specify
-                            the number of sessions you&apos;d like.
-                          </p>
-                          <div className="space-y-6">
-                            {(apiActivities || []).map((activity) => {
-                              const isSelected = selectedActivities.includes(
-                                activity.id.toString(),
-                              );
-                              const currentSessions =
-                                activitySessions[activity.id] || 1;
-
-                              return (
-                                <Card
-                                  key={activity.id}
-                                  className={`overflow-hidden transition-all duration-200 ${
-                                    isSelected
-                                      ? "ring-2 ring-amber-500 bg-amber-50"
-                                      : "hover:shadow-md"
-                                  }`}
-                                >
-                                  <CardHeader className="pb-3">
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex items-center gap-3">
-                                        <Checkbox
-                                          checked={isSelected}
-                                          onCheckedChange={() =>
-                                            toggleActivity(
-                                              activity.id.toString(),
-                                            )
-                                          }
-                                          className="data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600"
-                                        />
-                                        <div>
-                                          <CardTitle className="text-lg">
-                                            {activity.name}
-                                          </CardTitle>
-                                        </div>
+                            return (
+                              <Card
+                                key={activity.id}
+                                className={`overflow-hidden transition-all duration-200 ${
+                                  isSelected
+                                    ? "ring-2 ring-amber-500 bg-amber-50"
+                                    : "hover:shadow-md"
+                                }`}
+                              >
+                                <CardHeader className="pb-3">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                      <Checkbox
+                                        checked={isSelected}
+                                        onCheckedChange={() =>
+                                          toggleActivity(activity.id.toString())
+                                        }
+                                        className="data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600"
+                                      />
+                                      <div>
+                                        <CardTitle className="text-lg">
+                                          {activity.name}
+                                        </CardTitle>
                                       </div>
-                                      <Badge className="bg-amber-100 text-amber-700 border border-amber-200">
-                                        {formatTZS(activity.price)}
-                                      </Badge>
                                     </div>
-                                  </CardHeader>
+                                    <Badge className="bg-amber-100 text-amber-700 border border-amber-200">
+                                      {formatTZS(activity.price)}
+                                    </Badge>
+                                  </div>
+                                </CardHeader>
 
-                                  <CardContent>
-                                    <p className="text-gray-600 text-sm mb-4">
-                                      {activity.description}
-                                    </p>
+                                <CardContent>
+                                  <p className="text-gray-600 text-sm mb-4">
+                                    {activity.description}
+                                  </p>
 
-                                    {/* Sessions Selection - Only shown when activity is selected */}
-                                    {isSelected && (
-                                      <div className="space-y-4 p-4 bg-white rounded-lg border border-amber-200">
-                                        <div className="flex items-center gap-4">
-                                          <Label className="text-sm font-medium">
-                                            Sessions:
-                                          </Label>
-                                          <Input
-                                            type="number"
-                                            min="1"
-                                            max="10"
-                                            value={currentSessions}
-                                            onChange={(e) => {
-                                              const sessions =
-                                                parseInt(e.target.value) || 1;
-                                              setActivitySessions(
-                                                activity.id,
-                                                sessions,
-                                              );
-                                            }}
-                                            className="w-20"
-                                          />
-                                          <span className="text-sm text-gray-500">
-                                            × {formatTZS(activity.price)} ={" "}
-                                            {formatTZS(
-                                              activity.price * currentSessions,
-                                            )}
-                                          </span>
-                                        </div>
+                                  {/* Sessions Selection - Only shown when activity is selected */}
+                                  {isSelected && (
+                                    <div className="space-y-4 p-4 bg-white rounded-lg border border-amber-200">
+                                      <div className="flex items-center gap-4">
+                                        <Label className="text-sm font-medium">
+                                          Sessions:
+                                        </Label>
+                                        <Input
+                                          type="number"
+                                          min="1"
+                                          max="10"
+                                          value={currentSessions}
+                                          onChange={(e) => {
+                                            const sessions =
+                                              parseInt(e.target.value) || 1;
+                                            setActivitySessions(
+                                              activity.id,
+                                              sessions,
+                                            );
+                                          }}
+                                          className="w-20"
+                                        />
+                                        <span className="text-sm text-gray-500">
+                                          × {formatTZS(activity.price)} ={" "}
+                                          {formatTZS(
+                                            activity.price * currentSessions,
+                                          )}
+                                        </span>
                                       </div>
-                                    )}
-                                  </CardContent>
-                                </Card>
-                              );
-                            })}
-                          </div>
-                        </>
-                      ) : (
-                        <Alert className="mb-4">
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertDescription>
-                            No activities available for {destination.name}. You
-                            can still proceed with your booking.
-                          </AlertDescription>
-                        </Alert>
-                      )}
-                    </div>
+                                    </div>
+                                  )}
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                        </div>
+                      </>
+                    ) : (
+                      <Alert className="mb-4">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          No activities available for {destination.name}. You
+                          can still proceed with your booking.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex justify-between">
