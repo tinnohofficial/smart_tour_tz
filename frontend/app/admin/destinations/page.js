@@ -270,7 +270,6 @@ export default function DestinationsPage() {
                         <div className="h-12 w-20 overflow-hidden rounded-md">
                           {destination.image_url ? (
                             <div className="relative h-full w-full">
-                              <p>{destination.image_url}</p>
                               <Image
                                 src={destination.image_url}
                                 alt={destination.name || "Destination"}
