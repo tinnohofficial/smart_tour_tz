@@ -18,7 +18,7 @@ import { useLayoutStore } from "@/app/store/layoutStore";
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { RouteProtection } from "@/components/route-protection";
 
@@ -113,7 +113,7 @@ export default function AdminLayout({ children }) {
             </Link>
           </div>
           <ScrollArea className="flex flex-col flex-grow p-4">
-            <div className="space-y-2">
+            <div className="space-y-1">
               {(routes || []).map((route) => (
                 <Link
                   key={route.href}
@@ -161,9 +161,12 @@ export default function AdminLayout({ children }) {
                 <Button variant="ghost" size="icon" className="md:hidden">
                   <Menu />
                 </Button>
-              </SheetTrigger>
+              </SheetTrigger>              
               {/* --- Mobile Sidebar Content (SheetContent) --- */}
               <SheetContent side="left" className="p-0 bg-amber-900">
+                <SheetHeader className="sr-only">
+                  <SheetTitle>Admin Navigation Menu</SheetTitle>
+                </SheetHeader>
                 <div className="h-20 flex items-center justify-center border-b border-amber-800">
                   {/* Close sidebar on link click */}
                   <Link
@@ -177,7 +180,7 @@ export default function AdminLayout({ children }) {
                   </Link>
                 </div>
                 <ScrollArea className="flex flex-col flex-grow p-4">
-                  <div className="space-y-2 mt-4">
+                  <div className="space-y-2 -mt-4">
                     {(routes || []).map((route) => (
                       <Link
                         key={route.href}

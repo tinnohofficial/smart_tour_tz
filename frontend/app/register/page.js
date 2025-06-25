@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { toast } from "sonner";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, UserPlus } from "lucide-react";
 import { useRegisterStore } from "./registerStore";
 import { publishAuthChange } from "@/components/Navbar";
 import ReCAPTCHA from "react-google-recaptcha";
@@ -250,94 +250,109 @@ export default function Register() {
   const handleCaptchaChange = (value) => {
     setCaptchaValue(value);
   };
-
   return (
-    <div className="container max-w-3xl mx-auto py-10">
-      <Card className="border-amber-100 shadow-md">
-        <CardHeader className="space-y-1">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-2xl font-bold">
-              Create an Account
-            </CardTitle>
+    <div className="min-h-screen flex w-full">
+      {/* Left Side - Welcome Section */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-amber-600 via-amber-700 to-orange-800 relative overflow-hidden">
+        {/* Background decorative circles */}
+        <div className="absolute top-10 left-10 w-32 h-32 bg-amber-500/20 rounded-full"></div>
+        <div className="absolute bottom-20 right-10 w-48 h-48 bg-orange-500/10 rounded-full"></div>
+        <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-amber-400/15 rounded-full"></div>
+        
+        <div className="flex flex-col justify-center items-start p-12 text-white relative z-10 w-full">
+          <div className="mb-8">
+            <div className="flex items-center mb-6">
+              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center mr-3">
+                <UserPlus className="w-4 h-4 text-amber-600" />
+              </div>
+              <span className="text-2xl font-semibold">Smart Tour Tanzania</span>
+            </div>
+            <h1 className="text-4xl font-bold mb-6 leading-tight">
+              JOIN US TODAY
+            </h1>
+            <div className="w-12 h-1 bg-white mb-6"></div>
+            <p className="text-lg leading-relaxed opacity-90 max-w-md">
+              Create your account to start your Tanzania adventure. Whether you're a tourist, 
+              tour guide, hotel manager, or travel agent - we have the perfect platform for you.
+            </p>
           </div>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={onBasicSubmit} className="space-y-6">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label
-                  htmlFor="email"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  Email
+          <div className="text-md opacity-75">
+            Start Your Journey with Smart Tour Tanzania
+          </div>
+        </div>
+      </div>
+
+      {/* Right Side - Register Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-amber-50/30 min-h-screen">
+        <div className="w-full max-w-xl">
+          <div className="bg-white rounded-2xl shadow-xl p-8">
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-amber-900 mb-2">Create Account</h2>
+              <p className="text-amber-700">Please fill in your details to get started</p>
+            </div>
+
+            <form onSubmit={onBasicSubmit} className="space-y-6">
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-amber-800 mb-2">
+                  Email address
                 </label>
                 <Input
                   id="email"
+                  type="email"
+                  placeholder="Enter your email"
                   value={basicFormData.email}
                   onChange={(e) => setBasicFormData({ email: e.target.value })}
+                  className="w-full px-4 py-3 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label
-                    htmlFor="password"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-amber-800 mb-2">
                     Password
                   </label>
                   <Input
                     type="password"
                     id="password"
+                    placeholder="Enter password"
                     value={basicFormData.password}
-                    onChange={(e) =>
-                      setBasicFormData({ password: e.target.value })
-                    }
+                    onChange={(e) => setBasicFormData({ password: e.target.value })}
+                    className="w-full px-4 py-3 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <label
-                    htmlFor="confirmPassword"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-amber-800 mb-2">
                     Confirm Password
                   </label>
                   <Input
                     type="password"
                     id="confirmPassword"
+                    placeholder="Confirm password"
                     value={basicFormData.confirmPassword}
-                    onChange={(e) =>
-                      setBasicFormData({ confirmPassword: e.target.value })
-                    }
+                    onChange={(e) => setBasicFormData({ confirmPassword: e.target.value })}
+                    className="w-full px-4 py-3 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label
-                  htmlFor="phoneNumber"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
+              <div>
+                <label htmlFor="phoneNumber" className="block text-sm font-medium text-amber-800 mb-2">
                   Phone Number
                 </label>
                 <PhoneInput
                   value={basicFormData.phoneNumber}
-                  onChange={(value) =>
-                    setBasicFormData({ phoneNumber: value || "" })
-                  }
+                  onChange={(value) => setBasicFormData({ phoneNumber: value || "" })}
                   defaultCountry="TZ"
                   placeholder="744 117 544"
                   international
                   withCountryCallingCode
+                  className="w-full"
                 />
               </div>
 
-              <div className="space-y-2">
-                <label
-                  htmlFor="role"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
+              <div>
+                <label htmlFor="role" className="block text-sm font-medium text-amber-800 mb-2">
                   Role
                 </label>
                 <Select
@@ -345,7 +360,7 @@ export default function Register() {
                   onValueChange={(value) => setBasicFormData({ role: value })}
                   defaultValue={selectedRole}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full px-4 py-3 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
                     <SelectValue placeholder="Choose your role" />
                   </SelectTrigger>
                   <SelectContent>
@@ -357,8 +372,8 @@ export default function Register() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium leading-none">
+              <div>
+                <label className="block text-sm font-medium text-amber-800 mb-2">
                   Verify you're not a robot
                 </label>
                 <ReCAPTCHA
@@ -368,27 +383,34 @@ export default function Register() {
                   onError={() => setCaptchaValue(null)}
                 />
               </div>
-            </div>
 
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="w-full text-white bg-amber-700 hover:bg-amber-800 disabled:bg-amber-400"
-            >
-              {isLoading ? "Creating Account..." : "Create Account"}
-              <ChevronRight className="ml-2 h-4 w-4" />
-            </Button>
-          </form>
-        </CardContent>
-        <CardFooter className="flex flex-col space-y-4 border-t pt-6">
-          <div className="text-sm text-gray-500 text-center">
-            Already have an account?{" "}
-            <a href="/login" className="text-amber-700 hover:underline">
-              Sign in
-            </a>
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-amber-700 hover:bg-amber-800 disabled:bg-amber-400 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
+              >
+                {isLoading ? (
+                  "CREATING ACCOUNT..."
+                ) : (
+                  <>
+                    CREATE ACCOUNT
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
+              </Button>
+            </form>
+
+            <div className="mt-8 text-center">
+              <p className="text-sm text-amber-700">
+                Already have an account?{" "}
+                <a href="/login" className="text-amber-600 hover:text-amber-500 font-medium">
+                  Sign in
+                </a>
+              </p>
+            </div>
           </div>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

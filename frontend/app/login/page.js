@@ -156,92 +156,119 @@ function LoginForm() {
       setIsLoading(false);
     }
   };
-
   return (
-    <div className="container max-w-md mx-auto py-10">
-      <Card className="border-amber-100 shadow-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Sign In</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={onSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label
-                htmlFor="email"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Email
-              </label>
-              <Input
-                id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+    <div className="min-h-screen flex w-full">
+      {/* Left Side - Welcome Section */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-amber-600 via-amber-700 to-orange-800 relative overflow-hidden">
+        {/* Background decorative circles */}
+        <div className="absolute top-10 left-10 w-32 h-32 bg-amber-500/20 rounded-full"></div>
+        <div className="absolute bottom-20 right-10 w-48 h-48 bg-orange-500/10 rounded-full"></div>
+        <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-amber-400/15 rounded-full"></div>
+        
+        <div className="flex flex-col justify-center items-start p-12 text-white relative z-10 w-full">
+          <div className="mb-8">
+            <div className="flex items-center mb-6">
+              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center mr-3">
+                <LogIn className="w-4 h-4 text-amber-600" />
+              </div>
+              <span className="text-2xl font-semibold">Smart Tour Tanzania</span>
             </div>
-
-            <div className="space-y-2">
-              <label
-                htmlFor="password"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Password
-              </label>
-              <Input
-                type="password"
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="rememberMe"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-amber-700 focus:ring-amber-700"
-              />
-              <label
-                htmlFor="rememberMe"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Remember me
-              </label>
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full text-white bg-amber-700 hover:bg-amber-800"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                "Signing in..."
-              ) : (
-                <>
-                  <LogIn className="mr-2 h-4 w-4" /> Sign In
-                </>
-              )}
-            </Button>
-          </form>
-        </CardContent>
-        <CardFooter className="flex flex-col space-y-4 border-t pt-6">
-          <div className="text-sm text-gray-500 text-center">
-            Don&apos;t have an account?{" "}
-            <a href="/register" className="text-amber-700 hover:underline">
-              Create an account
-            </a>
+            <h1 className="text-4xl font-bold mb-6 leading-tight">
+              WELCOME BACK
+            </h1>
+            <div className="w-12 h-1 bg-white mb-6"></div>
+            <p className="text-lg leading-relaxed opacity-90 max-w-md">
+              Sign in to access your personalized Tanzania travel dashboard. 
+              Discover amazing destinations, book tours, and manage your adventures 
+              from one central location.
+            </p>
           </div>
-          <div className="text-sm text-center">
-            <a
-              href="/forgot-password"
-              className="text-amber-700 hover:underline"
-            >
-              Forgot your password?
-            </a>
+          <div className="text-md opacity-75">
+            Explore Destinations with Smart Tour Tanzania
           </div>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
+
+      {/* Right Side - Login Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8  bg-amber-50/30 min-h-screen">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-2xl shadow-xl p-8">
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-amber-900 mb-2">Login Account</h2>
+              <p className="text-amber-700">Please sign in to continue to the dashboard</p>
+            </div>
+
+            <form onSubmit={onSubmit} className="space-y-6">
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-amber-800 mb-2">
+                  Email address
+                </label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-3 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-amber-800 mb-2">
+                  Password
+                </label>
+                <Input
+                  type="password"
+                  id="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-3 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="rememberMe"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-amber-300 rounded"
+                  />
+                  <label htmlFor="rememberMe" className="ml-2 text-sm text-amber-800">
+                    Remember me
+                  </label>
+                </div>
+                <a href="/forgot-password" className="text-sm text-amber-600 hover:text-amber-500">
+                  Forgot password?
+                </a>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-amber-700 hover:bg-amber-800 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
+              >
+                {isLoading ? (
+                  "SIGNING IN..."
+                ) : (
+                  "SIGN IN"
+                )}
+              </Button>
+            </form>
+
+            <div className="mt-8 text-center">
+              <p className="text-sm text-amber-700">
+                Don&apos;t have an account?{" "}
+                <a href="/register" className="text-amber-600 hover:text-amber-500 font-medium">
+                  Create an account
+                </a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
