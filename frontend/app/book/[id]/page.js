@@ -829,9 +829,6 @@ function BookLocation({ params }) {
                   )}
                 </div>
 
-                {/* Origin Selection - only show if transport is not skipped */}
-                {!skipOptions.skipTransport && <div></div>}
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>
                     <Label htmlFor="startDate" className="text-base mb-2 block">
