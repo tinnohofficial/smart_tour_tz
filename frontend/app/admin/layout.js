@@ -18,9 +18,16 @@ import { useLayoutStore } from "@/app/store/layoutStore";
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { RouteProtection } from "@/components/route-protection";
+import { getUserData, clearAuthData, getAuthToken } from "../utils/auth";
 
 export default function AdminLayout({ children }) {
   const pathname = usePathname();
@@ -82,9 +89,8 @@ export default function AdminLayout({ children }) {
   const handleLogout = () => {
     try {
       // Clear authentication data
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem("token");
-        localStorage.removeItem("userData");
+      if (typeof window !== "undefined") {
+        clearAuthData();
       }
 
       // Notify navbar about auth state change
@@ -161,7 +167,7 @@ export default function AdminLayout({ children }) {
                 <Button variant="ghost" size="icon" className="md:hidden">
                   <Menu />
                 </Button>
-              </SheetTrigger>              
+              </SheetTrigger>
               {/* --- Mobile Sidebar Content (SheetContent) --- */}
               <SheetContent side="left" className="p-0 bg-amber-900">
                 <SheetHeader className="sr-only">

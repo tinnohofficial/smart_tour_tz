@@ -63,8 +63,7 @@ export default function HotelManagerLayout({ children }) {
             // Handle authentication errors gracefully
             console.log("Authentication error, redirecting to login");
             if (typeof window !== "undefined") {
-              localStorage.removeItem("token");
-              localStorage.removeItem("userData");
+              clearAuthData();
             }
             router.push("/login");
             return;
@@ -161,8 +160,7 @@ export default function HotelManagerLayout({ children }) {
     try {
       // Clear authentication data
       if (typeof window !== "undefined") {
-        localStorage.removeItem("token");
-        localStorage.removeItem("userData");
+        clearAuthData();
       }
 
       // Notify navbar about auth state change

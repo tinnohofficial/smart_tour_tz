@@ -73,7 +73,7 @@ export default function HotelManagerProfile() {
       if (error.response?.status === 404) {
         router.push("/hotel-manager/complete-profile");
       } else if (error.response?.status === 401) {
-        localStorage.removeItem("token");
+        clearAuthData();
         router.push("/login");
       } else {
         setError(error.message);
