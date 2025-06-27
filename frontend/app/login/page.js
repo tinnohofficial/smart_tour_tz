@@ -16,17 +16,18 @@ import { toast } from "sonner";
 import { LogIn } from "lucide-react";
 import { publishAuthChange } from "@/components/Navbar";
 import { getAuthToken, getUserData, storeAuthData } from "../utils/auth";
+import ReCAPTCHA from "react-google-recaptcha";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get("returnUrl") || "/";
-
   // Local state instead of Zustand store for simple form data
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [captchaValue, setCaptchaValue] = useState(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -62,10 +63,14 @@ function LoginForm() {
       toast.error("Email is required.");
       setIsLoading(false);
       return;
+    }    if (!password) {
+      toast.error("Password is required.");
+      setIsLoading(false);
+      return;
     }
 
-    if (!password) {
-      toast.error("Password is required.");
+    if (!captchaValue) {
+      toast.error("Please complete the CAPTCHA verification.");
       setIsLoading(false);
       return;
     }
@@ -149,12 +154,17 @@ function LoginForm() {
           // Default case for tourists
           router.replace("/");
           break;
-      }
-    } catch (error) {
+      }    } catch (error) {
       toast.error("Invalid email or password. Please try again.");
     } finally {
       setIsLoading(false);
+      // Reset CAPTCHA on error
+      setCaptchaValue(null);
     }
+  };
+
+  const handleCaptchaChange = (value) => {
+    setCaptchaValue(value);
   };
   return (
     <div className="min-h-screen flex w-full">
@@ -225,9 +235,7 @@ function LoginForm() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-4 py-3 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
                 />
-              </div>
-
-              <div className="flex items-center justify-between">
+              </div>              <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <input
                     type="checkbox"
@@ -243,6 +251,18 @@ function LoginForm() {
                 <a href="/forgot-password" className="text-sm text-amber-600 hover:text-amber-500">
                   Forgot password?
                 </a>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-amber-800 mb-2">
+                  Verify you're not a robot
+                </label>
+                <ReCAPTCHA
+                  sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
+                  onChange={handleCaptchaChange}
+                  onExpired={() => setCaptchaValue(null)}
+                  onError={() => setCaptchaValue(null)}
+                />
               </div>
 
               <Button

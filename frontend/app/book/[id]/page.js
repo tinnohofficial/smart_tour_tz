@@ -1374,7 +1374,7 @@ function BookLocation({ params }) {
                   </div>
                 )}
 
-                <div className="flex justify-between">
+                <div className="flex justify-between mt-4">
                   <Button
                     type="button"
                     onClick={handlePrevStep}
