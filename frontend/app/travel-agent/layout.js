@@ -293,7 +293,7 @@ export default function TravelAgentLayout({ children }) {
                       onClick={() =>
                         router.push("/travel-agent/complete-profile")
                       }
-                      className="bg-amber-700 hover:bg-amber-800"
+                      className="bg-amber-700 hover:bg-amber-800 text-white"
                     >
                       Complete Profile Now
                     </Button>

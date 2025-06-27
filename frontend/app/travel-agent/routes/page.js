@@ -47,6 +47,8 @@ import { Badge } from "@/components/ui/badge";
 import { formatTZS } from "@/app/utils/currency";
 import { destinationsService } from "@/app/services/api";
 
+import { Switch } from "@/components/ui/switch";
+
 export default function TravelAgentRoutes() {
   const router = useRouter();
   const {
@@ -301,7 +303,38 @@ export default function TravelAgentRoutes() {
                       {route.destination_name || route.to_location}
                     </CardTitle>
                   </div>
-                  {getTransportTypeBadge(route.transportation_type)}
+                  <div className="flex flex-col items-end gap-1">
+                    {getTransportTypeBadge(route.transportation_type)}
+                    <div className="flex items-center gap-2 mt-1">
+                      <span
+                        className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                          route.available
+                            ? "bg-green-100 text-green-700"
+                            : "bg-gray-200 text-gray-500"
+                        }`}
+                      >
+                        {route.available ? "Available" : "Unavailable"}
+                      </span>
+                      <Switch
+                        checked={route.available || false}
+                        onCheckedChange={async (checked) => {
+                          try {
+                            await updateRoute(route.id, {
+                              available: checked,
+                            });
+                          } catch (err) {
+                            // Error handled in store
+                          }
+                        }}
+                        aria-label={
+                          route.available
+                            ? "Mark as unavailable"
+                            : "Mark as available"
+                        }
+                        disabled={isLoading}
+                      />
+                    </div>
+                  </div>
                 </div>
               </CardHeader>
 
@@ -324,7 +357,8 @@ export default function TravelAgentRoutes() {
               </CardContent>
 
               <CardFooter className="pt-3 gap-2">
-                <Button
+                <div className="flex-1"></div>
+                {/* <Button
                   size="sm"
                   variant="outline"
                   onClick={() => handleOpenEditDialog(route)}
@@ -332,7 +366,7 @@ export default function TravelAgentRoutes() {
                 >
                   <PenLine className="h-4 w-4 mr-1" />
                   Edit
-                </Button>
+                </Button> */}
                 <Button
                   size="sm"
                   variant="outline"
@@ -421,7 +455,10 @@ export default function TravelAgentRoutes() {
                 <Select
                   value={routeForm.transportation_type}
                   onValueChange={(value) => {
-                    console.log("Create form transport type changed to:", value);
+                    console.log(
+                      "Create form transport type changed to:",
+                      value,
+                    );
                     setRouteForm({ ...routeForm, transportation_type: value });
                   }}
                 >
@@ -543,7 +580,7 @@ export default function TravelAgentRoutes() {
                   Transport Type*
                 </Label>
                 <Select
-                  key={`edit-transport-${selectedRoute?.id || 'new'}`}
+                  key={`edit-transport-${selectedRoute?.id || "new"}`}
                   value={routeForm.transportation_type}
                   onValueChange={(value) => {
                     console.log("Edit form transport type changed to:", value);
