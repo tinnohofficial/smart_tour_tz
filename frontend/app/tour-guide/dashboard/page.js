@@ -410,7 +410,10 @@ export default function TourGuideDashboard() {
                 : "Set up your tour guide profile to get started."}
           </p>
           {profileStatus === "pending_profile" && (
-            <Button asChild className="bg-amber-600 hover:bg-amber-700">
+            <Button
+              asChild
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
               <Link href="/tour-guide/complete-profile">
                 Complete Profile Now
               </Link>

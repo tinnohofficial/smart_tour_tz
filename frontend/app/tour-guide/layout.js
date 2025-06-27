@@ -280,7 +280,7 @@ export default function TourGuideLayout({ children }) {
                       onClick={() =>
                         router.push("/tour-guide/complete-profile")
                       }
-                      className="bg-amber-700 hover:bg-amber-800"
+                      className="bg-amber-700 hover:bg-amber-800 text-white"
                     >
                       Complete Profile Now
                     </Button>

@@ -296,7 +296,7 @@ export default function HotelManagerLayout({ children }) {
                       onClick={() =>
                         router.push("/hotel-manager/complete-profile")
                       }
-                      className="bg-amber-700 hover:bg-amber-800"
+                      className="bg-amber-700 hover:bg-amber-800 text-white"
                     >
                       Complete Profile Now
                     </Button>
