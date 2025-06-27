@@ -242,26 +242,6 @@ export default function TravelAgentRoutes() {
     }
   };
 
-  const getTransportTypeBadge = (type) => {
-    const types = {
-      air: { bg: "bg-amber-100", text: "text-amber-800" },
-      ferry: { bg: "bg-cyan-100", text: "text-cyan-800" },
-      train: { bg: "bg-purple-100", text: "text-purple-800" },
-      bus: { bg: "bg-green-100", text: "text-green-800" },
-      car: { bg: "bg-orange-100", text: "text-orange-800" },
-    };
-
-    const style = types[type?.toLowerCase()] || types.car;
-
-    return (
-      <span
-        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${style.bg} ${style.text}`}
-      >
-        {type || "Car"}
-      </span>
-    );
-  };
-
   if (isLoadingData) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -304,7 +284,6 @@ export default function TravelAgentRoutes() {
                     </CardTitle>
                   </div>
                   <div className="flex flex-col items-end gap-1">
-                    {getTransportTypeBadge(route.transportation_type)}
                     <div className="flex items-center gap-2 mt-1">
                       <span
                         className={`text-xs font-semibold px-2 py-0.5 rounded ${
