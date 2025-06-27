@@ -8,12 +8,12 @@ const db = require("../config/db");
  */
 const parseJsonFields = (items, fields) => {
   if (!items || !Array.isArray(items)) return items;
-  
-  return items.map(item => {
+
+  return items.map((item) => {
     const newItem = { ...item };
-    
-    fields.forEach(field => {
-      if (newItem[field] && typeof newItem[field] === 'string') {
+
+    fields.forEach((field) => {
+      if (newItem[field] && typeof newItem[field] === "string") {
         try {
           newItem[field] = JSON.parse(newItem[field]);
         } catch (e) {
@@ -22,7 +22,7 @@ const parseJsonFields = (items, fields) => {
         }
       }
     });
-    
+
     return newItem;
   });
 };
@@ -31,40 +31,56 @@ const parseJsonFields = (items, fields) => {
  * Create a booking with flexible service options (Enhanced F6.7)
  */
 exports.createBooking = async (req, res) => {
-  const { 
-    transportId, 
-    hotelId, 
-    activityIds, 
+  const {
+    transportId,
+    hotelId,
+    activityIds,
     activitySessions = {}, // Object mapping activity IDs to number of sessions
-    startDate, 
-    endDate, 
+    startDate,
+    endDate,
     destinationId,
     touristFullName,
     includeTransport = true,
     includeHotel = true,
-    includeActivities = true
+    includeActivities = true,
   } = req.body;
   const userId = req.user.id;
 
   // Validate tourist full name
-  if (!touristFullName || typeof touristFullName !== 'string' || touristFullName.trim().length < 2) {
-    return res.status(400).json({ message: "Tourist full name is required and must be at least 2 characters long" });
+  if (
+    !touristFullName ||
+    typeof touristFullName !== "string" ||
+    touristFullName.trim().length < 2
+  ) {
+    return res
+      .status(400)
+      .json({
+        message:
+          "Tourist full name is required and must be at least 2 characters long",
+      });
   }
 
   // Validate date inputs
   if (!startDate || !endDate) {
-    return res.status(400).json({ message: "Start date and end date are required" });
+    return res
+      .status(400)
+      .json({ message: "Start date and end date are required" });
   }
 
   // Validate that at least one service is included
   if (!includeTransport && !includeHotel && !includeActivities) {
-    return res.status(400).json({ message: "At least one service (transport, hotel, or activities) must be included" });
+    return res
+      .status(400)
+      .json({
+        message:
+          "At least one service (transport, hotel, or activities) must be included",
+      });
   }
 
   const start = new Date(startDate);
   const end = new Date(endDate);
   const currentDate = new Date();
-  
+
   // Remove time component from current date for fair comparison
   currentDate.setHours(0, 0, 0, 0);
 
@@ -74,17 +90,23 @@ exports.createBooking = async (req, res) => {
 
   // Check if start date is in the past
   if (start < currentDate) {
-    return res.status(400).json({ message: "Start date cannot be in the past" });
+    return res
+      .status(400)
+      .json({ message: "Start date cannot be in the past" });
   }
 
   if (end <= start) {
-    return res.status(400).json({ message: "End date must be after start date" });
+    return res
+      .status(400)
+      .json({ message: "End date must be after start date" });
   }
 
   // Validate reasonable booking duration (e.g., max 30 days)
   const daysBooked = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
   if (daysBooked > 30) {
-    return res.status(400).json({ message: "Booking duration cannot exceed 30 days" });
+    return res
+      .status(400)
+      .json({ message: "Booking duration cannot exceed 30 days" });
   }
 
   try {
@@ -137,7 +159,9 @@ exports.createBooking = async (req, res) => {
         // Calculate number of nights
         const hotelStart = new Date(startDate);
         const hotelEnd = new Date(endDate);
-        const nights = Math.ceil((hotelEnd - hotelStart) / (1000 * 60 * 60 * 24));
+        const nights = Math.ceil(
+          (hotelEnd - hotelStart) / (1000 * 60 * 60 * 24),
+        );
 
         const hotelCost =
           parseFloat(hotel.base_price_per_night) * Math.max(1, nights);
@@ -152,13 +176,18 @@ exports.createBooking = async (req, res) => {
       }
 
       // Check and calculate cost for activities (only if included)
-      if (includeActivities && activityIds && Array.isArray(activityIds) && activityIds.length > 0) {
+      if (
+        includeActivities &&
+        activityIds &&
+        Array.isArray(activityIds) &&
+        activityIds.length > 0
+      ) {
         const placeholders = activityIds.map(() => "?").join(",");
-        
+
         // Verify activities exist and check time slots availability
         const [activityRows] = await connection.query(
           `SELECT a.id, a.price, a.destination_id,
-                  d.name as destination_name 
+                  d.name as destination_name
            FROM activities a
            JOIN destinations d ON a.destination_id = d.id
            WHERE a.id IN (${placeholders})`,
@@ -177,13 +206,13 @@ exports.createBooking = async (req, res) => {
         for (const activity of activityRows) {
           const activityId = activity.id;
           const sessions = activitySessions[activityId] || 1;
-          
+
           // Validate sessions is a positive number
           if (!Number.isInteger(sessions) || sessions < 1) {
             await connection.rollback();
             connection.release();
-            return res.status(400).json({ 
-              message: `Invalid number of sessions for activity "${activity.destination_name}". Must be a positive integer.` 
+            return res.status(400).json({
+              message: `Invalid number of sessions for activity "${activity.destination_name}". Must be a positive integer.`,
             });
           }
         }
@@ -191,15 +220,15 @@ exports.createBooking = async (req, res) => {
         for (const activity of activityRows) {
           const sessions = activitySessions[activity.id] || 1;
           const activityCost = parseFloat(activity.price) * sessions;
-          
+
           // Add activity cost (price * sessions)
           totalCost += activityCost;
-          
+
           selectedItems.push({
             type: "activity",
             id: activity.id,
             cost: activityCost,
-            sessions: sessions
+            sessions: sessions,
           });
         }
 
@@ -210,35 +239,35 @@ exports.createBooking = async (req, res) => {
           cost: 0, // No cost associated with tour guide now
           details: {
             type: "tour_guide_placeholder",
-            message: "Tour guide will be assigned by admin"
-          }
+            message: "Tour guide will be assigned by admin",
+          },
         });
       }
 
       // Create booking record with flexible options
       const [bookingResult] = await connection.query(
         `INSERT INTO bookings (
-          tourist_user_id, 
+          tourist_user_id,
           tourist_full_name,
-          start_date, 
-          end_date, 
-          destination_id, 
-          total_cost, 
-          include_transport, 
-          include_hotel, 
-          include_activities, 
+          start_date,
+          end_date,
+          destination_id,
+          total_cost,
+          include_transport,
+          include_hotel,
+          include_activities,
           status
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_payment')`,
         [
-          userId, 
+          userId,
           touristFullName.trim(),
-          startDate, 
-          endDate, 
-          destinationId, 
-          totalCost, 
-          includeTransport, 
-          includeHotel, 
-          includeActivities
+          startDate,
+          endDate,
+          destinationId,
+          totalCost,
+          includeTransport,
+          includeHotel,
+          includeActivities,
         ],
       );
 
@@ -247,13 +276,19 @@ exports.createBooking = async (req, res) => {
       // Create booking items
       for (const item of selectedItems) {
         // For placeholder items, store the details
-        if (item.type === 'placeholder' && item.details) {
+        if (item.type === "placeholder" && item.details) {
           await connection.query(
             `INSERT INTO booking_items (id, booking_id, item_type, cost, provider_status, item_details)
              VALUES (?, ?, ?, ?, 'pending', ?)`,
-            [item.id, bookingId, item.type, item.cost, JSON.stringify(item.details)],
+            [
+              item.id,
+              bookingId,
+              item.type,
+              item.cost,
+              JSON.stringify(item.details),
+            ],
           );
-        } else if (item.type === 'activity' && item.sessions) {
+        } else if (item.type === "activity" && item.sessions) {
           // For activities with sessions, store the sessions information
           await connection.query(
             `INSERT INTO booking_items (id, booking_id, item_type, cost, provider_status, sessions)
@@ -271,7 +306,7 @@ exports.createBooking = async (req, res) => {
 
       await connection.commit();
       connection.release();
-      
+
       res.status(201).json({
         message: "Booking created successfully",
         bookingId,
@@ -279,8 +314,8 @@ exports.createBooking = async (req, res) => {
         flexibleOptions: {
           includeTransport,
           includeHotel,
-          includeActivities
-        }
+          includeActivities,
+        },
       });
     } catch (error) {
       await connection.rollback();
@@ -348,8 +383,8 @@ exports.getUserBookings = async (req, res) => {
          LEFT JOIN users tg_user ON bi.item_type = 'tour_guide' AND tg.user_id = tg_user.id
          LEFT JOIN activities a ON bi.item_type = 'activity' AND bi.id = a.id
          WHERE bi.booking_id = ?
-         ORDER BY 
-           CASE bi.item_type 
+         ORDER BY
+           CASE bi.item_type
              WHEN 'transport' THEN 1
              WHEN 'hotel' THEN 2
              WHEN 'activity' THEN 3
@@ -361,14 +396,14 @@ exports.getUserBookings = async (req, res) => {
       );
 
       // Parse item_details JSON if it exists and add destination info
-      bookings[i].items = parseJsonFields(items, ['item_details']);
+      bookings[i].items = parseJsonFields(items, ["item_details"]);
       bookings[i].destination = {
         id: bookings[i].destination_id,
         name: bookings[i].destination_name,
         description: bookings[i].destination_description,
-        image_url: bookings[i].destination_image
+        image_url: bookings[i].destination_image,
       };
-      
+
       // Clean up duplicate fields
       delete bookings[i].destination_name;
       delete bookings[i].destination_description;
@@ -406,7 +441,7 @@ exports.getTourGuideBookings = async (req, res) => {
     );
 
     // Parse item_details JSON if it exists
-    const bookingItems = parseJsonFields(bookingItemsResult, ['item_details']);
+    const bookingItems = parseJsonFields(bookingItemsResult, ["item_details"]);
 
     res.status(200).json(bookingItems);
   } catch (error) {
@@ -422,21 +457,21 @@ exports.getTourGuideBookings = async (req, res) => {
  */
 exports.getGuideAssignedBookings = async (req, res) => {
   const userId = req.user.id;
-  
+
   try {
     // Get all bookings where this tour guide is assigned
     const [rows] = await db.query(
-      `SELECT DISTINCT 
-              b.id as booking_id, 
-              b.total_cost, 
-              b.status, 
-              b.created_at, 
-              b.start_date, 
+      `SELECT DISTINCT
+              b.id as booking_id,
+              b.total_cost,
+              b.status,
+              b.created_at,
+              b.start_date,
               b.end_date,
-              u.id as tourist_id, 
-              u.email as tourist_email, 
+              u.id as tourist_id,
+              u.email as tourist_email,
               u.phone_number as tourist_phone,
-              d.id as destination_id, 
+              d.id as destination_id,
               d.name as destination_name,
               d.description as destination_description,
               bi.item_details as guide_assignment_details
@@ -448,15 +483,18 @@ exports.getGuideAssignedBookings = async (req, res) => {
        AND bi.id = ?
        AND b.status IN ('confirmed', 'completed')
        ORDER BY b.start_date DESC`,
-      [userId]
+      [userId],
     );
-    
+
     // For each booking, get comprehensive details
     for (let i = 0; i < rows.length; i++) {
       // Parse the guide assignment details
-      const parsedRow = parseJsonFields([rows[i]], ['guide_assignment_details']);
+      const parsedRow = parseJsonFields(
+        [rows[i]],
+        ["guide_assignment_details"],
+      );
       rows[i] = parsedRow[0];
-      
+
       // Get activities for this booking
       const [activities] = await db.query(
         `SELECT a.id, a.name, a.description, a.price, bi.sessions
@@ -464,9 +502,9 @@ exports.getGuideAssignedBookings = async (req, res) => {
          JOIN activities a ON bi.id = a.id
          WHERE bi.booking_id = ?
          AND bi.item_type = 'activity'`,
-        [rows[i].booking_id]
+        [rows[i].booking_id],
       );
-      
+
       // Get hotel information for this booking
       const [hotelResults] = await db.query(
         `SELECT h.id, h.name, h.destination_id, d.name as hotel_destination_name, h.description, bi.item_details
@@ -475,13 +513,14 @@ exports.getGuideAssignedBookings = async (req, res) => {
          JOIN destinations d ON h.destination_id = d.id
          WHERE bi.booking_id = ?
          AND bi.item_type = 'hotel'`,
-        [rows[i].booking_id]
+        [rows[i].booking_id],
       );
-      
-      const hotel = hotelResults.length > 0 ? 
-        parseJsonFields(hotelResults, ['item_details'])[0] : 
-        null;
-      
+
+      const hotel =
+        hotelResults.length > 0
+          ? parseJsonFields(hotelResults, ["item_details"])[0]
+          : null;
+
       // Get transport information for this booking
       const [transportResults] = await db.query(
         `SELECT t.id, to_orig.name as origin_name, d.name as transport_destination_name, t.cost, bi.item_details
@@ -491,27 +530,30 @@ exports.getGuideAssignedBookings = async (req, res) => {
          JOIN destinations d ON t.destination_id = d.id
          WHERE bi.booking_id = ?
          AND bi.item_type = 'transport'`,
-        [rows[i].booking_id]
+        [rows[i].booking_id],
       );
-      
-      const transport = transportResults.length > 0 ? 
-        parseJsonFields(transportResults, ['item_details'])[0] : 
-        null;
-      
+
+      const transport =
+        transportResults.length > 0
+          ? parseJsonFields(transportResults, ["item_details"])[0]
+          : null;
+
       // Calculate booking duration
       const startDate = new Date(rows[i].start_date);
       const endDate = new Date(rows[i].end_date);
-      const durationDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-      
+      const durationDays = Math.ceil(
+        (endDate - startDate) / (1000 * 60 * 60 * 24),
+      );
+
       // Determine booking status based on dates
       const currentDate = new Date();
-      let bookingStatus = 'upcoming';
+      let bookingStatus = "upcoming";
       if (currentDate > endDate) {
-        bookingStatus = 'completed';
+        bookingStatus = "completed";
       } else if (currentDate >= startDate && currentDate <= endDate) {
-        bookingStatus = 'ongoing';
+        bookingStatus = "ongoing";
       }
-      
+
       // Add all details to the row
       rows[i].activities = activities || [];
       rows[i].hotel = hotel;
@@ -519,11 +561,13 @@ exports.getGuideAssignedBookings = async (req, res) => {
       rows[i].duration_days = durationDays;
       rows[i].booking_status = bookingStatus;
     }
-    
+
     res.status(200).json(rows);
   } catch (error) {
     console.error("Error fetching assigned bookings:", error);
-    res.status(500).json({ message: "Failed to fetch bookings", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to fetch bookings", error: error.message });
   }
 };
 
@@ -539,7 +583,7 @@ exports.getHotelBookingsNeedingAction = async (req, res) => {
 
     // Get bookings that need action
     const [bookingItems] = await db.query(
-      `SELECT bi.*, b.tourist_user_id, u.email as tourist_email, u.phone_number as tourist_phone, b.tourist_full_name as tourist_name
+      `SELECT bi.*, b.start_date, b.end_date, b.tourist_user_id, u.email as tourist_email, u.phone_number as tourist_phone, b.tourist_full_name as tourist_name
        FROM booking_items bi
        JOIN bookings b ON bi.booking_id = b.id
        JOIN users u ON b.tourist_user_id = u.id
@@ -548,13 +592,15 @@ exports.getHotelBookingsNeedingAction = async (req, res) => {
        AND bi.provider_status = 'pending'
        AND b.status = 'confirmed'
        ORDER BY b.id DESC`,
-      [hotelId]
+      [hotelId],
     );
 
     res.status(200).json(bookingItems);
   } catch (error) {
     console.error("Error fetching bookings needing action:", error);
-    res.status(500).json({ message: "Failed to fetch bookings", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to fetch bookings", error: error.message });
   }
 };
 
@@ -570,22 +616,25 @@ exports.confirmHotelRoom = async (req, res) => {
     const [bookingItemRows] = await db.query(
       `SELECT bi.*, b.id as booking_id FROM booking_items bi
        JOIN bookings b ON bi.booking_id = b.id
-       WHERE bi.id = ? 
-       AND bi.item_type = 'hotel' 
+       WHERE bi.id = ?
+       AND bi.item_type = 'hotel'
        AND bi.provider_status = 'pending'
        AND b.status = 'confirmed'`,
-      [itemId]
+      [itemId],
     );
 
     if (bookingItemRows.length === 0) {
-      return res.status(404).json({ 
-        message: "Booking item not found or not associated with your hotel or already processed" 
+      return res.status(404).json({
+        message:
+          "Booking item not found or not associated with your hotel or already processed",
       });
     }
 
     // Basic validation for required fields
     if (!roomDetails.roomNumber || !roomDetails.roomType) {
-      return res.status(400).json({ message: "Room number and room type are required" });
+      return res
+        .status(400)
+        .json({ message: "Room number and room type are required" });
     }
 
     // Prepare enhanced room details with confirmation flag
@@ -593,16 +642,16 @@ exports.confirmHotelRoom = async (req, res) => {
       ...roomDetails,
       room_confirmed: true,
       confirmed_at: new Date().toISOString(),
-      confirmed_by: "hotel_manager"
+      confirmed_by: "hotel_manager",
     };
 
     // Update the booking item with room details
     await db.query(
-      `UPDATE booking_items 
-       SET provider_status = 'confirmed', 
-       item_details = ? 
+      `UPDATE booking_items
+       SET provider_status = 'confirmed',
+       item_details = ?
        WHERE id = ?`,
-      [JSON.stringify(enhancedRoomDetails), itemId]
+      [JSON.stringify(enhancedRoomDetails), itemId],
     );
 
     // Check if all booking items are now confirmed
@@ -611,7 +660,9 @@ exports.confirmHotelRoom = async (req, res) => {
     res.status(200).json({ message: "Room confirmed successfully" });
   } catch (error) {
     console.error("Error confirming room:", error);
-    res.status(500).json({ message: "Failed to confirm room", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to confirm room", error: error.message });
   }
 };
 
@@ -620,14 +671,14 @@ exports.confirmHotelRoom = async (req, res) => {
  */
 exports.getTransportBookingsNeedingAction = async (req, res) => {
   const userId = req.user.id;
-  
+
   try {
     // Travel agent's user ID is now directly the agency ID
     const agencyId = userId;
-    
+
     // Get bookings that need action
     const [bookingItems] = await db.query(
-      `SELECT bi.*, to_orig.name as origin_name, d.name as destination_name, tr.transportation_type, 
+      `SELECT bi.*, to_orig.name as origin_name, d.name as destination_name, tr.transportation_type,
               b.tourist_user_id, u.email as tourist_email, u.phone_number as tourist_phone, b.tourist_full_name as tourist_name
        FROM booking_items bi
        JOIN transports tr ON bi.item_type = 'transport' AND bi.id = tr.id
@@ -639,13 +690,15 @@ exports.getTransportBookingsNeedingAction = async (req, res) => {
        AND bi.provider_status = 'pending'
        AND b.status = 'confirmed'
        ORDER BY b.id DESC`,
-      [agencyId]
+      [agencyId],
     );
-    
+
     res.status(200).json(bookingItems);
   } catch (error) {
     console.error("Error fetching bookings needing action:", error);
-    res.status(500).json({ message: "Failed to fetch bookings", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to fetch bookings", error: error.message });
   }
 };
 
@@ -656,14 +709,14 @@ exports.assignTransportTicket = async (req, res) => {
   const { itemId } = req.params;
   const { ticketPdfUrl } = req.body;
   const userId = req.user.id;
-  
+
   try {
     // Travel agent's user ID is now directly the agency ID
     const agencyId = userId;
-    
+
     // Check if the booking item belongs to a route owned by this agency
     const [bookingItemRows] = await db.query(
-      `SELECT bi.*, b.id as booking_id 
+      `SELECT bi.*, b.id as booking_id
        FROM booking_items bi
        JOIN transports tr ON bi.item_type = 'transport' AND bi.id = tr.id
        JOIN bookings b ON bi.booking_id = b.id
@@ -672,44 +725,47 @@ exports.assignTransportTicket = async (req, res) => {
        AND tr.agency_id = ?
        AND bi.provider_status = 'pending'
        AND b.status = 'confirmed'`,
-      [itemId, agencyId]
+      [itemId, agencyId],
     );
-    
+
     if (bookingItemRows.length === 0) {
-      return res.status(404).json({ 
-        message: "Booking item not found or not associated with your agency or already processed" 
+      return res.status(404).json({
+        message:
+          "Booking item not found or not associated with your agency or already processed",
       });
     }
-    
+
     // Validate that PDF URL is provided
     if (!ticketPdfUrl) {
       return res.status(400).json({ message: "Ticket PDF is required" });
     }
-    
+
     // Prepare ticket details with PDF URL
     const ticketDetails = {
       ticket_pdf_url: ticketPdfUrl,
       ticket_assigned: true,
       assigned_at: new Date().toISOString(),
-      assigned_by: "travel_agent"
+      assigned_by: "travel_agent",
     };
-    
+
     // Update the booking item with ticket details
     await db.query(
-      `UPDATE booking_items 
-       SET provider_status = 'confirmed', 
-           item_details = ? 
+      `UPDATE booking_items
+       SET provider_status = 'confirmed',
+           item_details = ?
        WHERE id = ?`,
-      [JSON.stringify(ticketDetails), itemId]
+      [JSON.stringify(ticketDetails), itemId],
     );
-    
+
     // Check if all booking items are now confirmed
     await checkAndUpdateBookingCompletion(bookingItemRows[0].booking_id);
-    
+
     res.status(200).json({ message: "Ticket assigned successfully" });
   } catch (error) {
     console.error("Error assigning ticket:", error);
-    res.status(500).json({ message: "Failed to assign ticket", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to assign ticket", error: error.message });
   }
 };
 
@@ -719,105 +775,121 @@ exports.assignTransportTicket = async (req, res) => {
 exports.assignTourGuide = async (req, res) => {
   const { bookingId } = req.params;
   const { guideId } = req.body;
-  
+
   if (!bookingId || !guideId) {
-    return res.status(400).json({ message: "Booking ID and Guide ID are required" });
+    return res
+      .status(400)
+      .json({ message: "Booking ID and Guide ID are required" });
   }
-  
+
   try {
     // Start a transaction
     const connection = await db.getConnection();
     await connection.beginTransaction();
-    
+
     try {
       // Verify the booking exists and is in appropriate status
       const [bookingRows] = await connection.query(
         "SELECT * FROM bookings WHERE id = ? AND status = 'confirmed'",
-        [bookingId]
+        [bookingId],
       );
-      
+
       if (bookingRows.length === 0) {
-        return res.status(404).json({ message: "Booking not found or not in confirmed status" });
+        return res
+          .status(404)
+          .json({ message: "Booking not found or not in confirmed status" });
       }
-      
+
       // Verify the guide exists, is active, and is available
       const [guideRows] = await connection.query(
-        `SELECT u.id, tg.activities, tg.full_name, tg.available, 
+        `SELECT u.id, tg.activities, tg.full_name, tg.available,
                 d.name as destination_name
          FROM users u
          JOIN tour_guides tg ON u.id = tg.user_id
          JOIN destinations d ON tg.destination_id = d.id
          WHERE u.id = ? AND u.role = 'tour_guide' AND u.status = 'active'`,
-        [guideId]
+        [guideId],
       );
-      
+
       if (guideRows.length === 0) {
-        return res.status(404).json({ message: "Tour guide not found or not active" });
+        return res
+          .status(404)
+          .json({ message: "Tour guide not found or not active" });
       }
-      
+
       // Check if the tour guide is available
       if (!guideRows[0].available) {
-        return res.status(400).json({ message: "Tour guide is not available for new assignments" });
+        return res
+          .status(400)
+          .json({ message: "Tour guide is not available for new assignments" });
       }
-      
+
       // Check if a tour guide placeholder exists or if a tour guide is already assigned
       const [existingGuideRows] = await connection.query(
-        `SELECT id, item_type, item_details 
-         FROM booking_items 
+        `SELECT id, item_type, item_details
+         FROM booking_items
          WHERE booking_id = ? AND (item_type = 'placeholder' OR item_type = 'tour_guide')`,
-        [bookingId]
+        [bookingId],
       );
-      
+
       // If no placeholder or tour guide exists, this is an error - all bookings should have either
       if (existingGuideRows.length === 0) {
-        return res.status(400).json({ message: "This booking has no placeholder for a tour guide" });
+        return res
+          .status(400)
+          .json({
+            message: "This booking has no placeholder for a tour guide",
+          });
       }
-      
+
       // If a tour guide is already assigned, don't allow another assignment
-      if (existingGuideRows.some(item => item.item_type === 'tour_guide')) {
-        return res.status(400).json({ message: "This booking already has a tour guide assigned" });
+      if (existingGuideRows.some((item) => item.item_type === "tour_guide")) {
+        return res
+          .status(400)
+          .json({ message: "This booking already has a tour guide assigned" });
       }
-      
+
       // Get the placeholder item
-      const placeholder = existingGuideRows.find(item => item.item_type === 'placeholder');
-      
+      const placeholder = existingGuideRows.find(
+        (item) => item.item_type === "placeholder",
+      );
+
       // Replace the placeholder with the actual tour guide
       await connection.query(
-        `UPDATE booking_items 
-         SET item_type = 'tour_guide', 
-             id = ?, 
-             provider_status = 'confirmed', 
-             item_details = ? 
+        `UPDATE booking_items
+         SET item_type = 'tour_guide',
+             id = ?,
+             provider_status = 'confirmed',
+             item_details = ?
          WHERE id = ?`,
         [
           guideId,
-          JSON.stringify({ 
+          JSON.stringify({
             assigned_by: "admin",
             assigned_at: new Date().toISOString(),
             guide_name: guideRows[0].full_name,
-            destination_name: guideRows[0].destination_name
+            destination_name: guideRows[0].destination_name,
           }),
-          placeholder.id
-        ]
+          placeholder.id,
+        ],
       );
-      
+
       // Mark the tour guide as unavailable
       await connection.query(
         `UPDATE tour_guides SET available = FALSE WHERE user_id = ?`,
-        [guideId]
+        [guideId],
       );
-      
+
       await connection.commit();
-      
+
       // Check if all booking items are now confirmed (outside transaction)
       await checkAndUpdateBookingCompletion(bookingId);
-      
-      res.status(200).json({ 
-        message: "Tour guide assigned successfully", 
+
+      res.status(200).json({
+        message: "Tour guide assigned successfully",
         guide: {
           id: guideRows[0].id,
-          destination_name: guideRows[0].destination_name
-        }
+          destination_name: guideRows[0].destination_name,
+        },
       });
     } catch (error) {
       await connection.rollback();
@@ -827,7 +899,9 @@ exports.assignTourGuide = async (req, res) => {
     }
   } catch (error) {
     console.error("Error assigning tour guide:", error);
-    res.status(500).json({ message: "Failed to assign tour guide", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to assign tour guide", error: error.message });
   }
 };
 
@@ -848,13 +922,13 @@ exports.getUnassignedBookings = async (req, res) => {
        JOIN destinations d ON b.destination_id = d.id
        WHERE b.status = 'confirmed'
        AND b.id NOT IN (
-         SELECT DISTINCT booking_id 
-         FROM booking_items 
+         SELECT DISTINCT booking_id
+         FROM booking_items
          WHERE item_type = 'tour_guide'
        )
-       ORDER BY b.start_date ASC`
+       ORDER BY b.start_date ASC`,
     );
-    
+
     // For each booking, get comprehensive details
     for (let i = 0; i < rows.length; i++) {
       // Get activities for this booking
@@ -863,18 +937,18 @@ exports.getUnassignedBookings = async (req, res) => {
          FROM booking_items bi
          JOIN activities a ON bi.id = a.id
          WHERE bi.booking_id = ? AND bi.item_type = 'activity'`,
-        [rows[i].id]
+        [rows[i].id],
       );
-      
+
       // Get hotel information
       const [hotels] = await db.query(
         `SELECT h.id, h.name, h.destination_id, bi.item_details
          FROM booking_items bi
          JOIN hotels h ON bi.id = h.id
          WHERE bi.booking_id = ? AND bi.item_type = 'hotel'`,
-        [rows[i].id]
+        [rows[i].id],
       );
-      
+
       // Get transport information
       const [transports] = await db.query(
         `SELECT t.id, to_orig.name as origin_name, dest.name as destination_name, t.cost, bi.item_details
@@ -883,27 +957,34 @@ exports.getUnassignedBookings = async (req, res) => {
          JOIN transport_origins to_orig ON t.origin_id = to_orig.id
          JOIN destinations dest ON t.destination_id = dest.id
          WHERE bi.booking_id = ? AND bi.item_type = 'transport'`,
-        [rows[i].id]
+        [rows[i].id],
       );
-      
+
       // Calculate duration
       const startDate = new Date(rows[i].start_date);
       const endDate = new Date(rows[i].end_date);
-      const durationDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-      
+      const durationDays = Math.ceil(
+        (endDate - startDate) / (1000 * 60 * 60 * 24),
+      );
+
       // Add computed fields
-      rows[i].activities = activities.map(a => a.name);
+      rows[i].activities = activities.map((a) => a.name);
       rows[i].activity_details = activities;
-      rows[i].hotel_details = parseJsonFields(hotels, ['item_details']);
-      rows[i].transport_details = parseJsonFields(transports, ['item_details']);
+      rows[i].hotel_details = parseJsonFields(hotels, ["item_details"]);
+      rows[i].transport_details = parseJsonFields(transports, ["item_details"]);
       rows[i].duration_days = durationDays;
       // Tourist name now comes from the booking record, no need to extract from email
     }
-    
+
     res.status(200).json(rows);
   } catch (error) {
     console.error("Error fetching unassigned bookings:", error);
-    res.status(500).json({ message: "Failed to fetch unassigned bookings", error: error.message });
+    res
+      .status(500)
+      .json({
+        message: "Failed to fetch unassigned bookings",
+        error: error.message,
+      });
   }
 };
 
@@ -912,32 +993,36 @@ exports.getUnassignedBookings = async (req, res) => {
  */
 exports.getEligibleGuidesForBooking = async (req, res) => {
   const { bookingId } = req.params;
-  
+
   try {
     // Get booking details to find destination
     const [bookingRows] = await db.query(
       "SELECT destination_id FROM bookings WHERE id = ? AND status = 'confirmed'",
-      [bookingId]
+      [bookingId],
     );
-    
+
     if (bookingRows.length === 0) {
-      return res.status(404).json({ message: "Booking not found or not confirmed" });
+      return res
+        .status(404)
+        .json({ message: "Booking not found or not confirmed" });
     }
-    
+
     const { destination_id } = bookingRows[0];
-    
+
     if (!destination_id) {
-      return res.status(400).json({ message: "Could not determine booking destination" });
+      return res
+        .status(400)
+        .json({ message: "Could not determine booking destination" });
     }
-    
+
     // Get activities for this booking
     const [bookingItems] = await db.query(
       "SELECT id FROM booking_items WHERE booking_id = ? AND item_type = 'activity'",
-      [bookingId]
+      [bookingId],
     );
-    
-    const activityIds = bookingItems.map(item => item.id);
-    
+
+    const activityIds = bookingItems.map((item) => item.id);
+
     // Find tour guides based on destination match and availability
     const [guides] = await db.query(
       `SELECT u.id, u.email, tg.full_name, tg.destination_id, tg.activities, tg.user_id, tg.available,
@@ -949,16 +1034,21 @@ exports.getEligibleGuidesForBooking = async (req, res) => {
        AND tg.available = TRUE
        AND tg.destination_id = ?
        ORDER BY tg.full_name`,
-      [destination_id]
+      [destination_id],
     );
-    
+
     // Sort guides by name for consistent ordering
     guides.sort((a, b) => a.full_name.localeCompare(b.full_name));
-    
+
     res.status(200).json(guides);
   } catch (error) {
     console.error("Error finding eligible guides:", error);
-    res.status(500).json({ message: "Failed to find eligible guides", error: error.message });
+    res
+      .status(500)
+      .json({
+        message: "Failed to find eligible guides",
+        error: error.message,
+      });
   }
 };
 
@@ -985,7 +1075,10 @@ exports.processBookingPayment = async (req, res) => {
         WHERE b.id = ? AND b.tourist_user_id = ?
       `;
 
-      const [bookingResult] = await connection.query(bookingQuery, [bookingId, userId]);
+      const [bookingResult] = await connection.query(bookingQuery, [
+        bookingId,
+        userId,
+      ]);
 
       if (bookingResult.length === 0) {
         await connection.rollback();
@@ -1023,24 +1116,30 @@ exports.processBookingPayment = async (req, res) => {
           break;
 
         case "crypto":
-          // Enhanced crypto payment processing 
+          // Enhanced crypto payment processing
           const walletAddress = req.body.walletAddress;
           const useVaultBalance = req.body.useVaultBalance || false;
           const transactionHash = req.body.transactionHash;
           const amountTZC = req.body.amountTZC;
           const amountTZS = req.body.amountTZS;
-          
+
           if (!walletAddress) {
             await connection.rollback();
             connection.release();
-            return res.status(400).json({ message: "Wallet address required for crypto payment" });
+            return res
+              .status(400)
+              .json({ message: "Wallet address required for crypto payment" });
           }
 
           // If vault balance is used, verify transaction hash
           if (useVaultBalance && !transactionHash) {
             await connection.rollback();
             connection.release();
-            return res.status(400).json({ message: "Transaction hash required for vault payments" });
+            return res
+              .status(400)
+              .json({
+                message: "Transaction hash required for vault payments",
+              });
           }
 
           // Set payment reference based on payment type
@@ -1059,7 +1158,9 @@ exports.processBookingPayment = async (req, res) => {
             SELECT balance FROM users
             WHERE id = ?
           `;
-          const [balanceResult] = await connection.query(balanceQuery, [userId]);
+          const [balanceResult] = await connection.query(balanceQuery, [
+            userId,
+          ]);
 
           if (balanceResult.length === 0) {
             await connection.rollback();
@@ -1068,7 +1169,7 @@ exports.processBookingPayment = async (req, res) => {
           }
 
           const balance = parseFloat(balanceResult[0].balance);
-          
+
           // Use the amount passed from frontend (discounted price) if available, otherwise use full cost
           const paymentAmount = amount || booking.total_cost;
 
@@ -1087,7 +1188,7 @@ exports.processBookingPayment = async (req, res) => {
             "UPDATE users SET balance = balance - ? WHERE id = ?",
             [paymentAmount, userId],
           );
-          
+
           paymentSuccess = true;
           paymentReference = `SAV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
           break;
@@ -1157,31 +1258,36 @@ exports.getHotelBookingsCompleted = async (req, res) => {
   try {
     // Hotel ID is now directly the user ID of the hotel manager
     const hotelId = userId;
-    
+
     // Get completed bookings for this hotel
     const [bookingItems] = await db.query(
-      `SELECT 
+      `SELECT
         bi.id, bi.booking_id, bi.item_type, bi.id as hotel_id, bi.cost, bi.item_details,
         b.start_date, b.end_date, b.status, b.total_cost,
         u.email as tourist_email, u.phone_number as tourist_phone, b.tourist_full_name as tourist_name
        FROM booking_items bi
        JOIN bookings b ON bi.booking_id = b.id
        JOIN users u ON b.tourist_user_id = u.id
-       WHERE bi.item_type = 'hotel' 
+       WHERE bi.item_type = 'hotel'
        AND bi.id = ?
        AND bi.item_details IS NOT NULL
        AND JSON_EXTRACT(bi.item_details, '$.room_confirmed') = true
        ORDER BY b.id DESC`,
-      [hotelId]
+      [hotelId],
     );
 
     // Parse item_details JSON if it exists
-    const processedBookings = parseJsonFields(bookingItems, ['item_details']);
-    
+    const processedBookings = parseJsonFields(bookingItems, ["item_details"]);
+
     res.status(200).json(processedBookings);
   } catch (error) {
     console.error("Error fetching completed hotel bookings:", error);
-    res.status(500).json({ message: "Failed to fetch completed bookings", error: error.message });
+    res
+      .status(500)
+      .json({
+        message: "Failed to fetch completed bookings",
+        error: error.message,
+      });
   }
 };
 
@@ -1190,24 +1296,24 @@ exports.getHotelBookingsCompleted = async (req, res) => {
  */
 exports.getTransportBookingsCompleted = async (req, res) => {
   const userId = req.user.id;
-  
+
   try {
     // Get all transport routes owned by this travel agent
     const [routes] = await db.query(
       "SELECT id FROM transports WHERE agency_id = ?",
-      [userId]
+      [userId],
     );
-    
+
     if (routes.length === 0) {
       return res.status(200).json([]);
     }
-    
-    const routeIds = routes.map(route => route.id);
-    const placeholders = routeIds.map(() => '?').join(',');
-    
+
+    const routeIds = routes.map((route) => route.id);
+    const placeholders = routeIds.map(() => "?").join(",");
+
     // Get completed transport bookings
     const [bookingItems] = await db.query(
-      `SELECT 
+      `SELECT
         bi.id, bi.booking_id, bi.item_type, bi.id as route_id, bi.cost, bi.item_details,
         b.start_date, b.end_date, b.status, b.total_cost,
         u.email as tourist_email, u.phone_number as tourist_phone, b.tourist_full_name as tourist_name,
@@ -1218,21 +1324,26 @@ exports.getTransportBookingsCompleted = async (req, res) => {
        JOIN transports t ON bi.id = t.id
        JOIN transport_origins to_orig ON t.origin_id = to_orig.id
        JOIN destinations d ON t.destination_id = d.id
-       WHERE bi.item_type = 'transport' 
+       WHERE bi.item_type = 'transport'
        AND bi.id IN (${placeholders})
        AND bi.item_details IS NOT NULL
        AND JSON_EXTRACT(bi.item_details, '$.ticket_assigned') = true
        ORDER BY b.id DESC`,
-      routeIds
+      routeIds,
     );
 
     // Parse item_details JSON if it exists
-    const processedBookings = parseJsonFields(bookingItems, ['item_details']);
-    
+    const processedBookings = parseJsonFields(bookingItems, ["item_details"]);
+
     res.status(200).json(processedBookings);
   } catch (error) {
     console.error("Error fetching completed transport bookings:", error);
-    res.status(500).json({ message: "Failed to fetch completed bookings", error: error.message });
+    res
+      .status(500)
+      .json({
+        message: "Failed to fetch completed bookings",
+        error: error.message,
+      });
   }
 };
 
@@ -1243,22 +1354,24 @@ const checkAndUpdateBookingCompletion = async (bookingId) => {
   try {
     // Get all booking items for this booking
     const [items] = await db.query(
-      `SELECT provider_status, item_type FROM booking_items 
+      `SELECT provider_status, item_type FROM booking_items
        WHERE booking_id = ?`,
-      [bookingId]
+      [bookingId],
     );
 
     if (items.length === 0) return;
 
     // Check if all items are confirmed
-    const allConfirmed = items.every(item => item.provider_status === 'confirmed');
-    
+    const allConfirmed = items.every(
+      (item) => item.provider_status === "confirmed",
+    );
+
     if (allConfirmed) {
       // Update booking status to completed if all services are confirmed
       await db.query(
-        `UPDATE bookings SET status = 'completed' 
+        `UPDATE bookings SET status = 'completed'
          WHERE id = ? AND status = 'confirmed'`,
-        [bookingId]
+        [bookingId],
       );
     }
   } catch (error) {
@@ -1273,20 +1386,22 @@ const checkAndUpdateBookingCompletion = async (bookingId) => {
 exports.getGuideBookingDetails = async (req, res) => {
   const userId = req.user.id;
   const { bookingId } = req.params;
-  
+
   try {
     // Verify that this guide is assigned to this booking
     const [authCheck] = await db.query(
       `SELECT bi.id
        FROM booking_items bi
        WHERE bi.booking_id = ? AND bi.item_type = 'tour_guide' AND bi.id = ?`,
-      [bookingId, userId]
+      [bookingId, userId],
     );
-    
+
     if (authCheck.length === 0) {
-      return res.status(403).json({ message: "You are not assigned to this booking" });
+      return res
+        .status(403)
+        .json({ message: "You are not assigned to this booking" });
     }
-    
+
     // Get comprehensive booking details
     const [bookingDetails] = await db.query(
       `SELECT b.id, b.total_cost, b.status, b.start_date, b.end_date,
@@ -1297,26 +1412,26 @@ exports.getGuideBookingDetails = async (req, res) => {
        JOIN users u ON b.tourist_user_id = u.id
        JOIN destinations d ON b.destination_id = d.id
        WHERE b.id = ?`,
-      [bookingId]
+      [bookingId],
     );
-    
+
     if (bookingDetails.length === 0) {
       return res.status(404).json({ message: "Booking not found" });
     }
-    
+
     const booking = bookingDetails[0];
-    
+
     // Get all booking items with details
     const [bookingItems] = await db.query(
       `SELECT bi.id, bi.item_type, bi.cost, bi.provider_status, bi.item_details,
-              CASE 
+              CASE
                 WHEN bi.item_type = 'hotel' THEN h.name
                 WHEN bi.item_type = 'activity' THEN a.name
                 WHEN bi.item_type = 'transport' THEN CONCAT(to_orig.name, ' to ', dest.name)
                 WHEN bi.item_type = 'tour_guide' THEN tg.full_name
                 ELSE 'Unknown'
               END as item_name,
-              CASE 
+              CASE
                 WHEN bi.item_type = 'hotel' THEN d_hotel.name
                 WHEN bi.item_type = 'activity' THEN a.description
                 WHEN bi.item_type = 'transport' THEN 'Transport'
@@ -1334,41 +1449,48 @@ exports.getGuideBookingDetails = async (req, res) => {
        LEFT JOIN destinations d_tg ON bi.item_type = 'tour_guide' AND tg.destination_id = d_tg.id
        WHERE bi.booking_id = ?
        ORDER BY bi.item_type`,
-      [bookingId]
+      [bookingId],
     );
-    
+
     // Parse JSON fields and group items by type
-    const parsedItems = parseJsonFields(bookingItems, ['item_details']);
+    const parsedItems = parseJsonFields(bookingItems, ["item_details"]);
     const itemsByType = {
-      hotel: parsedItems.filter(item => item.item_type === 'hotel'),
-      activities: parsedItems.filter(item => item.item_type === 'activity'),
-      transport: parsedItems.filter(item => item.item_type === 'transport'),
-      tour_guide: parsedItems.filter(item => item.item_type === 'tour_guide')
+      hotel: parsedItems.filter((item) => item.item_type === "hotel"),
+      activities: parsedItems.filter((item) => item.item_type === "activity"),
+      transport: parsedItems.filter((item) => item.item_type === "transport"),
+      tour_guide: parsedItems.filter((item) => item.item_type === "tour_guide"),
     };
-    
+
     // Calculate additional metrics
     const startDate = new Date(booking.start_date);
     const endDate = new Date(booking.end_date);
-    const durationDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-    
+    const durationDays = Math.ceil(
+      (endDate - startDate) / (1000 * 60 * 60 * 24),
+    );
+
     const currentDate = new Date();
-    let bookingStatus = 'upcoming';
+    let bookingStatus = "upcoming";
     if (currentDate > endDate) {
-      bookingStatus = 'completed';
+      bookingStatus = "completed";
     } else if (currentDate >= startDate && currentDate <= endDate) {
-      bookingStatus = 'ongoing';
+      bookingStatus = "ongoing";
     }
-    
+
     const response = {
       ...booking,
       duration_days: durationDays,
       booking_status: bookingStatus,
-      items: itemsByType
+      items: itemsByType,
     };
-    
+
     res.status(200).json(response);
   } catch (error) {
     console.error("Error fetching booking details:", error);
-    res.status(500).json({ message: "Failed to fetch booking details", error: error.message });
+    res
+      .status(500)
+      .json({
+        message: "Failed to fetch booking details",
+        error: error.message,
+      });
   }
 };

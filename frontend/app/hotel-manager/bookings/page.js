@@ -83,7 +83,6 @@ export default function HotelManagerBookings() {
               <CardHeader className="pb-3 bg-gray-50">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                   <div>
-                    <Badge className="mb-1">#{booking.booking_id}</Badge>
                     <CardTitle className="text-base font-medium">
                       {booking.tourist_name || "Guest"}
                     </CardTitle>
@@ -179,15 +178,22 @@ export default function HotelManagerBookings() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="roomType">Room Type</Label>
-                <Input
+                <select
                   id="roomType"
-                  type="text"
                   value={roomDetails.roomType}
                   onChange={(e) =>
                     updateRoomDetails("roomType", e.target.value)
                   }
                   required
-                />
+                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-700"
+                >
+                  <option value="">Select a room type</option>
+                  <option value="Single">Single</option>
+                  <option value="Double">Double</option>
+                  <option value="Twin">Twin</option>
+                  <option value="Suite">Suite</option>
+                  <option value="Deluxe">Deluxe</option>
+                </select>
               </div>
             </div>
 
