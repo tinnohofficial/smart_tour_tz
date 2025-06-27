@@ -104,7 +104,7 @@ export default function TourGuideBookings() {
             </CardContent>
           </Card>
 
-          {/* <Card>
+          <Card>
             <CardHeader className="pb-3">
               <CardTitle className="font-medium text-sm">
                 Upcoming Tours
@@ -121,7 +121,7 @@ export default function TourGuideBookings() {
                 </div>
               </div>
             </CardContent>
-          </Card> */}
+          </Card>
 
           <Card>
             <CardHeader className="pb-3">
@@ -160,7 +160,7 @@ export default function TourGuideBookings() {
               >
                 <TabsList className="grid w-full md:w-auto grid-cols-3">
                   <TabsTrigger value="current">Current</TabsTrigger>
-                  {/* <TabsTrigger value="upcoming">Upcoming</TabsTrigger> */}
+                  <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
                   <TabsTrigger value="completed">Completed</TabsTrigger>
                 </TabsList>
               </Tabs>

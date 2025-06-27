@@ -182,7 +182,7 @@ export default function TourGuideDashboard() {
           {/* Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6">
             {/* Upcoming Tours Card */}
-            {/* <Card className="bg-amber-50/50">
+            <Card className="bg-amber-50/50">
               <CardContent className="p-0">
                 <div className="flex justify-between items-center">
                   <div className="p-4 sm:p-5">
@@ -212,7 +212,7 @@ export default function TourGuideDashboard() {
                   </div>
                 </div>
               </CardContent>
-            </Card> */}
+            </Card>
 
             {/* Total Tours Card */}
             <Card className="bg-blue-50/50">
@@ -312,7 +312,7 @@ export default function TourGuideDashboard() {
             </div>
 
             {/* Upcoming Tours Section */}
-            {/* <div className="lg:col-span-8">
+            <div className="lg:col-span-8">
               <Card>
                 <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-2 pt-4 sm:pt-5 px-4 sm:px-6 gap-2">
                   <div>
@@ -389,7 +389,7 @@ export default function TourGuideDashboard() {
                   )}
                 </CardContent>
               </Card>
-            </div> */}
+            </div>
           </div>
         </>
       ) : (

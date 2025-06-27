@@ -283,8 +283,8 @@ export default function TravelAgentRoutes() {
                       {route.destination_name || route.to_location}
                     </CardTitle>
                   </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <div className="flex items-center gap-2 mt-1">
+                  <div className="flex flex-col items-center mt-2">
+                    <div className="flex items-center gap-2">
                       <span
                         className={`text-xs font-semibold px-2 py-0.5 rounded ${
                           route.available
