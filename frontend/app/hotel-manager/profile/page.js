@@ -121,7 +121,7 @@ export default function HotelManagerProfile() {
       const newAvailability = !profileData.available;
 
       await hotelManagerService.updateProfile({
-        available: newAvailability,
+        is_available: newAvailability,
       });
 
       setProfileData((prev) => ({ ...prev, available: newAvailability }));
