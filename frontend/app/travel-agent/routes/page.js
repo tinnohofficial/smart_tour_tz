@@ -275,15 +275,18 @@ export default function TravelAgentRoutes() {
           {routes.map((route) => (
             <Card key={route.id} className="overflow-hidden">
               <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    {getTransportIcon(route.transportation_type)}
-                    <CardTitle className="text-lg truncate">
-                      {route.origin_name || route.from_location} →{" "}
-                      {route.destination_name || route.to_location}
-                    </CardTitle>
-                  </div>
-                  <div className="flex flex-col items-center mt-2">
+                <div className="flex items-center space-x-2">
+                  {getTransportIcon(route.transportation_type)}
+                  <CardTitle className="text-lg truncate">
+                    {route.origin_name || route.from_location} →{" "}
+                    {route.destination_name || route.to_location}
+                  </CardTitle>
+                </div>
+
+                {/* Availability Status Section - Now in its own block */}
+                <div className="mt-3 p-2 bg-gray-50 rounded-md">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Availability:</span>
                     <div className="flex items-center gap-2">
                       <span
                         className={`text-xs font-semibold px-2 py-0.5 rounded ${
