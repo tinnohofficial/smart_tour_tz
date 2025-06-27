@@ -98,6 +98,7 @@ CREATE TABLE transports (
     cost DECIMAL(10, 2) NOT NULL CHECK (cost > 0),
     description TEXT,
     route_details JSON, -- Detailed route information: legs, stops, times, ticket info, carrier details, etc.
+    available BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (agency_id) REFERENCES travel_agencies (id) ON DELETE CASCADE,
     FOREIGN KEY (origin_id) REFERENCES transport_origins (id) ON DELETE CASCADE,
     FOREIGN KEY (destination_id) REFERENCES destinations (id) ON DELETE CASCADE,
